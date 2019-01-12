@@ -4,12 +4,14 @@
 
 /// A simple arena.
 #[derive(Debug)]
-pub struct SimpleArena<Holds: UsesFileDescriptor<UsesFileDescriptor=FRF>, FRF: FromRawFd>
+pub struct SimpleArena<Holds: UsesFileDescriptor>
+where Holds::FileDescriptor: FromRawFd
 {
-	marker: PhantomData<(Holds, FRF)>,
+	marker: PhantomData<Holds>,
 }
 
-impl<Holds: UsesFileDescriptor<UsesFileDescriptor=FRF>, FRF: FromRawFd> Arena<Holds> for SimpleArena<Holds, FRF>
+impl<Holds: UsesFileDescriptor> Arena<Holds> for SimpleArena<Holds>
+where Holds::FileDescriptor: FromRawFd
 {
 	#[inline(always)]
 	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ()>
@@ -20,7 +22,7 @@ impl<Holds: UsesFileDescriptor<UsesFileDescriptor=FRF>, FRF: FromRawFd> Arena<Ho
 	#[inline(always)]
 	fn get(&self, arena_index: ArenaIndex, raw_file_descriptor: RawFd) -> (&mut Holds, Holds::FileDescriptor)
 	{
-		let file_descriptor = unsafe { Holds::from_raw_fd(raw_file_descriptor) };
+		let file_descriptor = unsafe { Holds::FileDescriptor::from_raw_fd(raw_file_descriptor) };
 		unimplemented!();
 	}
 

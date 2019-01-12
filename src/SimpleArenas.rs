@@ -1,9 +1,37 @@
 // This file is part of linux-epoll. It is subject to the license terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT. No part of linux-epoll, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
+
 /// Holds an arena for each item of `FileDescriptorKind`.
 #[derive(Debug)]
-pub struct SimpleArenas<CharacterDevice: UsesFileDescriptor, EventPoll: UsesFileDescriptor, Event: UsesFileDescriptor, FANotify: UsesFileDescriptor, INotify: UsesFileDescriptor, ReceivePipe: UsesFileDescriptor, SendPipe: UsesFileDescriptor, ReceivePosixMessageQueue: UsesFileDescriptor, SendPosixMessageQueue: UsesFileDescriptor, SendAndReceivePosixMessageQueue: UsesFileDescriptor, Signal: UsesFileDescriptor, Terminal: UsesFileDescriptor, Timer: UsesFileDescriptor, DatagramClientSocket: UsesFileDescriptor, DatagramServerListenerSocket: UsesFileDescriptor, StreamingSocket: UsesFileDescriptor, StreamingServerListenerSocket: UsesFileDescriptor>
+pub struct SimpleArenas
+<
+	CharacterDevice: UsesFileDescriptor<FileDescriptor=CharacterDeviceFileDescriptor>,
+	EventPoll: UsesFileDescriptor<FileDescriptor=EPollFileDescriptor>,
+	Event: UsesFileDescriptor<FileDescriptor=EventFileDescriptor>,
+	FANotify: UsesFileDescriptor<FileDescriptor=FanotifyFileDescriptor>,
+	INotify: UsesFileDescriptor<FileDescriptor=InotifyFileDescriptor>,
+	ReceivePipe: UsesFileDescriptor<FileDescriptor=ReceivePipeFileDescriptor>,
+	SendPipe: UsesFileDescriptor<FileDescriptor=SendPipeFileDescriptor>,
+	ReceivePosixMessageQueue: UsesFileDescriptor<FileDescriptor=ReceivePosixMessageQueueFileDescriptor>,
+	SendPosixMessageQueue: UsesFileDescriptor<FileDescriptor=SendPosixMessageQueueFileDescriptor>,
+	SendAndReceivePosixMessageQueue: UsesFileDescriptor<FileDescriptor=SendAndReceivePosixMessageQueueFileDescriptor>,
+	Signal: UsesFileDescriptor<FileDescriptor=SignalFileDescriptor>,
+	Terminal: UsesFileDescriptor<FileDescriptor=TerminalFileDescriptor>,
+	Timer: UsesFileDescriptor<FileDescriptor=TimerFileDescriptor>,
+	DatagramClientSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=DatagramClientSocketInternetProtocolVersion4FileDescriptor>,
+	DatagramClientSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=DatagramClientSocketInternetProtocolVersion6FileDescriptor>,
+	DatagramClientSocketUnixDomain: UsesFileDescriptor<FileDescriptor=DatagramClientSocketUnixDomainFileDescriptor>,
+	DatagramServerListenerSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketInternetProtocolVersion4FileDescriptor>,
+	DatagramServerListenerSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketInternetProtocolVersion6FileDescriptor>,
+	DatagramServerListenerSocketUnixDomain: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketUnixDomainFileDescriptor>,
+	StreamingSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=StreamingSocketInternetProtocolVersion4FileDescriptor>,
+	StreamingSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=StreamingSocketInternetProtocolVersion6FileDescriptor>,
+	StreamingSocketUnixDomain: UsesFileDescriptor<FileDescriptor=StreamingSocketUnixDomainFileDescriptor>,
+	StreamingServerListenerSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketInternetProtocolVersion4FileDescriptor>,
+	StreamingServerListenerSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketInternetProtocolVersion6FileDescriptor>,
+	StreamingServerListenerSocketUnixDomain: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketUnixDomainFileDescriptor>,
+>
 {
 	character_device: SimpleArena<CharacterDevice>,
 
@@ -37,194 +65,209 @@ pub struct SimpleArenas<CharacterDevice: UsesFileDescriptor, EventPoll: UsesFile
 
 	datagram_client_socket_unix_domain: SimpleArena<DatagramClientSocketUnixDomain>,
 
+	datagram_server_listener_socket_internet_protocol_version_4: SimpleArena<DatagramServerListenerSocketInternetProtocolVersion4>,
 
+	datagram_server_listener_socket_internet_protocol_version_6: SimpleArena<DatagramServerListenerSocketInternetProtocolVersion6>,
 
-
-	datagram_server_listener_socket: SimpleArena<DatagramServerListenerSocket>,
-
-	streaming_socket: SimpleArena<StreamingSocket>,
-
-	streaming_server_listener_socket: SimpleArena<StreamingServerListenerSocket>,
-}
-
-impl<CharacterDevice: UsesFileDescriptor, EventPoll: UsesFileDescriptor, Event: UsesFileDescriptor, FANotify: UsesFileDescriptor, INotify: UsesFileDescriptor, ReceivePipe: UsesFileDescriptor, SendPipe: UsesFileDescriptor, ReceivePosixMessageQueue: UsesFileDescriptor, SendPosixMessageQueue: UsesFileDescriptor, SendAndReceivePosixMessageQueue: UsesFileDescriptor, Signal: UsesFileDescriptor, Terminal: UsesFileDescriptor, Timer: UsesFileDescriptor, DatagramClientSocket: UsesFileDescriptor, DatagramServerListenerSocket: UsesFileDescriptor, StreamingSocket: UsesFileDescriptor, StreamingServerListenerSocket: UsesFileDescriptor> Arenas for SimpleArenas<CharacterDevice, EventPoll, Event, FANotify, INotify, ReceivePipe, SendPipe, ReceivePosixMessageQueue, SendPosixMessageQueue, SendAndReceivePosixMessageQueue, Signal, Terminal, Timer, DatagramClientSocket, DatagramServerListenerSocket, StreamingSocket, StreamingServerListenerSocket>
-{
-	type CharacterDevice = CharacterDevice;
+	datagram_server_listener_socket_unix_domain: SimpleArena<DatagramServerListenerSocketUnixDomain>,
 	
-	type CharacterDeviceArena = SimpleArena<CharacterDevice>;
+	streaming_socket_internet_protocol_version_4: SimpleArena<StreamingSocketInternetProtocolVersion4>,
 
-	#[inline(always)]
-	fn character_device(&self) -> &Self::CharacterDeviceArena
+	streaming_socket_internet_protocol_version_6: SimpleArena<StreamingSocketInternetProtocolVersion6>,
+
+	streaming_socket_unix_domain: SimpleArena<StreamingSocketUnixDomain>,
+	
+	streaming_server_listener_socket_internet_protocol_version_4: SimpleArena<StreamingServerListenerSocketInternetProtocolVersion4>,
+
+	streaming_server_listener_socket_internet_protocol_version_6: SimpleArena<StreamingServerListenerSocketInternetProtocolVersion6>,
+
+	streaming_server_listener_socket_unix_domain : SimpleArena<StreamingServerListenerSocketUnixDomain>,
+}
+
+macro_rules! arena_impl
+{
+	($lower_case: ident, $title_case: tt, $title_case_arena: tt) =>
 	{
-		&self.character_device
-	}
+		type $title_case = $title_case;
 
-	type EventPoll = EventPoll;
+		type $title_case_arena = SimpleArena<Self::$title_case>;
 
-	type EventPollArena = SimpleArena<Self::EventPoll>;
-
-	#[inline(always)]
-	fn event_poll(&self) -> &Self::EventPollArena
-	{
-		&self.event_poll
-	}
-
-	type Event = Event;
-
-	type EventArena = SimpleArena<Self::Event>;
-
-	#[inline(always)]
-	fn event(&self) -> &Self::EventArena
-	{
-		&self.event
-	}
-
-	type FANotify = FANotify;
-
-	type FANotifyArena = SimpleArena<Self::FANotify>;
-
-	#[inline(always)]
-	fn fanotify(&self) -> &Self::FANotifyArena
-	{
-		&self.fanotify
-	}
-
-	type INotify = INotify;
-
-	type INotifyArena = SimpleArena<Self::INotify>;
-
-	#[inline(always)]
-	fn inotify(&self) -> &Self::INotifyArena
-	{
-		&self.inotify
-	}
-
-	type ReceivePipe = ReceivePipe;
-
-	type ReceivePipeArena = SimpleArena<Self::ReceivePipe>;
-
-	#[inline(always)]
-	fn receive_pipe(&self) -> &Self::ReceivePipeArena
-	{
-		&self.receive_pipe
-	}
-
-	type SendPipe = SendPipe;
-
-	type SendPipeArena = SimpleArena<Self::SendPipe>;
-
-	#[inline(always)]
-	fn send_pipe(&self) -> &Self::SendPipeArena
-	{
-		&self.send_pipe
-	}
-
-	type ReceivePosixMessageQueue = ReceivePosixMessageQueue;
-
-	type ReceivePosixMessageQueueArena = SimpleArena<Self::ReceivePosixMessageQueue>;
-
-	#[inline(always)]
-	fn receive_posix_message_queue(&self) -> &Self::ReceivePosixMessageQueueArena
-	{
-		&self.receive_posix_message_queue
-	}
-
-	type SendPosixMessageQueue = SendPosixMessageQueue;
-
-	type SendPosixMessageQueueArena = SimpleArena<Self::SendPosixMessageQueue>;
-
-	#[inline(always)]
-	fn send_posix_message_queue(&self) -> &Self::SendPosixMessageQueueArena
-	{
-		&self.send_posix_message_queue
-	}
-
-	type SendAndReceivePosixMessageQueue = SendAndReceivePosixMessageQueue;
-
-	type SendAndReceivePosixMessageQueueArena = SimpleArena<Self::SendAndReceivePosixMessageQueue>;
-
-	#[inline(always)]
-	fn send_and_receive_posix_message_queue(&self) -> &Self::SendAndReceivePosixMessageQueueArena
-	{
-		&self.send_and_receive_posix_message_queue
-	}
-
-	type Signal = Signal;
-
-	type SignalArena = SimpleArena<Self::Signal>;
-
-	#[inline(always)]
-	fn signal(&self) -> &Self::SignalArena
-	{
-		&self.signal
-	}
-
-	type Terminal = Terminal;
-
-	type TerminalArena = SimpleArena<Self::Terminal>;
-
-	#[inline(always)]
-	fn terminal(&self) -> &Self::TerminalArena
-	{
-		&self.terminal
-	}
-
-	type Timer = Timer;
-
-	type TimerArena = SimpleArena<Self::Timer>;
-
-	#[inline(always)]
-	fn timer(&self) -> &Self::TimerArena
-	{
-		&self.timer
-	}
-
-	type DatagramClientSocket = DatagramClientSocket;
-
-	type DatagramClientSocketArena = SimpleArena<Self::DatagramClientSocket>;
-
-	#[inline(always)]
-	fn datagram_client_socket(&self) -> &Self::DatagramClientSocketArena
-	{
-		&self.datagram_client_socket
-	}
-
-	type DatagramServerListenerSocket = DatagramServerListenerSocket;
-
-	type DatagramServerListenerSocketArena = SimpleArena<Self::DatagramServerListenerSocket>;
-
-	#[inline(always)]
-	fn datagram_server_listener_socket(&self) -> &Self::DatagramServerListenerSocketArena
-	{
-		&self.datagram_server_listener_socket
-	}
-
-	type StreamingSocket = StreamingSocket;
-
-	type StreamingSocketArena = SimpleArena<Self::StreamingSocket>;
-
-	#[inline(always)]
-	fn streaming_socket(&self) -> &Self::StreamingSocketArena
-	{
-		&self.streaming_socket
-	}
-
-	type StreamingServerListenerSocket = StreamingServerListenerSocket;
-
-	type StreamingServerListenerSocketArena = SimpleArena<Self::StreamingServerListenerSocket>;
-
-	#[inline(always)]
-	fn streaming_server_listener_socket(&self) -> &Self::StreamingServerListenerSocketArena
-	{
-		&self.streaming_server_listener_socket
+		#[inline(always)]
+		fn $lower_case(&self) -> &Self::$title_case_arena
+		{
+			&self.$lower_case
+		}
 	}
 }
 
-impl<CharacterDevice: UsesFileDescriptor, EventPoll: UsesFileDescriptor, Event: UsesFileDescriptor, FANotify: UsesFileDescriptor, INotify: UsesFileDescriptor, ReceivePipe: UsesFileDescriptor, SendPipe: UsesFileDescriptor, ReceivePosixMessageQueue: UsesFileDescriptor, SendPosixMessageQueue: UsesFileDescriptor, SendAndReceivePosixMessageQueue: UsesFileDescriptor, Signal: UsesFileDescriptor, Terminal: UsesFileDescriptor, Timer: UsesFileDescriptor, DatagramClientSocket: UsesFileDescriptor, DatagramServerListenerSocket: UsesFileDescriptor, StreamingSocket: UsesFileDescriptor, StreamingServerListenerSocket: UsesFileDescriptor> SimpleArenas<CharacterDevice, EventPoll, Event, FANotify, INotify, ReceivePipe, SendPipe, ReceivePosixMessageQueue, SendPosixMessageQueue, SendAndReceivePosixMessageQueue, Signal, Terminal, Timer, DatagramClientSocket, DatagramServerListenerSocket, StreamingSocket, StreamingServerListenerSocket>
+impl
+<
+	CharacterDevice: UsesFileDescriptor<FileDescriptor=CharacterDeviceFileDescriptor>,
+	EventPoll: UsesFileDescriptor<FileDescriptor=EPollFileDescriptor>,
+	Event: UsesFileDescriptor<FileDescriptor=EventFileDescriptor>,
+	FANotify: UsesFileDescriptor<FileDescriptor=FanotifyFileDescriptor>,
+	INotify: UsesFileDescriptor<FileDescriptor=InotifyFileDescriptor>,
+	ReceivePipe: UsesFileDescriptor<FileDescriptor=ReceivePipeFileDescriptor>,
+	SendPipe: UsesFileDescriptor<FileDescriptor=SendPipeFileDescriptor>,
+	ReceivePosixMessageQueue: UsesFileDescriptor<FileDescriptor=ReceivePosixMessageQueueFileDescriptor>,
+	SendPosixMessageQueue: UsesFileDescriptor<FileDescriptor=SendPosixMessageQueueFileDescriptor>,
+	SendAndReceivePosixMessageQueue: UsesFileDescriptor<FileDescriptor=SendAndReceivePosixMessageQueueFileDescriptor>,
+	Signal: UsesFileDescriptor<FileDescriptor=SignalFileDescriptor>,
+	Terminal: UsesFileDescriptor<FileDescriptor=TerminalFileDescriptor>,
+	Timer: UsesFileDescriptor<FileDescriptor=TimerFileDescriptor>,
+	DatagramClientSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=DatagramClientSocketInternetProtocolVersion4FileDescriptor>,
+	DatagramClientSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=DatagramClientSocketInternetProtocolVersion6FileDescriptor>,
+	DatagramClientSocketUnixDomain: UsesFileDescriptor<FileDescriptor=DatagramClientSocketUnixDomainFileDescriptor>,
+	DatagramServerListenerSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketInternetProtocolVersion4FileDescriptor>,
+	DatagramServerListenerSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketInternetProtocolVersion6FileDescriptor>,
+	DatagramServerListenerSocketUnixDomain: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketUnixDomainFileDescriptor>,
+	StreamingSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=StreamingSocketInternetProtocolVersion4FileDescriptor>,
+	StreamingSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=StreamingSocketInternetProtocolVersion6FileDescriptor>,
+	StreamingSocketUnixDomain: UsesFileDescriptor<FileDescriptor=StreamingSocketUnixDomainFileDescriptor>,
+	StreamingServerListenerSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketInternetProtocolVersion4FileDescriptor>,
+	StreamingServerListenerSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketInternetProtocolVersion6FileDescriptor>,
+	StreamingServerListenerSocketUnixDomain: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketUnixDomainFileDescriptor>,
+>
+	Arenas for SimpleArenas
+<
+	CharacterDevice,
+	EventPoll,
+	Event,
+	FANotify,
+	INotify,
+	ReceivePipe,
+	SendPipe,
+	ReceivePosixMessageQueue,
+	SendPosixMessageQueue,
+	SendAndReceivePosixMessageQueue,
+	Signal,
+	Terminal,
+	Timer,
+	DatagramClientSocketInternetProtocolVersion4,
+	DatagramClientSocketInternetProtocolVersion6,
+	DatagramClientSocketUnixDomain,
+	DatagramServerListenerSocketInternetProtocolVersion4,
+	DatagramServerListenerSocketInternetProtocolVersion6,
+	DatagramServerListenerSocketUnixDomain,
+	StreamingSocketInternetProtocolVersion4,
+	StreamingSocketInternetProtocolVersion6,
+	StreamingSocketUnixDomain,
+	StreamingServerListenerSocketInternetProtocolVersion4,
+	StreamingServerListenerSocketInternetProtocolVersion6,
+	StreamingServerListenerSocketUnixDomain,
+>
+{
+	arena_impl!(character_device, CharacterDevice, CharacterDeviceArena);
+
+	arena_impl!(event_poll, EventPoll, EventPollArena);
+
+	arena_impl!(event, Event, EventArena);
+
+	arena_impl!(fanotify, FANotify, FANotifyArena);
+
+	arena_impl!(inotify, INotify, INotifyArena);
+
+	arena_impl!(receive_pipe, ReceivePipe, ReceivePipeArena);
+
+	arena_impl!(send_pipe, SendPipe, SendPipeArena);
+
+	arena_impl!(receive_posix_message_queue, ReceivePosixMessageQueue, ReceivePosixMessageQueueArena);
+
+	arena_impl!(send_posix_message_queue, SendPosixMessageQueue, SendPosixMessageQueueArena);
+
+	arena_impl!(send_and_receive_posix_message_queue, SendAndReceivePosixMessageQueue, SendAndReceivePosixMessageQueueArena);
+
+	arena_impl!(signal, Signal, SignalArena);
+
+	arena_impl!(terminal, Terminal, TerminalArena);
+
+	arena_impl!(timer, Timer, TimerArena);
+
+	arena_impl!(datagram_client_socket_internet_protocol_version_4, DatagramClientSocketInternetProtocolVersion4, DatagramClientSocketInternetProtocolVersion4Arena);
+
+	arena_impl!(datagram_client_socket_internet_protocol_version_6, DatagramClientSocketInternetProtocolVersion6, DatagramClientSocketInternetProtocolVersion6Arena);
+
+	arena_impl!(datagram_client_socket_unix_domain, DatagramClientSocketUnixDomain, DatagramClientSocketUnixDomainArena);
+
+	arena_impl!(datagram_server_listener_socket_internet_protocol_version_4, DatagramServerListenerSocketInternetProtocolVersion4, DatagramServerListenerSocketInternetProtocolVersion4Arena);
+
+	arena_impl!(datagram_server_listener_socket_internet_protocol_version_6, DatagramServerListenerSocketInternetProtocolVersion6, DatagramServerListenerSocketInternetProtocolVersion6Arena);
+
+	arena_impl!(datagram_server_listener_socket_unix_domain, DatagramServerListenerSocketUnixDomain, DatagramServerListenerSocketUnixDomainArena);
+
+	arena_impl!(streaming_socket_internet_protocol_version_4, StreamingSocketInternetProtocolVersion4, StreamingSocketInternetProtocolVersion4Arena);
+
+	arena_impl!(streaming_socket_internet_protocol_version_6, StreamingSocketInternetProtocolVersion6, StreamingSocketInternetProtocolVersion6Arena);
+
+	arena_impl!(streaming_socket_unix_domain, StreamingSocketUnixDomain, StreamingSocketUnixDomainArena);
+
+	arena_impl!(streaming_server_listener_socket_internet_protocol_version_4, StreamingServerListenerSocketInternetProtocolVersion4, StreamingServerListenerSocketInternetProtocolVersion4Arena);
+
+	arena_impl!(streaming_server_listener_socket_internet_protocol_version_6, StreamingServerListenerSocketInternetProtocolVersion6, StreamingServerListenerSocketInternetProtocolVersion6Arena);
+
+	arena_impl!(streaming_server_listener_socket_unix_domain, StreamingServerListenerSocketUnixDomain, StreamingServerListenerSocketUnixDomainArena);
+}
+
+impl
+<
+	CharacterDevice: UsesFileDescriptor<FileDescriptor=CharacterDeviceFileDescriptor>,
+	EventPoll: UsesFileDescriptor<FileDescriptor=EPollFileDescriptor>,
+	Event: UsesFileDescriptor<FileDescriptor=EventFileDescriptor>,
+	FANotify: UsesFileDescriptor<FileDescriptor=FanotifyFileDescriptor>,
+	INotify: UsesFileDescriptor<FileDescriptor=InotifyFileDescriptor>,
+	ReceivePipe: UsesFileDescriptor<FileDescriptor=ReceivePipeFileDescriptor>,
+	SendPipe: UsesFileDescriptor<FileDescriptor=SendPipeFileDescriptor>,
+	ReceivePosixMessageQueue: UsesFileDescriptor<FileDescriptor=ReceivePosixMessageQueueFileDescriptor>,
+	SendPosixMessageQueue: UsesFileDescriptor<FileDescriptor=SendPosixMessageQueueFileDescriptor>,
+	SendAndReceivePosixMessageQueue: UsesFileDescriptor<FileDescriptor=SendAndReceivePosixMessageQueueFileDescriptor>,
+	Signal: UsesFileDescriptor<FileDescriptor=SignalFileDescriptor>,
+	Terminal: UsesFileDescriptor<FileDescriptor=TerminalFileDescriptor>,
+	Timer: UsesFileDescriptor<FileDescriptor=TimerFileDescriptor>,
+	DatagramClientSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=DatagramClientSocketInternetProtocolVersion4FileDescriptor>,
+	DatagramClientSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=DatagramClientSocketInternetProtocolVersion6FileDescriptor>,
+	DatagramClientSocketUnixDomain: UsesFileDescriptor<FileDescriptor=DatagramClientSocketUnixDomainFileDescriptor>,
+	DatagramServerListenerSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketInternetProtocolVersion4FileDescriptor>,
+	DatagramServerListenerSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketInternetProtocolVersion6FileDescriptor>,
+	DatagramServerListenerSocketUnixDomain: UsesFileDescriptor<FileDescriptor=DatagramServerListenerSocketUnixDomainFileDescriptor>,
+	StreamingSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=StreamingSocketInternetProtocolVersion4FileDescriptor>,
+	StreamingSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=StreamingSocketInternetProtocolVersion6FileDescriptor>,
+	StreamingSocketUnixDomain: UsesFileDescriptor<FileDescriptor=StreamingSocketUnixDomainFileDescriptor>,
+	StreamingServerListenerSocketInternetProtocolVersion4: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketInternetProtocolVersion4FileDescriptor>,
+	StreamingServerListenerSocketInternetProtocolVersion6: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketInternetProtocolVersion6FileDescriptor>,
+	StreamingServerListenerSocketUnixDomain: UsesFileDescriptor<FileDescriptor=StreamingServerListenerSocketUnixDomainFileDescriptor>,
+>
+	SimpleArenas
+<
+	CharacterDevice,
+	EventPoll,
+	Event,
+	FANotify,
+	INotify,
+	ReceivePipe,
+	SendPipe,
+	ReceivePosixMessageQueue,
+	SendPosixMessageQueue,
+	SendAndReceivePosixMessageQueue,
+	Signal,
+	Terminal,
+	Timer,
+	DatagramClientSocketInternetProtocolVersion4,
+	DatagramClientSocketInternetProtocolVersion6,
+	DatagramClientSocketUnixDomain,
+	DatagramServerListenerSocketInternetProtocolVersion4,
+	DatagramServerListenerSocketInternetProtocolVersion6,
+	DatagramServerListenerSocketUnixDomain,
+	StreamingSocketInternetProtocolVersion4,
+	StreamingSocketInternetProtocolVersion6,
+	StreamingSocketUnixDomain,
+	StreamingServerListenerSocketInternetProtocolVersion4,
+	StreamingServerListenerSocketInternetProtocolVersion6,
+	StreamingServerListenerSocketUnixDomain,
+>
 {
 	/// Creates a new instance.
 	#[inline(always)]
-	pub const fn new
+	pub fn new
 	(
 		character_device: SimpleArena<CharacterDevice>,
 		event_poll: SimpleArena<EventPoll>,
@@ -239,10 +282,18 @@ impl<CharacterDevice: UsesFileDescriptor, EventPoll: UsesFileDescriptor, Event: 
 		signal: SimpleArena<Signal>,
 		terminal: SimpleArena<Terminal>,
 		timer: SimpleArena<Timer>,
-		datagram_client_socket: SimpleArena<DatagramClientSocket>,
-		datagram_server_listener_socket: SimpleArena<DatagramServerListenerSocket>,
-		streaming_socket: SimpleArena<StreamingSocket>,
-		streaming_server_listener_socket: SimpleArena<StreamingServerListenerSocket>
+		datagram_client_socket_internet_protocol_version_4: SimpleArena<DatagramClientSocketInternetProtocolVersion4>,
+		datagram_client_socket_internet_protocol_version_6: SimpleArena<DatagramClientSocketInternetProtocolVersion6>,
+		datagram_client_socket_unix_domain: SimpleArena<DatagramClientSocketUnixDomain>,
+		datagram_server_listener_socket_internet_protocol_version_4: SimpleArena<DatagramServerListenerSocketInternetProtocolVersion4>,
+		datagram_server_listener_socket_internet_protocol_version_6: SimpleArena<DatagramServerListenerSocketInternetProtocolVersion6>,
+		datagram_server_listener_socket_unix_domain: SimpleArena<DatagramServerListenerSocketUnixDomain>,
+		streaming_socket_internet_protocol_version_4: SimpleArena<StreamingSocketInternetProtocolVersion4>,
+		streaming_socket_internet_protocol_version_6: SimpleArena<StreamingSocketInternetProtocolVersion6>,
+		streaming_socket_unix_domain: SimpleArena<StreamingSocketUnixDomain>,
+		streaming_server_listener_socket_internet_protocol_version_4: SimpleArena<StreamingServerListenerSocketInternetProtocolVersion4>,
+		streaming_server_listener_socket_internet_protocol_version_6: SimpleArena<StreamingServerListenerSocketInternetProtocolVersion6>,
+		streaming_server_listener_socket_unix_domain: SimpleArena<StreamingServerListenerSocketUnixDomain>,
 	) -> Self
 	{
 		Self
@@ -260,10 +311,18 @@ impl<CharacterDevice: UsesFileDescriptor, EventPoll: UsesFileDescriptor, Event: 
 			signal,
 			terminal,
 			timer,
-			datagram_client_socket,
-			datagram_server_listener_socket,
-			streaming_socket,
-			streaming_server_listener_socket,
+			datagram_client_socket_internet_protocol_version_4,
+			datagram_client_socket_internet_protocol_version_6,
+			datagram_client_socket_unix_domain,
+			datagram_server_listener_socket_internet_protocol_version_4,
+			datagram_server_listener_socket_internet_protocol_version_6,
+			datagram_server_listener_socket_unix_domain,
+			streaming_socket_internet_protocol_version_4,
+			streaming_socket_internet_protocol_version_6,
+			streaming_socket_unix_domain,
+			streaming_server_listener_socket_internet_protocol_version_4,
+			streaming_server_listener_socket_internet_protocol_version_6,
+			streaming_server_listener_socket_unix_domain,
 		}
 	}
 }

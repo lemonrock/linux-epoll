@@ -63,25 +63,38 @@ pub enum FileDescriptorKind
 
 impl FileDescriptorKind
 {
-	const FileDescriptorKindSize: usize = 5;
+	const EventPollTokenSize: u64 = Self::size_in_bits::<u64>();
 
-	const FileDescriptorKindShift: usize = size_of::<u64>() - Self::FileDescriptorKindSize;
+	const FileDescriptorKindSize: u64 = 5;
+
+	const FileDescriptorKindShift: u64 = Self::EventPollTokenSize - Self::FileDescriptorKindSize;
 
 	const FileDescriptorKindMask: u64 = Self::bitmask(Self::FileDescriptorKindSize, Self::FileDescriptorKindShift);
 
-	const RawFileDescriptorSize: usize = size_of::<RawFd>();
+	const RawFileDescriptorSize: u64 = Self::size_in_bits::<RawFd>();
 
-	const RawFileDescriptorShift: usize = Self::FileDescriptorKindShift - Self::RawFileDescriptorSize;
+	const RawFileDescriptorShift: u64 = Self::FileDescriptorKindShift - Self::RawFileDescriptorSize;
 
 	const RawFileDescriptorMask: u64 = Self::bitmask(Self::RawFileDescriptorSize, Self::RawFileDescriptorShift);
 
 	const ArenaIndexMask: u64 = !(Self::FileDescriptorKindMask | Self::RawFileDescriptorMask);
 
 	#[inline(always)]
-	const fn bitmask(number_of_bits: usize, shift: usize) -> u64
+	const fn size_in_bits<T: Sized>() -> u64
 	{
-		let set_bits = (1 << (number_of_bits as u64)) - 1;
-		set_bits << (shift as u64)
+		(size_of::<T>() as u64) * 8
+	}
+
+	#[inline(always)]
+	const fn bitmask(number_of_bits: u64, shift: u64) -> u64
+	{
+		#[inline(always)]
+		const fn set_bits(number_of_bits: u64) -> u64
+		{
+			(1 << number_of_bits) - 1
+		}
+
+		set_bits(number_of_bits) << shift
 	}
 
 	/// Extracts the file descriptor kind from an event poll token.

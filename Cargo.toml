@@ -18,7 +18,7 @@ publish = false
 version = "0.0.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
-file-descriptors = "^0.2"
+file-descriptors = "^0.2.2"
 likely = "^0.1"
 
 [profile.release]
