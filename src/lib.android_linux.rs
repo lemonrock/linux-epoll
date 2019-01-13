@@ -6,6 +6,7 @@ extern crate file_descriptors;
 #[macro_use] extern crate likely;
 
 
+use self::arenas::*;
 use ::file_descriptors::character_device::CharacterDeviceFileDescriptor;
 use ::file_descriptors::epoll::EPollFileDescriptor;
 use ::file_descriptors::eventfd::EventFileDescriptor;
@@ -20,23 +21,30 @@ use ::file_descriptors::socket::*;
 use ::file_descriptors::signalfd::SignalFileDescriptor;
 use ::file_descriptors::timerfd::TimerFileDescriptor;
 use ::file_descriptors::terminal::TerminalFileDescriptor;
+use ::std::cell::Cell;
+use ::std::cell::UnsafeCell;
 use ::std::collections::HashSet;
-use ::std::marker::PhantomData;
 use ::std::mem::forget;
+use ::std::mem::ManuallyDrop;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
+use ::std::mem::uninitialized;
 use ::std::ops::BitAnd;
 use ::std::os::unix::io::FromRawFd;
 use ::std::os::unix::io::RawFd;
+use ::std::ptr::drop_in_place;
 use ::std::ptr::NonNull;
 
 
-include!("Arena.rs");
+/// Implementations of the `Arena` trait.
+pub mod arenas;
+
+
 include!("Arenas.rs");
 include!("ArenaIndex.rs");
-include!("SimpleArena.rs");
 include!("SimpleArenas.rs");
 include!("EventPollToken.rs");
 include!("FileDescriptorKind.rs");
 include!("FileDescriptorKindDispatch.rs");
 include!("UsesFileDescriptor.rs");
+include!("Unused.rs");
