@@ -3,14 +3,14 @@
 
 
 /// An arena.
-pub trait Arena<Holds: UsesFileDescriptor>
+pub trait Arena<Holds: Reactor>
 {
 	/// Allocate a `Holds` within this arena.
 	///
 	/// The returned pointer should be considered uninitialized.
 	///
 	/// None is returned if allocation failed.
-	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ()>;
+	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ArenaAllocationError>;
 
 	/// Get a `Holds` within this arena and rehydrate its raw file descriptor.
 	///

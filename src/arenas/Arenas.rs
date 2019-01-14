@@ -7,7 +7,7 @@ macro_rules! arena
 	($lower_case: ident, $title_case: ident, $title_case_arena: ident, $file_descriptor: ty) =>
 	{
 		/// Type (possibly an enum) of data held in an arena of `$title_case`s.
-		type $title_case: UsesFileDescriptor<FileDescriptor=$file_descriptor>;
+		type $title_case: Reactor<FileDescriptor=$file_descriptor>;
 
 		/// Type of `$title_case` arena.
 		type $title_case_arena: Arena<Self::$title_case>;

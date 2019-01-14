@@ -2,17 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// Represents a token registered with event poll (epoll).
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EventPollToken(pub(crate) u64);
-
-impl BitAnd<u64> for EventPollToken
+/// Abstracts the need to terminate a loop or application and to begin and check termination.
+pub trait Terminate: Send + Sync
 {
-	type Output = u64;
+	/// Begin termination.
+	fn begin_termination(&self);
 
+	/// Begin termination (due to a panic).
+	fn begin_termination_due_to_panic(&self, panic_info: &PanicInfo);
+
+	/// Should finish.
+	fn should_finish(&self) -> bool;
+
+	/// Should continue (opposite of `should_finish()`).
 	#[inline(always)]
-	fn bitand(self, rhs: u64) -> Self::Output
+	fn should_continue(&self) -> bool
 	{
-		self.0 & rhs
+		!self.should_finish()
 	}
 }

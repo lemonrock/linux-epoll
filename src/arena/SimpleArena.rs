@@ -12,7 +12,7 @@
 ///
 /// Default creates an empty arena.
 #[derive(Debug)]
-pub struct SimpleArena<Holds: UsesFileDescriptor>
+pub struct SimpleArena<Holds: Reactor>
 where Holds::FileDescriptor: FromRawFd
 {
 	next_available_slot_index: Cell<ArenaIndex>,
@@ -21,7 +21,7 @@ where Holds::FileDescriptor: FromRawFd
 	allocation: Box<[ArenaElement<Holds>]>,
 }
 
-impl<Holds: UsesFileDescriptor> Default for SimpleArena<Holds>
+impl<Holds: Reactor> Default for SimpleArena<Holds>
 where Holds::FileDescriptor: FromRawFd
 {
 	#[inline(always)]
@@ -31,17 +31,17 @@ where Holds::FileDescriptor: FromRawFd
 	}
 }
 
-impl<Holds: UsesFileDescriptor> Arena<Holds> for SimpleArena<Holds>
+impl<Holds: Reactor> Arena<Holds> for SimpleArena<Holds>
 where Holds::FileDescriptor: FromRawFd
 {
 	#[inline(always)]
-	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ()>
+	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ArenaAllocationError>
 	{
 		let next_available_slot_index = self.next_available_slot_index.get();
 
 		if unlikely!(ArenaElement::<Holds>::is_fully_allocated(next_available_slot_index))
 		{
-			return Err(())
+			return Err(ArenaAllocationError::MaximumPreAllocatedMemoryReached)
 		}
 
 		let next = self.element(next_available_slot_index);
@@ -74,7 +74,7 @@ where Holds::FileDescriptor: FromRawFd
 	}
 }
 
-impl<Holds: UsesFileDescriptor> SimpleArena<Holds>
+impl<Holds: Reactor> SimpleArena<Holds>
 where Holds::FileDescriptor: FromRawFd
 {
 	/// Creates a new instance.

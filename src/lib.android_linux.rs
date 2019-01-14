@@ -6,8 +6,11 @@ extern crate file_descriptors;
 #[macro_use] extern crate likely;
 
 
+use self::arena::*;
 use self::arenas::*;
+use self::reactor::*;
 use ::file_descriptors::character_device::CharacterDeviceFileDescriptor;
+use ::file_descriptors::epoll::EPollEventFlags;
 use ::file_descriptors::epoll::EPollFileDescriptor;
 use ::file_descriptors::eventfd::EventFileDescriptor;
 use ::file_descriptors::fanotify::FanotifyFileDescriptor;
@@ -24,12 +27,18 @@ use ::file_descriptors::terminal::TerminalFileDescriptor;
 use ::std::cell::Cell;
 use ::std::cell::UnsafeCell;
 use ::std::collections::HashSet;
+use ::std::error;
+use ::std::fmt;
+use ::std::fmt::Debug;
+use ::std::fmt::Display;
+use ::std::fmt::Formatter;
 use ::std::mem::forget;
 use ::std::mem::ManuallyDrop;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
 use ::std::mem::uninitialized;
 use ::std::ops::BitAnd;
+use ::std::os::unix::io::AsRawFd;
 use ::std::os::unix::io::FromRawFd;
 use ::std::os::unix::io::RawFd;
 use ::std::ptr::drop_in_place;
@@ -37,14 +46,17 @@ use ::std::ptr::NonNull;
 
 
 /// Implementations of the `Arena` trait.
+pub mod arena;
+
+
+/// Implementations of the `Arenas` trait.
 pub mod arenas;
 
 
-include!("Arenas.rs");
-include!("ArenaIndex.rs");
-include!("SimpleArenas.rs");
+/// Implementations of the `Ractor` trait.
+pub mod reactor;
+
+
 include!("EventPollToken.rs");
 include!("FileDescriptorKind.rs");
-include!("FileDescriptorKindDispatch.rs");
-include!("UsesFileDescriptor.rs");
 include!("Unused.rs");

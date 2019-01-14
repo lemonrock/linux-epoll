@@ -15,7 +15,7 @@ macro_rules! array_backed_arena
 		/// It will also be honoured when `reclaim()` is called; do not call `reclaim()` after `allocate()` without initializing `Hold` to a known, valid state.
 		///
 		/// Default creates an empty arena.
-		pub struct $name<Holds: UsesFileDescriptor>
+		pub struct $name<Holds: Reactor>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			next_available_slot_index: Cell<ArenaIndex>,
@@ -23,7 +23,7 @@ macro_rules! array_backed_arena
 			allocation: [ArenaElement<Holds>; $size],
 		}
 
-		impl<Holds: UsesFileDescriptor> Default for $name<Holds>
+		impl<Holds: Reactor> Default for $name<Holds>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			#[inline(always)]
@@ -33,17 +33,17 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: UsesFileDescriptor> Arena<Holds> for $name<Holds>
+		impl<Holds: Reactor> Arena<Holds> for $name<Holds>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			#[inline(always)]
-			fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ()>
+			fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ArenaAllocationError>
 			{
 				let next_available_slot_index = self.next_available_slot_index.get();
 
 				if unlikely!(ArenaElement::<Holds>::is_fully_allocated(next_available_slot_index))
 				{
-					return Err(())
+					return Err(ArenaAllocationError::MaximumPreAllocatedMemoryReached)
 				}
 
 				let next = self.element(next_available_slot_index);
@@ -76,7 +76,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: UsesFileDescriptor> $name<Holds>
+		impl<Holds: Reactor> $name<Holds>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			const Size: usize = $size;

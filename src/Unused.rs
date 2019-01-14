@@ -6,6 +6,15 @@
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Unused;
 
+impl AsRawFd for Unused
+{
+	#[inline(always)]
+	fn as_raw_fd(&self) -> RawFd
+	{
+		panic!("Should not be called")
+	}
+}
+
 impl FromRawFd for Unused
 {
 	#[inline(always)]
@@ -15,7 +24,23 @@ impl FromRawFd for Unused
 	}
 }
 
-impl UsesFileDescriptor for Unused
+impl Reactor for Unused
 {
 	type FileDescriptor = Self;
+
+	const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::CharacterDevice;
+
+	type RegistrationData = ();
+
+	#[inline(always)]
+	fn register_with_epoll(_event_poll: &EventPollWrapper<impl Arenas>, _arena: &impl Arena<Self>, _registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	{
+		panic!("Can not be registered")
+	}
+
+	#[inline(always)]
+	fn react(&mut self, _file_descriptor: &Self::FileDescriptor, _event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
+	{
+		panic!("Can not react")
+	}
 }
