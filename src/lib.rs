@@ -14,6 +14,17 @@
 //! #linux-epoll
 //! 
 //! This is a rust library.
+//!
+//!
+//! ## Conditional Compilation Features
+//!
+//! ### `assume-file-descriptors-are-never-duplicated`
+//!
+//! Enable the feature `assume-file-descriptors-are-never-duplicated` to eliminate syscalls to remove file descriptors from an epoll instance before `close`-ing them.
+//! This feature is disabled by default.
+//!
+//! If file descriptors are duplicated (eg in FFI code) then it is possible that closing a file descriptor may result in an epoll instance still generating events for it, causing a memory leak (or worse; it rapidly gets confusing).
+//! Ordinarily, modern applications do not need to duplicate file descriptors that are attached to an epoll instance and so enabling this feature produces a performance win.
 
 
 #[cfg(any(target_os = "android", target_os = "linux"))] include!("lib.android_linux.rs");

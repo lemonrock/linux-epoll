@@ -2,16 +2,32 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+enum ChildOutcome<Yields: Sized, Complete: Sized>
+{
+	WouldLikeToResume
+	{
+		yields: Yields,
+	},
 
+	Complete
+	{
+		result: Complete,
+	},
 
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
+	Panicked
+	{
+		panic: Box<dyn Any + Send + 'static>,
+	},
+}
 
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("Reactor.rs");
+impl<Yields: Sized, Complete: Sized> ChildOutcome<Yields, Complete>
+{
+	#[inline(always)]
+	fn resume_panic(self)
+	{
+		if let Some(ChildOutcome::Panicked { panic }) = self
+		{
+			resume_unwind(panic)
+		}
+	}
+}

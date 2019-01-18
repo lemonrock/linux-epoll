@@ -33,7 +33,13 @@ impl Reactor for Unused
 	type RegistrationData = ();
 
 	#[inline(always)]
-	fn register_with_epoll(_event_poll: &EventPollWrapper<impl Arenas>, _arena: &impl Arena<Self>, _registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn our_arena(arenas: &impl Arenas) -> &Arena<Self>
+	{
+		panic!("Does not have an arena");
+	}
+
+	#[inline(always)]
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(_event_poll: &EventPoll<impl Arenas>, _registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		panic!("Can not be registered")
 	}

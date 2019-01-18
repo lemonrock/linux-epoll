@@ -128,11 +128,11 @@ impl FileDescriptorKind
 
 	/// Result is an error if the associated file descriptor has already been closed; this can happen due to spurious epoll events (eg receiving read and write as separate events).
 	#[inline(always)]
-	pub fn react<A: Arenas>(event_poll_token: EventPollToken, spurious_event_suppression_of_already_closed_file_descriptors: &mut HashSet<RawFd>, arenas: &A, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<(), String>
+	pub fn react<A: Arenas>(event_poll: &EventPoll<A>, event_poll_token: EventPollToken, spurious_event_suppression_of_already_closed_file_descriptors: &mut HashSet<RawFd>, arenas: &A, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<(), String>
 	{
 		macro_rules! dispatch
 		{
-			($event_poll_token: ident, $spurious_event_suppression_of_already_closed_file_descriptors: ident, $arenas: ident, $event_flags: ident, $terminate: ident, $($title_case: tt => $lower_case: tt,)*) =>
+			($event_poll: ident, $event_poll_token: ident, $spurious_event_suppression_of_already_closed_file_descriptors: ident, $arenas: ident, $event_flags: ident, $terminate: ident, $($title_case: tt => $lower_case: tt,)*) =>
 			{
 				{
 					let raw_file_descriptor = Self::raw_file_descriptor($event_poll_token);
@@ -154,14 +154,14 @@ impl FileDescriptorKind
 
 								let (instance, file_descriptor) = arena.get(arena_index, raw_file_descriptor);
 
-								match instance.react(&file_descriptor, $event_flags, $terminate)
+								match instance.react($event_poll, &file_descriptor, $event_flags, $terminate)
 								{
 									Err(reason) => Err(reason),
 									Ok(close_file_descriptor) =>
 									{
 										if unlikely!(close_file_descriptor)
 										{
-											drop(file_descriptor);
+											$event_poll.deregister_and_close(file_descriptor);
 											let first_insertion = $spurious_event_suppression_of_already_closed_file_descriptors.insert(raw_file_descriptor);
 											debug_assert!(first_insertion, "Spurious event somehow not captured and double-close of file descriptor occurred");
 											arena.reclaim(arena_index);
@@ -182,7 +182,7 @@ impl FileDescriptorKind
 
 		dispatch!
 		{
-			event_poll_token, spurious_event_suppression_of_already_closed_file_descriptors, arenas, event_flags, terminate,
+			event_poll, event_poll_token, spurious_event_suppression_of_already_closed_file_descriptors, arenas, event_flags, terminate,
 
 			CharacterDevice => character_device,
 

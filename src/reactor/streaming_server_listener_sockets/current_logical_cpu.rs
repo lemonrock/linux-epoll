@@ -2,16 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+#[inline(always)]
+fn current_logical_cpu() -> i32
+{
+	#[link_name="c"]
+	extern "C"
+	{
+		fn sched_getcpu() -> c_int;
+	}
 
-
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
-
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("Reactor.rs");
+	let result = unsafe { ::libc::sched_getcpu() };
+	if likely!(result != -1)
+	{
+		result
+	}
+	else
+	{
+		panic!("sched_getcpu failed with `{:?}`", errno())
+	}
+}

@@ -2,16 +2,18 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// Holds data that determines if a connection is permitted.
+pub trait AccessControl<SD: SocketData>
+{
+	/// Is the remote peer allowed based on its address or credentials?
+	fn is_remote_peer_allowed(&self, remote_peer_address: SD, file_descriptor: &SocketFileDescriptor<SD>) -> bool;
+}
 
-
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
-
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("Reactor.rs");
+impl<A: AccessControl<SD>, SD: SocketData> AccessControl<SD> for Rc<A>
+{
+	#[inline(always)]
+	fn is_remote_peer_allowed(&self, remote_peer_address: SD, file_descriptor: &SocketFileDescriptor<SD>) -> bool
+	{
+		self.deref().is_remote_peer_allowed(remote_peer_address, file_descriptor)
+	}
+}

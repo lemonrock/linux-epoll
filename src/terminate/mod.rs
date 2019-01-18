@@ -5,13 +5,5 @@
 use super::*;
 
 
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
-
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("Reactor.rs");
+include!("SimpleTerminate.rs");
+include!("Terminate.rs");

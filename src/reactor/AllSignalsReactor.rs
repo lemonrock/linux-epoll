@@ -14,36 +14,38 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 
 	type RegistrationData = SH;
 
-	/// Register with epoll.
-	///
+	#[inline(always)]
+	fn our_arena(arenas: &impl Arenas) -> &Arena<Self>
+	{
+		arenas.signal()
+	}
+
 	/// Starts blocking signals at this point.
 	#[inline(always)]
-	fn register_with_epoll(event_poll_wrapper: &EventPollWrapper<impl Arenas>, arena: &impl Arena<Self>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 
-		event_poll_wrapper.register(arena, signal_file_descriptor, |uninitialized_this|
+		event_poll.register(signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this|
 		{
 			unsafe
 			{
 				((&mut uninitialized_this.0) as *mut SH).write(registration_data)
 			}
 			Ok(())
-		})?;
-
-		Ok(())
+		})
 	}
 
-	fn react(&mut self, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 	{
 		debug_assert_eq!(event_flags, EPollEventFlags::Input, "flags contained a flag other than `Input`");
-
-		use self::StructReadError::*;
 
 		let mut signals: [signalfd_siginfo; 32] = unsafe { uninitialized() };
 
 		while terminate.should_continue()
 		{
+			use self::StructReadError::*;
+
 			match file_descriptor.read(&mut signals)
 			{
 				Err(WouldBlock) => break,

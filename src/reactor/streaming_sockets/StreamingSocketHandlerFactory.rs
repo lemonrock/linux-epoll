@@ -2,16 +2,14 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// Creates instances of `StreamingSocketHandler`.
+pub trait StreamingSocketHandlerFactory<SD: SocketData>: Sized
+{
+	/// Type returned.
+	type StreamingSocketHandler: StreamingSocketHandler<SD>;
 
-
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
-
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("Reactor.rs");
+	/// Creates a new instance if possible.
+	///
+	/// Errors will cause a newly accepted connection to be closed.
+	fn create(&mut self) -> Result<Self::StreamingSocketHandler, ()>;
+}

@@ -11,14 +11,17 @@ pub trait Reactor: Sized
 	/// File descriptor kind.
 	const FileDescriptorKind: FileDescriptorKind;
 
-	/// Data to pass to `register_with_epoll()`.
+	/// Data to pass to `do_initial_input_and_output_and_register_with_epoll_if_necesssary()`.
 	type RegistrationData: Sized;
 
+	/// Get the arena that holds instances of this Reactor.
+	fn our_arena(arenas: &impl Arenas) -> &Arena<Self>;
+
 	/// Register with epoll.
-	fn register_with_epoll(event_poll: &EventPollWrapper<impl Arenas>, arena: &impl Arena<Self>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>;
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>;
 
 	/// React to events becoming ready.
 	///
 	/// If an error is returned then all activity is cut short; any dequeued events not yet 'reacted' to are discarded.
-	fn react(&mut self, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>;
+	fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>;
 }

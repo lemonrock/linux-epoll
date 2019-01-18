@@ -2,16 +2,16 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+trait IpLookupTableMatch
+{
+	fn is_match<A>(&self, address: A) -> bool;
+}
 
-
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
-
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("Reactor.rs");
+impl IpLookupTableMatch for IpLookupTable
+{
+	#[inline(always)]
+	fn is_match<A>(&self, address: A) -> bool
+	{
+		self.longest_match(remote_peer_address).is_some()
+	}
+}

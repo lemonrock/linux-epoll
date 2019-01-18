@@ -2,15 +2,50 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// ?
+/// Wraps event polling.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EventPollWrapper<A: Arenas>
+pub struct EventPoll<A: Arenas>
 {
 	epoll_file_descriptor: EPollFileDescriptor,
 	arenas: A,
 }
 
-impl<A: Arenas> EventPollWrapper<A>
+impl<A: Arenas> Drop for EventPoll<A>
+{
+	#[inline(always)]
+	fn drop(&mut self)
+	{
+		if let Ok((_header, epoll_information_items)) = self.epoll_file_descriptor.information()
+		{
+			for epoll_information_item in epoll_information_items
+			{
+				struct GenericFileDescriptor(RawFd);
+
+				impl Drop for GenericFileDescriptor
+				{
+					#[inline(always)]
+					fn drop(&mut self)
+					{
+						self.0.close()
+					}
+				}
+
+				impl AsRawFd for GenericFileDescriptor
+				{
+					#[inline(always)]
+					fn as_raw_fd(&self) -> RawFd
+					{
+						self.0
+					}
+				}
+
+				self.deregister_and_close(GenericFileDescriptor(epoll_information_item.target_file_descriptor));
+			}
+		}
+	}
+}
+
+impl<A: Arenas> EventPoll<A>
 {
 	/// Creates a new instance.
 	///
@@ -28,14 +63,24 @@ impl<A: Arenas> EventPollWrapper<A>
 		)
 	}
 
+	/// Add a new reactor.
+	///
+	// TODO: Should only really be used for things that are 'addable'.
+	pub fn add<R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	{
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, registration_data)
+	}
+
 	/// Register a new file descriptor and allocate space for its management data in an arena.
 	#[inline(always)]
-	pub fn register<R: Reactor>(&self, arena: &impl Arena<R>, file_descriptor: R::FileDescriptor, initializer: impl FnOnce(&mut R) -> Result<(), EventPollRegistrationError>) -> Result<(), EventPollRegistrationError>
+	pub(crate) fn register<R: Reactor>(&self, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: impl FnOnce(&mut R) -> Result<(), EventPollRegistrationError>) -> Result<(), EventPollRegistrationError>
 	{
+		let arena = R::our_arena(&self.arenas);
+
 		let (mut non_null, arena_index) = arena.allocate()?;
 		let event_poll_token = R::FileDescriptorKind.new_event_poll_token(&file_descriptor, arena_index);
 
-		match self.epoll_file_descriptor.add(file_descriptor.as_raw_fd(), EPollAddFlags::EdgeTriggeredInput, event_poll_token.0)
+		match self.epoll_file_descriptor.add(file_descriptor.as_raw_fd(), add_flags, event_poll_token.0)
 		{
 			Err(error) =>
 			{
@@ -73,7 +118,7 @@ impl<A: Arenas> EventPollWrapper<A>
 			for ready_event in ready_events
 			{
 				let event_poll_token = EventPollToken(ready_event.token());
-				let result = FileDescriptorKind::react(event_poll_token, &mut spurious_event_suppression_of_already_closed_file_descriptors, &self.arenas, ready_event.flags(), terminate);
+				let result = FileDescriptorKind::react(self, event_poll_token, &mut spurious_event_suppression_of_already_closed_file_descriptors, &self.arenas, ready_event.flags(), terminate);
 				if let Err(reason) = result
 				{
 					terminate.begin_termination();
@@ -86,9 +131,15 @@ impl<A: Arenas> EventPollWrapper<A>
 
 		Ok(())
 	}
-}
 
-// TODO Share a file descriptor across threads
-// SO_REUSEPORT with SO_INCOMING_CPU
-// EPOLLEXCLUSIVE
-// setsockopt(http->fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
+	#[inline(always)]
+	pub(crate) fn deregister_and_close(&self, file_descriptor: impl AsRawFd)
+	{
+		if cfg!(not(feature = "assume-file-descriptors-are-never-duplicated"))
+		{
+			let raw_file_descriptor = file_descriptor.as_raw_fd();
+			self.epoll_file_descriptor.delete(raw_file_descriptor);
+		}
+		drop(file_descriptor);
+	}
+}

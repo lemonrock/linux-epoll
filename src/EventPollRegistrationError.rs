@@ -12,8 +12,11 @@ pub enum EventPollRegistrationError
 	/// Could not allocate (out of memory in some way) from an `Arena`.
 	Allocation(ArenaAllocationError),
 
-	/// Could not internally a a file descriptor with an epoll instance.
+	/// Could not internally add a file descriptor to an epoll instance.
 	Add(EPollAddError),
+
+	/// Could not create a file descriptor to register with an epoll instance.
+	NewSocketServerListener(NewSocketServerListenerError),
 }
 
 impl Display for EventPollRegistrationError
@@ -39,6 +42,8 @@ impl error::Error for EventPollRegistrationError
 			&Allocation(ref error) => Some(error),
 
 			&Add(ref error) => Some(error),
+
+			&NewSocketServerListener(ref error) => Some(error),
 		}
 	}
 }
@@ -67,5 +72,14 @@ impl From<EPollAddError> for EventPollRegistrationError
 	fn from(error: EPollAddError) -> Self
 	{
 		EventPollRegistrationError::Add(error)
+	}
+}
+
+impl From<NewSocketServerListenerError> for EventPollRegistrationError
+{
+	#[inline(always)]
+	fn from(error: NewSocketServerListenerError) -> Self
+	{
+		EventPollRegistrationError::NewSocketServerListener(error)
 	}
 }
