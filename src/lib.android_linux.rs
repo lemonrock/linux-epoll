@@ -4,6 +4,8 @@
 
 extern crate context;
 extern crate cpu_affinity;
+extern crate ct_logs;
+extern crate either;
 extern crate file_descriptors;
 extern crate indexmap;
 #[macro_use] extern crate likely;
@@ -24,6 +26,8 @@ use self::tls::*;
 use ::context::context::*;
 use ::context::stack::*;
 use ::cpu_affinity::*;
+use ::ct_logs::LOGS as GooglesKnownListOfCertificateTransparencyLogs;
+use ::either::*;
 use ::file_descriptors::*;
 use ::file_descriptors::character_device::CharacterDeviceFileDescriptor;
 use ::file_descriptors::epoll::*;
@@ -107,9 +111,13 @@ pub mod terminate;
 pub mod tls;
 
 
+include!("await_further_input_or_output_to_become_available.rs");
+include!("read_loop_or_await_or_error.rs");
+include!("read_loop_or_await_or_error.rs");
+
+
 include!("EventPoll.rs");
 include!("EventPollRegistrationError.rs");
 include!("EventPollToken.rs");
 include!("FileDescriptorKind.rs");
-include!("loop_or_await_or_error.rs");
 include!("Unused.rs");

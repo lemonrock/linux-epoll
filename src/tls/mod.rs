@@ -7,11 +7,15 @@ use super::*;
 
 include!("ApplicationLayerProtocolNegotiationProtocol.rs");
 include!("ClientAuthenticationConfiguration.rs");
+include!("CommonTlsPostHandshakeInformation.rs");
+include!("ServerNameIndication.rs");
 include!("SessionExt.rs");
 include!("SignatureAlgorithms.rs");
 include!("SupportedTlsVersions.rs");
-include!("TlsConfiguration.rs");
+include!("TlsClientConfiguration.rs");
+include!("TlsClientConfigurationError.rs");
 include!("TlsInputOutputError.rs");
+include!("TlsServerConfiguration.rs");
 include!("TlsServerConfigurationError.rs");
 include!("TlsStreamingSocketHandler.rs");
 include!("TlsStreamingSocketHandlerFactory.rs");

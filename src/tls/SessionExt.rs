@@ -23,7 +23,7 @@ trait SessionExt: Session
 	/// Logic required for an implementation of `io::Read.read()`.
 	///
 	/// Can legitimately return 0 bytes and ***NOT*** be end-of-file.
-	fn stream_read<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &mut [u8]) -> Result<(), TlsInputOutputError>
+	fn stream_read<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &mut [u8]) -> Result<usize, TlsInputOutputError>
 	{
 		self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
 
@@ -46,7 +46,7 @@ trait SessionExt: Session
 	}
 
 	/// Logic required for an implementation of `io::Write.write()`.
-	fn stream_write<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &[u8]) -> Result<(), CompleteError>
+	fn stream_write<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &[u8]) -> Result<usize, CompleteError>
 	{
 		use self::ParentInstructingChild::*;
 		use self::TlsInputOutputError::*;
@@ -62,6 +62,17 @@ trait SessionExt: Session
 		let _ = self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter);
 
 		Ok(len)
+	}
+
+	/// Logic required to close a TLS stream by sending a close notify fatal alert.
+	#[inline(always)]
+	fn stream_close(&mut self) -> Result<(), CompleteError>
+	{
+		self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
+
+		self.send_close_notify();
+
+		self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)
 	}
 
 	/// Logic required for an implementation of `io::Write.flush()`.
@@ -122,7 +133,7 @@ trait SessionExt: Session
 			{
 				match self.write_tls_vectored(streaming_socket_file_descriptor)
 				{
-					Err(io_error) => loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
+					Err(io_error) => write_loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
 
 					#[cfg(debug_assertions)] Ok(0) => panic!("Writes should always write more than one byte"),
 
@@ -142,37 +153,36 @@ trait SessionExt: Session
 		{
 			loop
 			{
-				match self.read_tls(streaming_socket_file_descriptor)
+				let bytes_read = match self.read_tls(streaming_socket_file_descriptor)
 				{
-					Err(io_error) => loop_or_await_or_error!(io_error, yielder, SocketRead),
+					Err(io_error) => read_loop_or_await_or_error!(io_error, yielder, SocketRead),
 
-					Ok(bytes_read) =>
+					Ok(bytes_read) => bytes_read,
+				};
+
+				if let Err(tls_error) = self.process_new_packets()
+				{
+					// In case we have a TLS alert message to send describing this error we do a final write.
+					loop
 					{
-						if let Err(tls_error) = self.process_new_packets()
+						match self.write_tls_vectored(streaming_socket_file_descriptor)
 						{
-							// In case we have a TLS alert message to send describing this error we do a final write.
-							loop
+							Err(io_error) => write_loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
+
+							#[cfg(debug_assertions)] Ok(0) => panic!("Writes should always write more than one byte"),
+
+							Ok(bytes_written) =>
 							{
-								match self.write_tls_vectored(streaming_socket_file_descriptor)
-								{
-									Err(io_error) => loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
-
-									#[cfg(debug_assertions)] Ok(0) => panic!("Writes should always write more than one byte"),
-
-									Ok(bytes_written) =>
-									{
-										byte_counter.bytes_written(bytes_written);
-										break
-									}
-								}
+								byte_counter.bytes_written(bytes_written);
+								break
 							}
-
-							return Err(CompleteError::from(ProcessNewPackets(error, io_error.err())));
 						}
-
-						break bytes_read
 					}
+
+					return Err(CompleteError::from(ProcessNewPackets(error, io_error.err())));
 				}
+
+				break bytes_read
 			}
 		};
 

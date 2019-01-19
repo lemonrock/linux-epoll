@@ -2,13 +2,21 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// Edge-triggered status.
-#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ReactEdgeTriggeredArguments
+macro_rules! await_further_input_or_output_to_become_available
 {
-	/// Read is now ready.
-	pub read_now_ready: bool,
+	($yielder: ident) =>
+	{
+		{
+			use self::ReactEdgeTriggeredStatus::*;
 
-	/// Write is now ready.
-	pub write_now_ready: bool
+			match $yielder.await_further_input_or_output_to_become_available()?
+			{
+				InputOrOutputNowAvailable { .. } => continue,
+
+				ClosedWithError => return Err(CompleteError::ClosedWithError),
+
+				RemotePeerClosedCleanly => return Err(CompleteError::RemotePeerClosedCleanly),
+			}
+		}
+	}
 }

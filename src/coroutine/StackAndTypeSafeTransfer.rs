@@ -9,6 +9,7 @@ pub struct StackAndTypeSafeTransfer<S: Sized + Deref<Stack>, C: Coroutine>
 {
 	stack: S,
 	type_safe_transfer: TypeSafeTransfer<ParentInstructingChild<C::ResumeArguments>, ChildOutcome<C::Yields, C::Complete>>,
+	child_coroutine_is_active: bool,
 }
 
 impl<S: Sized + Deref<Stack>, C: Coroutine> Drop for StackAndTypeSafeTransfer<S, C>
@@ -16,16 +17,18 @@ impl<S: Sized + Deref<Stack>, C: Coroutine> Drop for StackAndTypeSafeTransfer<S,
 	#[inline(always)]
 	fn drop(&mut self)
 	{
-		let child_outcome = self.type_safe_transfer.resume_drop_safe(ParentInstructingChild::Kill);
-
-		use self::ChildOutcome::*;
-		match child_outcome
+		if self.child_coroutine_is_active
 		{
-			Complete(Err(panic_information)) => resume_panic(panic_information),
+			use self::ChildOutcome::*;
 
-			WouldLikeToResume(_) => panic!("A killed coroutine MUST NOT return `WouldLikeToResume`"),
+			match self.type_safe_transfer.resume_drop_safe(ParentInstructingChild::Kill)
+			{
+				WouldLikeToResume(_) => panic!("A killed coroutine MUST NOT return `WouldLikeToResume`"),
 
-			_ => (),
+				Complete(Err(panic_information)) => resume_panic(panic_information),
+
+				Complete(Ok(_)) => (),
+			}
 		}
 	}
 }
@@ -34,7 +37,7 @@ impl<S: Sized + Deref<Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C>
 {
 	/// Creates a new instance.
 	#[inline(always)]
-	pub fn new(stack: S, context_function: ContextFn) -> Self
+	pub fn new(stack: S) -> Self
 	{
 		let (stack, type_safe_transfer) = TypeSafeTransfer::new::<C::StartArguments>(stack, C::context_coroutine_wrapper, ParentInstructingChild::Kill);
 
@@ -42,61 +45,31 @@ impl<S: Sized + Deref<Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C>
 		{
 			stack,
 			type_safe_transfer,
+			child_coroutine_is_active: false,
 		}
 	}
 
 	/// Starts the coroutine; execution will transfer to the coroutine.
 	///
 	/// Ownership of `start_arguments` will also transfer.
+	///
+	/// Returns the data transferred to us after the resume and a guard object to resume the coroutine again (`Left`) or the final result (`Right`).
+	///
+	/// If the coroutine panicked, this panics.
 	#[inline(always)]
-	pub fn start(self, start_arguments: C::StartArguments) -> StartedStackAndTypeSafeTransfer<S, C>
+	pub fn start(mut self, start_arguments: C::StartArguments) -> Either<(C::Yields, StartedStackAndTypeSafeTransfer<S, C>), C::Complete>
 	{
-		let started = StartedStackAndTypeSafeTransfer
+		let child_outcome = self.type_safe_transfer.resume_drop_safe_unsafe_typing(start_arguments);
+
+		use self::ChildOutcome::*;
+
+		match child_outcome
 		{
-			owns: self,
-		};
-		let child_outcome = started.start(start_arguments);
+			WouldLikeToResume(yields) => Left((StartedStackAndTypeSafeTransfer::owns(self), yields)),
 
-	}
-}
+			Complete(Err(panic_information)) => resume_panic(panic_information),
 
-/// Holds a stack and a type-safe transfer of a started coroutine; suitable for the ultimate owner of a coroutine.
-///
-/// On drop the the closure is killed and the stack is then relinquished.
-pub struct StartedStackAndTypeSafeTransfer<S: Sized + Deref<Stack>, C: Coroutine>
-{
-	owns: StackAndTypeSafeTransfer<S, C>,
-}
-
-impl<S: Sized + Deref<Stack>, C: Coroutine> StartedStackAndTypeSafeTransfer<S, C>
-{
-	/// Starts the coroutine; execution will transfer to the coroutine.
-	///
-	/// Ownership of `start_arguments` will also transfer.
-	#[inline(always)]
-	fn start(self, start_arguments: C::StartArguments) -> ChildOutcome<C::Yields, C::Complete>
-	{
-		// resume_drop_safe_unsafe_typing
-		self.owns.type_safe_transfer.resume_drop_safe_unsafe_typing(start_arguments)
-	}
-
-	/// Resumes.
-	///
-	/// Returns the data transferred to us after the resume.
-	#[inline(always)]
-	pub fn resume(&mut self, arguments: C::ResumeArguments) -> ChildOutcome<C::Yields, C::Complete>
-	{
-		self.owns.type_safe_transfer.resume_drop_safe(ParentInstructingChild::Resume(arguments))
-	}
-
-	/// Resumes on top.
-	///
-	/// Returns the data transferred to us after the resume.
-	///
-	/// It is unlikely you need to use this function.
-	#[inline(always)]
-	pub fn resume_on_top_drop_safe(&mut self, arguments: C::ResumeArguments, resume_on_top_function: ResumeOnTopFunction) -> ChildOutcome<C::Yields, C::Complete>
-	{
-		self.owns.type_safe_transfer.resume_on_top_drop_safe(ParentInstructingChild::Resume(arguments), resume_on_top_function)
+			Complete(Ok(complete)) => Right(complete),
+		}
 	}
 }

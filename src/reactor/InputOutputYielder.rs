@@ -3,13 +3,20 @@
 
 
 /// A simple structure that wraps up what is required to yield from a coroutine that depends on further input or output data becoming available in order to make progress.
-pub struct InputOutputYielder<'a>(Yielder<'a, ReactEdgeTriggeredArguments, (), Result<(), CompleteError>>);
+pub struct InputOutputYielder<'a>(Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>);
 
 impl<'a> InputOutputYielder<'a>
 {
 	/// Yields to allow for further input or output data to become available.
 	#[inline(always)]
-	pub fn await_further_input_or_output_to_become_available(&mut self) -> Result<ReactEdgeTriggeredArguments, CompleteError>
+	pub(crate) fn new(yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
+	{
+		Self(yielder)
+	}
+
+	/// Yields to allow for further input or output data to become available.
+	#[inline(always)]
+	pub fn await_further_input_or_output_to_become_available(&mut self) -> Result<ReactEdgeTriggeredStatus, CompleteError>
 	{
 		self.0.yields((), CompleteError::Killed)
 	}

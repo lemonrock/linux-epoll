@@ -2,21 +2,25 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-macro_rules! loop_or_await_or_error
+/// Edge-triggered status.
+#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ReactEdgeTriggeredStatus
 {
-	($io_error: ident, $yielder: ident, $complete_error_kind: ident) =>
+	/// Input (read) or output (write) is now available.
+	InputOrOutputNowAvailable
 	{
-		{
-			use self::ErrorKind::*;
+		/// Read is now ready.
+		read_now_ready: bool,
 
-			match $io_error.kind()
-			{
-				Interrupted => continue,
+		/// Write is now ready.
+		write_now_ready: bool,
+	},
 
-				WouldBlock => $yielder.await_further_input_or_output_to_become_available()?,
+	/// The connection is closing with an error.
+	ClosedWithError,
 
-				_ => return Err(CompleteError::$complete_error_kind)
-			}
-		}
-	}
+	/// The remote peer closed cleanly.
+	///
+	/// This includes TCP 'half-close' shutdowns (which are near useless on modern socket protocols that use TLS).
+	RemotePeerClosedCleanly,
 }

@@ -55,7 +55,7 @@ impl<USSHF: StreamingSocketHandlerFactory<SD>, SD: SocketData> StreamingSocketHa
 impl<USSHF: StreamingSocketHandlerFactory<SD>, SD: SocketData> TlsStreamingSocketHandlerFactory<USSHF, SD>
 {
 	#[inline(always)]
-	pub fn new(underlying_streaming_socket_handler_factory: USSHF, coroutine_stack_size: usize, tls_configuration: &TlsConfiguration) -> Result<Self, TlsServerConfigurationError>
+	pub fn new(underlying_streaming_socket_handler_factory: USSHF, coroutine_stack_size: usize, tls_configuration: &TlsServerConfiguration) -> Result<Self, TlsServerConfigurationError>
 	{
 		Ok
 		(

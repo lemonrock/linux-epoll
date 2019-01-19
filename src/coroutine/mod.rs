@@ -13,6 +13,7 @@ include!("Coroutine.rs");
 include!("ParentInstructingChild.rs");
 include!("ResumeOnTopFunction.rs");
 include!("StackAndTypeSafeTransfer.rs");
+include!("StartedStackAndTypeSafeTransfer.rs");
 include!("TransferableData.rs");
 include!("TransferExt.rs");
 include!("TypeSafeTransfer.rs");

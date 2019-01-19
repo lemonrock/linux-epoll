@@ -2,19 +2,19 @@
 // Copyright © 2018 The developers of simple-http-server. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/simple-http-server/master/COPYRIGHT.
 
 
-/// TLS Configuration for a server.
+/// TLS configuration for a server.
 ///
 /// TLS is implemented using the rustls TLS library.
 ///
 /// Note that it is not possible to configure which cipher suites are used; rustls chooses a minimal, currently known to be secure set with a preference for CHA-CHA.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TlsConfiguration
+pub struct TlsServerConfiguration
 {
 	/// Location of certificate authorities for client certificates if used.
 	pub client_authentication_configuration: ClientAuthenticationConfiguration,
 
 	/// A static slice of supported signature algorithms.
-	pub supported_client_signature_algorithms: SignatureAlgorithms,
+	pub supported_signature_algorithms: SignatureAlgorithms,
 
 	/// Which TLS versions to support?
 	pub supported_tls_versions: SupportedTlsVersions,
@@ -57,7 +57,7 @@ pub struct TlsConfiguration
 	pub session_buffer_limit: usize,
 }
 
-impl TlsConfiguration
+impl TlsServerConfiguration
 {
 	/// Similar to a `default()` but permits specifying client authentication configuration and the location of the server's certificate chain and private keys.
 	///
@@ -68,7 +68,7 @@ impl TlsConfiguration
 		Self
 		{
 			client_authentication_configuration,
-			supported_client_signature_algorithms: Self::default_supported_client_signature_algorithms(),
+			supported_signature_algorithms: Self::default_supported_signature_algorithms(),
 			supported_tls_versions: Self::default_supported_tls_versions(),
 			tls_mtu: Self::default_tls_mtu(),
 			tls_maximum_sessions_to_store_in_memory: Self::default_tls_maximum_sessions_to_store_in_memory(),
@@ -88,14 +88,6 @@ impl TlsConfiguration
 		let mut server_configuration = ServerConfig::new(self.client_authentication_configuration.client_certificate_verifier());
 
 		{
-			let certificate_chain = self.load_certificate_chain()?;
-			let private_key = self.load_private_key()?;
-			let online_certificate_status_protocol = self.load_online_certificate_status_protocol_file()?;
-			let signed_certificate_timestamp_list = self.load_signed_certificate_timestamp_list_file()?;
-			server_configuration.set_single_cert_with_ocsp_and_sct(certificate_chain, private_key, online_certificate_status_protocol, signed_certificate_timestamp_list).map_err(|error| TlsServerConfigurationError::CouldNotSetCertificateChainAndPrivateKey(error))?;
-		}
-
-		{
 			let mut protocols = Vec::with_capacity(application_layer_protocol_negotiation_protocols.len());
 			for application_layer_protocol_negotiation_protocol in application_layer_protocol_negotiation_protocols
 			{
@@ -106,9 +98,19 @@ impl TlsConfiguration
 			server_configuration.set_protocols(&protocols[..]);
 		}
 
-		server_configuration.ignore_client_order = true;
+		server_configuration.ciphersuites = self.supported_signature_algorithms;
+
+		client_configuration.set_mtu(self.tls_mtu);
 
 		server_configuration.versions = self.supported_tls_versions.versions();
+
+		{
+			let certificate_chain = self.load_certificate_chain()?;
+			let private_key = self.load_private_key()?;
+			let online_certificate_status_protocol = self.load_online_certificate_status_protocol_file()?;
+			let signed_certificate_timestamp_list = self.load_signed_certificate_timestamp_list_file()?;
+			server_configuration.set_single_cert_with_ocsp_and_sct(certificate_chain, private_key, online_certificate_status_protocol, signed_certificate_timestamp_list).map_err(|error| TlsServerConfigurationError::CouldNotSetCertificateChainAndPrivateKey(error))?;
+		}
 
 		server_configuration.session_storage = if self.tls_maximum_sessions_to_store_in_memory == 0
 		{
@@ -123,6 +125,8 @@ impl TlsConfiguration
 		{
 			server_configuration.ticketer = Ticketer::new();
 		}
+
+		server_configuration.ignore_client_order = true;
 
 		Ok(Arc::new(server_configuration))
 	}
@@ -141,7 +145,7 @@ impl TlsConfiguration
 	/// *`RSA_PKCS1_2048_8192_SHA512`
 	/// *`RSA_PKCS1_3072_8192_SHA384`
 	#[inline(always)]
-	pub const fn default_supported_client_signature_algorithms() -> SignatureAlgorithms
+	pub const fn default_supported_signature_algorithms() -> SignatureAlgorithms
 	{
 		&[
 			&ECDSA_P256_SHA256,
@@ -272,5 +276,31 @@ impl TlsConfiguration
 		}
 
 		data
+	}
+
+	#[inline(always)]
+	fn root_certificate_store(certificate_authority_root_certificates_file: &PathBuf) -> Result<RootCertStore, TlsServerConfigurationError>
+	{
+		use self::TlsServerConfigurationError::*;
+
+		let mut root_certificate_store = RootCertStore::empty();
+
+		let mut total_valid_count = 0;
+		for certificate_authority_root_certificates_file in certificate_authority_root_certificates_files.iter()
+		{
+			let file = File::open(certificate_authority_root_certificates_file).map_err(|error| CouldNotOpenCertificateAuthoritiesPemFile(error))?;
+			let mut buf_reader = BufReader::new(file);
+			let (valid_count, _invalid_count) = root_certificate_store.add_pem_file(&mut buf_reader).map_err(|_| CouldNotReadCertificateAuthoritiesPemFile)?;
+			total_valid_count += valid_count;
+		}
+
+		if unlikely!(valid_count == 0)
+		{
+			Err(NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles)
+		}
+		else
+		{
+			Ok(root_certificate_store)
+		}
 	}
 }

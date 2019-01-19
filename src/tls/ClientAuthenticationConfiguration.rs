@@ -12,7 +12,7 @@ pub enum ClientAuthenticationConfiguration
 	AllowAnyAuthenticated
 	{
 		/// PEM-encoded file of certificate authority certificates.
-		certificate_authority_root_certificates_file: PathBuf,
+		certificate_authority_root_certificates_files: Vec<PathBuf>,
 	},
 
 	/// Either annoymous clients (those not presenting a client certificate) clients presenting a client certificate which is authenticated against an issuing Certificate Authority in `certificate_authority_root_certificates_file` are permitted.
@@ -21,7 +21,7 @@ pub enum ClientAuthenticationConfiguration
 	AllowAnyAnonymousOrAuthenticated
 	{
 		/// PEM-encoded file of certificate authority certificates.
-		certificate_authority_root_certificates_file: PathBuf,
+		certificate_authority_root_certificates_files: Vec<PathBuf>,
 	},
 
 	/// Only clients which do not present a client certificate are permitted.
@@ -50,32 +50,11 @@ impl ClientAuthenticationConfiguration
 
 		match self
 		{
-			AllowAnyAuthenticated { ref certificate_authority_root_certificates_file } => Ok(AllowAnyAuthenticatedClient::new(Self::root_certificate_store(certificate_authority_root_certificates_file)?)),
+			AllowAnyAuthenticated { ref certificate_authority_root_certificates_files } => Ok(AllowAnyAuthenticatedClient::new(TlsServerConfiguration::root_certificate_store(certificate_authority_root_certificates_files)?)),
 
-			AllowAnyAnonymousOrAuthenticated { ref certificate_authority_root_certificates_file } => Ok(AllowAnyAnonymousOrAuthenticatedClient::new(Self::root_certificate_store(certificate_authority_root_certificates_file)?)),
+			AllowAnyAnonymousOrAuthenticated { ref certificate_authority_root_certificates_files } => Ok(AllowAnyAnonymousOrAuthenticatedClient::new(TlsServerConfiguration::root_certificate_store(certificate_authority_root_certificates_files)?)),
 
 			AllowAnyAnonymous => Ok(NoClientAuth::new()),
-		}
-	}
-
-	#[inline(always)]
-	fn root_certificate_store(certificate_authority_root_certificates_file: &PathBuf) -> Result<RootCertStore, TlsServerConfigurationError>
-	{
-		use self::TlsServerConfigurationError::*;
-
-		let mut root_certificate_store = RootCertStore::empty();
-
-		let file = File::open(certificate_authority_root_certificates_file).map_err(|error| CouldNotOpenCertificateAuthoritiesPemFile(error))?;
-		let mut buf_reader = BufReader::new(file);
-		let (valid_count, invalid_count) = root_certificate_store.add_pem_file(&mut buf_reader).map_err(|_| CouldNotReadCertificateAuthoritiesPemFile)?;
-
-		if unlikely!(valid_count == 0)
-		{
-			Err(NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFile)
-		}
-		else
-		{
-			Ok(root_certificate_store)
 		}
 	}
 }

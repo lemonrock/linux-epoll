@@ -2,22 +2,5 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-
-
-/// Distribution of file descriptors to the most appropriate thread.
-pub mod distribution;
-
-
-/// Streaming socket reactors and supporting logic.
-pub mod streaming_sockets;
-
-
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
-include!("AllSignalsReactor.rs");
-include!("InputOutputYielder.rs");
-include!("ReactEdgeTriggeredStatus.rs");
-include!("Reactor.rs");
+/// May be `None` if not supplied.
+pub type ServerNameIndication<'a> = Option<&'a str>;

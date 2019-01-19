@@ -5,6 +5,10 @@
 use super::*;
 
 
+/// Stream abstracts to make common the difference between TLS and non-TLS sockets.
+pub mod streams;
+
+
 include!("ByteCounter.rs");
 include!("CompleteError.rs");
 include!("StreamingSocketCommon.rs");
