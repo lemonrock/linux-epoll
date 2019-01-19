@@ -3,13 +3,13 @@
 
 
 /// A factory to create instances of `UnencryptedStream`.
-pub struct UnencryptedStreamFactory<'a, SD: SocketData>
+pub struct UnencryptedStreamFactory<SD: SocketData>
 {
 	tls_configuration: Arc<ServerConfig>,
 	session_buffer_limit: usize,
 }
 
-impl<'a, SD: SocketData> StreamFactory<'a, SD> for UnencryptedStreamFactory<'a, SD>
+impl<'a, SD: SocketData> StreamFactory<'a, SD> for UnencryptedStreamFactory<SD>
 {
 	type S = UnencryptedStream<'a, SD>;
 

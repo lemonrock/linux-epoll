@@ -3,13 +3,13 @@
 
 
 /// A factory to create instances of `TlsServerStream`.
-pub struct TlsServerStreamFactory<'a, SD: SocketData>
+pub struct TlsServerStreamFactory<SD: SocketData>
 {
 	tls_configuration: Arc<ServerConfig>,
 	session_buffer_limit: usize,
 }
 
-impl<'a, SD: SocketData> StreamFactory<'a, SD> for TlsServerStreamFactory<'a, SD>
+impl<'a, SD: SocketData> StreamFactory<'a, SD> for TlsServerStreamFactory<SD>
 {
 	type S = TlsServerStream<'a, SD>;
 

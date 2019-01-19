@@ -3,6 +3,7 @@
 
 
 /// Error occuring on completion of a coroutine.
+#[derive(Debug)]
 pub enum CompleteError
 {
 	/// An `io::Error` was converted from some other cause (eg from using a third-party library that wraps implementations of `io::Read` and `io::Write`).
