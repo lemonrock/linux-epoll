@@ -14,7 +14,7 @@ impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<S
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLR: StreamingServerListenerReactor>(event_poll: &EventPoll<impl Arenas>, streaming_server_listener_socket_file_descriptor: StreamingServerListenerSocketFileDescriptor<SD>, access_control: A, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
 	{
-		const AddFlags: EpollAddFlags = EPollAddFlags::EdgeTriggeredInput | EPollAddFlags::Exclusive;
+		const AddFlags: EPollAddFlags = EPollAddFlags::EdgeTriggeredInput | EPollAddFlags::Exclusive;
 
 		event_poll.register::<SSLR>(streaming_server_listener_socket_file_descriptor, AddFlags, |r|
 		{

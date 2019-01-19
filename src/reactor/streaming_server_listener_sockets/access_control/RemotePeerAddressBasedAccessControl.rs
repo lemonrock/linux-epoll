@@ -28,7 +28,7 @@ impl RemotePeerAddressBasedAccessControl
 	/// Permitted lists are `Option`s.
 	/// If they are `None`, then the permitted list is not checked and all possible values are permitted (as long as the accompanying deny list does not deny them).
 	#[inline(always)]
-	pub fn new(denied_version_4_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_4_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, denied_protocol_version_6_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_6_subnets: Option<PermittedInternetProtocolSubnets<Ipv6Addr>>, denied_unix_domain_user_identifiers: HashSet<uid_t>, permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>) -> Self
+	pub fn new(denied_protocol_version_4_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_4_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, denied_protocol_version_6_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_6_subnets: Option<PermittedInternetProtocolSubnets<Ipv6Addr>>, denied_unix_domain_user_identifiers: HashSet<uid_t>, permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>) -> Self
 	{
 		Self
 		{
@@ -57,7 +57,7 @@ impl AccessControl<sockaddr_in> for RemotePeerAddressBasedAccessControl
 		match self.permitted_protocol_version_4_subnets
 		{
 			None => true,
-			Some(ref ip_lookup_table) => permitted_protocol_version_4_subnets.is_match(remote_peer_address).is_match(remote_peer_address)
+			Some(ref ip_lookup_table) => ip_lookup_table.is_match(remote_peer_address).is_match(remote_peer_address)
 		}
 	}
 }
@@ -77,7 +77,7 @@ impl AccessControl<sockaddr_in6> for RemotePeerAddressBasedAccessControl
 		match self.permitted_protocol_version_6_subnets
 		{
 			None => true,
-			Some(ref ip_lookup_table) => permitted_protocol_version_4_subnets.is_match(remote_peer_address).is_match(remote_peer_address)
+			Some(ref ip_lookup_table) => ip_lookup_table.is_match(remote_peer_address).is_match(remote_peer_address)
 		}
 	}
 }

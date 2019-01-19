@@ -5,12 +5,6 @@
 #[inline(always)]
 pub(crate) fn current_logical_cpu() -> u16
 {
-	#[link_name="c"]
-	extern "C"
-	{
-		fn sched_getcpu() -> i32;
-	}
-
 	let result = unsafe { sched_getcpu() };
 	if likely!(result != -1)
 	{

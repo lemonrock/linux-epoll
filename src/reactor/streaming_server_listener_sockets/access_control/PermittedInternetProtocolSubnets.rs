@@ -31,8 +31,8 @@ impl<A> PermittedInternetProtocolSubnets<A>
 	#[inline(always)]
 	pub(crate) fn to_ip_lookup_table(self) -> IpLookupTable<A>
 	{
-		let mut internet_protocol_address_access_control_list = IpLookupTable::with_capacity(permitted_addresses.len());
-		for (address, mask) in permitted_addresses.drain()
+		let mut internet_protocol_address_access_control_list = IpLookupTable::with_capacity(self.0.len());
+		for (address, mask) in self.0.drain()
 		{
 			internet_protocol_access_control_list.insert(address, mask as u32, ());
 		}
