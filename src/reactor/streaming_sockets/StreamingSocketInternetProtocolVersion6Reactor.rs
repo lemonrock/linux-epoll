@@ -2,23 +2,4 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-
-
-/// Stream abstracts to make common the difference between TLS and non-TLS sockets.
-#[macro_use] pub mod streams;
-
-
-/// Factories to create streams.
-pub mod stream_factories;
-
-
-include!("streaming_socket_reactor.rs");
-
-
-include!("ByteCounter.rs");
-include!("CompleteError.rs");
-include!("StreamingSocketCommon.rs");
-include!("StreamingSocketInternetProtocolVersion4Reactor.rs");
-include!("StreamingSocketInternetProtocolVersion6Reactor.rs");
-include!("StreamingSocketUnixDomainReactor.rs");
+streaming_socket_reactor!(StreamingSocketInternetProtocolVersion6Reactor, sockaddr_in6, StreamingSocketInternetProtocolVersion6FileDescriptor, StreamingSocketInternetProtocolVersion6, streaming_socket_internet_protocol_version_6);
