@@ -5,16 +5,7 @@
 use super::*;
 
 
-/// Stream abstracts to make common the difference between TLS and non-TLS sockets.
-pub mod streams;
-
-
-/// Factories to create streams.
-pub mod stream_factories;
-
-
-include!("ByteCounter.rs");
-include!("CompleteError.rs");
-include!("StreamingSocketCommon.rs");
-include!("StreamingSocketHandlerFactory.rs");
-include!("StreamingSocketInternetProtocolVersion4Reactor.rs");
+include!("StreamFactory.rs");
+include!("TlsClientStreamFactory.rs");
+include!("TlsServerStreamFactory.rs");
+include!("UnencryptedStreamFactory.rs");

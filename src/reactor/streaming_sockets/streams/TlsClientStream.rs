@@ -5,7 +5,7 @@
 /// A TLS client stream.
 pub struct TlsClientStream<'a, SD: SocketData>
 {
-	generic_stream: GenericStream<'a>,
+	generic_stream: GenericStream<'a, SD>,
 	tls_session: ClientSession,
 }
 
@@ -41,16 +41,21 @@ impl<'a, SD: SocketData> Stream <'a>for TlsClientStream<'a, SD>
 impl<'a, SD: SocketData> TlsClientStream<'a, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a>, tls_configuration: &Arc<ClientConfig>, session_buffer_limit: usize, ascii_host_name: &str) -> Self
+	pub(crate) fn new(generic_stream: GenericStream<'a, SD>, tls_configuration: &Arc<ClientConfig>, session_buffer_limit: usize, ascii_host_name: &str) -> Result<Self, CompleteError>
 	{
 		let hostname = DNSNameRef::try_from_ascii_str(ascii_host_name).expect("Invalid ASCII host name");
 		let mut tls_session = ClientSession::new(tls_configuration, hostname);
 		tls_session.set_buffer_limit(session_buffer_limit);
 
-		Self
-		{
-			generic_stream,
-			tls_session,
-		}
+		generic_stream.tls_handshake(&mut tls_session)?;
+
+		Ok
+		(
+			Self
+			{
+				generic_stream,
+				tls_session,
+			}
+		)
 	}
 }

@@ -5,12 +5,18 @@
 /// A TLS server stream.
 pub struct TlsServerStream<'a, SD: SocketData>
 {
-	generic_stream: GenericStream<'a>,
+	generic_stream: GenericStream<'a, SD>,
 	tls_session: ServerSession,
 }
 
 impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 {
+	#[inline(always)]
+	fn handshake(&mut self) -> Result<(), CompleteError>
+	{
+		self.generic_stream.tls_handshake(&self.tls_session)
+	}
+
 	type PostHandshakeInformation = (CommonTlsPostHandshakeInformation<'a>, ServerNameIndication<'a>);
 
 	#[inline(always)]
@@ -41,15 +47,20 @@ impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 impl<'a, SD: SocketData> TlsServerStream<'a, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a>, tls_configuration: &Arc<ServerConfig>, session_buffer_limit: usize) -> Self
+	pub(crate) fn new(generic_stream: GenericStream<'a, SD>, tls_configuration: &Arc<ServerConfig>, session_buffer_limit: usize) -> Result<Self, CompleteError>
 	{
 		let mut tls_session = ServerSession::new(tls_configuration);
 		tls_session.set_buffer_limit(session_buffer_limit);
 
-		Self
-		{
-			generic_stream,
-			tls_session,
-		}
+		generic_stream.tls_handshake(&mut tls_session)?;
+
+		Ok
+		(
+			Self
+			{
+				generic_stream,
+				tls_session,
+			}
+		)
 	}
 }

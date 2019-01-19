@@ -12,6 +12,12 @@ struct GenericStream<'a, SD: SocketData>
 impl<'a, SD: SocketData> GenericStream<'a, SD>
 {
 	#[inline(always)]
+	fn tls_handshake(&mut self, tls_session: &mut impl Session) -> Result<(), CompleteError>
+	{
+		tls_server_session.complete_handshaking(streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
+	}
+
+	#[inline(always)]
 	fn tls_read(&mut self, read_into_buffer: &mut [u8], tls_session: &mut impl Session) -> Result<usize, CompleteError>
 	{
 		self.tls_session.stream_read(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, read_into_buffer).map_err(CompleteError::Tls)

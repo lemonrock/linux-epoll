@@ -3,14 +3,15 @@
 
 
 #[derive(Debug)]
-struct StreamingSocketCommon<'a, SSH: StreamingSocketHandler<SD>, SD: SocketData>
+struct StreamingSocketCommon<'a, SSF: ServerStreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData>
 {
-	marker: PhantomData<&'a SSH>,
+	started_coroutine: StartedStackAndTypeSafeTransfer<S, Self>,
+	marker: &'a (SSF, SU, SD),
 }
 
-impl<'a, SSH: StreamingSocketHandler<SD>, SD: SocketData> Coroutine for StreamingSocketCommon<SSH, SD>
+impl<'a, SSF: ServerStreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, SSF, SU, SD>
 {
-	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>);
+	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>, &'a SSF, SSF::AdditionalArguments, &'a SU);
 
 	type ResumeArguments = ReactEdgeTriggeredStatus;
 
@@ -18,30 +19,26 @@ impl<'a, SSH: StreamingSocketHandler<SD>, SD: SocketData> Coroutine for Streamin
 
 	type Complete = Result<(), CompleteError>;
 
-	fn coroutine(start_arguments: Self::StartArguments, yielder: Yielder<Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
+	#[inline(always)]
+	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
 	{
-		let (all_wrapped_up) = start_arguments;
+		let (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user) = start_arguments;
 
-		let mut byte_counter = ByteCounter::default();
+		let stream = server_stream_factory.new_stream_and_handshake(streaming_socket_file_descriptor, yielder, additional_arguments)?;
 
-		tls_server_session.complete_handshaking(&streaming_socket_file_descriptor, &mut yielder, &mut byte_counter)?;
-
-		Ok(())
+		stream_user.use_stream(stream)
 	}
 }
 
-impl<SSH: StreamingSocketHandler<SD>, SD: SocketData> StreamingSocketCommon<SSH, SD>
+impl<'a, SSF: ServerStreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData> StreamingSocketCommon<'a, SSF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, (mut streaming_socket_handler, streaming_socket_file_descriptor): (SSH, StreamingSocketFileDescriptor<SD>)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (StreamingSocketFileDescriptor<SD>, &'a SSF, SSF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
 	{
 		// TODO: pre-allocate and check for allocation failures!
 		let	coroutine_stack_size: usize = XXXX;
 		let coroutine_stack = ProtectedFixedSizeStack::new(coroutine_stack_size);
-
-		// needs to be at least &streaming_socket_handler and a (TLS) session and higher-level logic...
-		let start_data = XXX;
-
+		let start_data = (&streaming_socket_handler, server_stream_factory, additional_arguments, stream_user);
 
 		let started_coroutine = match StackAndTypeSafeTransfer::new(coroutine_stack).start(start_data)
 		{
@@ -56,7 +53,7 @@ impl<SSH: StreamingSocketHandler<SD>, SD: SocketData> StreamingSocketCommon<SSH,
 		{
 			unsafe
 			{
-				write(&mut uninitialized_this.streaming_socket_handler, streaming_socket_handler);
+				write(&mut uninitialized_this.started_coroutine, started_coroutine);
 			}
 			Ok(())
 		})
@@ -69,15 +66,37 @@ impl<SSH: StreamingSocketHandler<SD>, SD: SocketData> StreamingSocketCommon<SSH,
 
 		const RemotePeerClosedCleanly: EPollEventFlags = EPollEventFlags::ReadShutdown | EPollEventFlags::HangUp;
 
+		use self::ReactEdgeTriggeredStatus::*;
+
 		if event_flags.intersects(ClosedWithError)
 		{
-			self.streaming_socket_handler.react_closing_with_error();
-			Ok(true)
+			match self.started_coroutine.resume(ClosedWithError)
+			{
+				Left(_yields @ ()) => if cfg!(debug_assertions)
+				{
+					panic!("Should have terminated")
+				}
+				else
+				{
+					unreachable!()
+				},
+				Right(_complete) => Ok(true),
+			}
 		}
 		else if event_flags.intersects(RemotePeerClosedCleanly)
 		{
-			self.streaming_socket_handler.react_remote_peer_closed_cleanly();
-			Ok(true)
+			match self.started_coroutine.resume(ClosedWithError)
+			{
+				Left(_yields @ ()) => if cfg!(debug_assertions)
+				{
+					panic!("Should have terminated")
+				}
+				else
+				{
+					unreachable!()
+				},
+				Right(_complete) => Ok(true),
+			}
 		}
 		else
 		{
@@ -85,9 +104,11 @@ impl<SSH: StreamingSocketHandler<SD>, SD: SocketData> StreamingSocketCommon<SSH,
 			let write_now_ready = event_flags.contains(EPollEventFlags::Output);
 			debug_assert!(read_now_ready || write_now_ready, ("Spurious event with neither read nor write available; flags were `{:?}`", event_flags.bits()));
 
-
-
-			Ok(self.streaming_socket_handler.react_input_and_output(file_descriptor, read_now_ready, write_now_ready))
+			match self.started_coroutine.resume(InputOrOutputNowAvailable { read_now_ready, write_now_ready })
+			{
+				Left(_yields @ ()) => Ok(false),
+				Right(complete) => Ok(complete.is_err()),
+			}
 		}
 	}
 }

@@ -71,7 +71,7 @@ impl TlsClientConfiguration
 			session_buffer_limit: Self::default_session_buffer_limit()
 		}
 	}
-	
+
 	// ct logs come from the `ct-logs` crate.
 	#[inline(always)]
 	pub(crate) fn client_configuration(&self) -> Result<Arc<ClientConfig>, TlsClientConfigurationError>

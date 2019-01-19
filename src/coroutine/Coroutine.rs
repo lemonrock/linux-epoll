@@ -20,7 +20,7 @@ pub trait Coroutine
 	/// Implement this for the coroutine's behaviour.
 	///
 	/// Panics inside the coroutine are transferred to the calling thread and raised.
-	fn coroutine(start_arguments: Self::StartArguments, yielder: Yielder<Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete;
+	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete;
 
 	#[doc(hidden)]
 	#[inline(never)]

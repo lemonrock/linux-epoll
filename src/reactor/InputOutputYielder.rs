@@ -9,7 +9,7 @@ impl<'a> InputOutputYielder<'a>
 {
 	/// Yields to allow for further input or output data to become available.
 	#[inline(always)]
-	pub(crate) fn new(yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
+	pub fn new(yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
 	{
 		Self(yielder)
 	}

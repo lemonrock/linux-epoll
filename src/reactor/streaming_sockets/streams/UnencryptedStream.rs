@@ -11,9 +11,9 @@
 /// Vectored reads and vectored writes are not supported (although they could be) because they do not compose well when also using TLS streams; since most modern protocols are TLS-based, the a vectored read or write operation is much less useful than it once was.
 ///
 /// Likewise, sendfile is not directly supported, although if (ever) Rustls gets support the Linux's kernel implementation of a TLS-encrypted sendfile, we may add support for it.
-pub struct UnencryptedStream<'a>(GenericStream<'a>);
+pub struct UnencryptedStream<'a, SD: SocketData>(GenericStream<'a, SD>);
 
-impl<'a> Stream<'a> for UnencryptedStream<'a>
+impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 {
 	type PostHandshakeInformation = ();
 
@@ -67,8 +67,8 @@ impl<'a> Stream<'a> for UnencryptedStream<'a>
 impl<'a, SD: SocketData> TlsServerStream<'a, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a>) -> Self
+	pub(crate) fn new(generic_stream: GenericStream<'a>) -> Result<Self, CompleteError>
 	{
-		Self(generic_stream)
+		Ok(Self(generic_stream))
 	}
 }
