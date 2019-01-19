@@ -11,7 +11,7 @@ pub trait StreamFactory<'a, SD: SocketData>
 	/// Any additional data needed to instantiate a new stream.
 	///
 	/// For example, for TLS client sessions, one has to know the DNS host name of the destination server.
-	type AdditionalArguments = ();
+	type AdditionalArguments;
 
 	/// Creates a new stream, initiates handshaking on it if required, then returns it or an error.
 	///

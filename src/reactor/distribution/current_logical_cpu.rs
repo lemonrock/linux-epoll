@@ -8,16 +8,16 @@ pub(crate) fn current_logical_cpu() -> u16
 	#[link_name="c"]
 	extern "C"
 	{
-		fn sched_getcpu() -> c_int;
+		fn sched_getcpu() -> i32;
 	}
 
-	let result = unsafe { ::libc::sched_getcpu() };
+	let result = unsafe { sched_getcpu() };
 	if likely!(result != -1)
 	{
 		result as u32 as u16
 	}
 	else
 	{
-		panic!("sched_getcpu failed with `{:?}`", errno())
+		panic!("sched_getcpu failed with `{:?}`", io::Error::get_last_os_error())
 	}
 }

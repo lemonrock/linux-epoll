@@ -2,7 +2,8 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-enum ChildOutcome<Yields: Sized, Complete: Sized>
+#[derive(Debug)]
+pub(crate) enum ChildOutcome<Yields: Sized, Complete: Sized>
 {
 	WouldLikeToResume(Yields),
 

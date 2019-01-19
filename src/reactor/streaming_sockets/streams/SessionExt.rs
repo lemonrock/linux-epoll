@@ -48,10 +48,6 @@ trait SessionExt: Session
 	/// Logic required for an implementation of `io::Write.write()`.
 	fn stream_write<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &[u8]) -> Result<usize, CompleteError>
 	{
-		use self::ParentInstructingChild::*;
-		use self::TlsInputOutputError::*;
-		use io::ErrorKind::*;
-
 		self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
 
 		let len = self.write(buf).expect("Internal implementation in self (ServerSession) imp (ServerSessionImpl) common (SessionCommon) send_some_plaintext() does not return errors");
@@ -121,10 +117,7 @@ trait SessionExt: Session
 	#[inline(always)]
 	fn complete_input_output<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<bool, CompleteError>
 	{
-		use self::CompleteError::*;
-		use self::ParentInstructingChild::*;
 		use self::TlsInputOutputError::*;
-		use io::ErrorKind::*;
 
 		// rustls always wants to write if its output buffer is not empty.
 		while self.wants_write()

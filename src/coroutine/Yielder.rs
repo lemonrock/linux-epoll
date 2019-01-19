@@ -8,7 +8,7 @@ pub struct Yielder<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a>
 	type_safe_transfer: &'a mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>
 }
 
-impl<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a> Yielder<ResumeArguments, Yields, Complete>
+impl<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a> Yielder<'a, ResumeArguments, Yields, Complete>
 {
 	#[inline(always)]
 	fn new(type_safe_transfer: &'a mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>) -> Self
@@ -23,7 +23,7 @@ impl<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a> Yielder<ResumeArguments,
 	///
 	/// Returns either `Ok(resume_arguments)` or `Err(kill_error)`.
 	#[inline(always)]
-	pub fn yields<E>(&'a mut self, data: Yields, kill_error: E) -> Result<ResumeArguments, E>
+	pub fn yields<E>(&'a mut self, yields: Yields, kill_error: E) -> Result<ResumeArguments, E>
 	{
 		use self::ParentInstructingChild::*;
 

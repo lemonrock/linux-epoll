@@ -88,8 +88,8 @@ impl TlsServerConfiguration
 		let mut server_configuration = ServerConfig::new(self.client_authentication_configuration.client_certificate_verifier());
 
 		{
-			let mut protocols = Vec::with_capacity(application_layer_protocol_negotiation_protocols.len());
-			for application_layer_protocol_negotiation_protocol in application_layer_protocol_negotiation_protocols
+			let mut protocols = Vec::with_capacity(self.application_layer_protocol_negotiation_protocols.len());
+			for application_layer_protocol_negotiation_protocol in self.application_layer_protocol_negotiation_protocols
 			{
 				assert_ne!(application_layer_protocol_negotiation_protocol, ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP, "HTTP_2_over_TCP can not be used with TLS");
 				protocols.push(application_layer_protocol_negotiation_protocol.to_string())
@@ -100,7 +100,7 @@ impl TlsServerConfiguration
 
 		server_configuration.ciphersuites = self.supported_signature_algorithms;
 
-		client_configuration.set_mtu(self.tls_mtu);
+		server_configuration.set_mtu(self.tls_mtu);
 
 		server_configuration.versions = self.supported_tls_versions.versions();
 
@@ -114,7 +114,7 @@ impl TlsServerConfiguration
 
 		server_configuration.session_storage = if self.tls_maximum_sessions_to_store_in_memory == 0
 		{
-			Arc::new(NoServerSessionStorage)
+			Arc::new(NoServerSessionStorage {})
 		}
 		else
 		{
@@ -253,19 +253,19 @@ impl TlsServerConfiguration
 	}
 
 	#[inline(always)]
-	fn load_online_certificate_status_protocol_file(&self) -> Result<Vec<u8>, ServerConfigurationError>
+	fn load_online_certificate_status_protocol_file(&self) -> Result<Vec<u8>, TlsServerConfigurationError>
 	{
-		Self::load_optional_file(&self.online_certificate_status_protocol_file, ServerConfigurationError::CouldNotOpenOnlineCertificateStatusProtocolFile, TlsServerConfigurationError::CouldNotReadOnlineCertificateStatusProtocolFile)
+		Self::load_optional_file(&self.online_certificate_status_protocol_file, TlsServerConfigurationError::CouldNotOpenOnlineCertificateStatusProtocolFile, TlsServerConfigurationError::CouldNotReadOnlineCertificateStatusProtocolFile)
 	}
 
 	#[inline(always)]
-	fn load_signed_certificate_timestamp_list_file(&self) -> Result<Vec<u8>, ServerConfigurationError>
+	fn load_signed_certificate_timestamp_list_file(&self) -> Result<Vec<u8>, TlsServerConfigurationError>
 	{
-		Self::load_optional_file(&self.signed_certificate_timestamp_list_file, ServerConfigurationError::CouldNotOpenSignedCertificateTimestampStatusFile, TlsServerConfigurationError::CouldNotReadSignedCertificateTimestampStatusFile)
+		Self::load_optional_file(&self.signed_certificate_timestamp_list_file, TlsServerConfigurationError::CouldNotOpenSignedCertificateTimestampStatusFile, TlsServerConfigurationError::CouldNotReadSignedCertificateTimestampStatusFile)
 	}
 
 	#[inline(always)]
-	fn load_optional_file(file_path: &Option<PathBuf>, open_error: impl FnOnce(io::Error) -> ServerConfigurationError, read_error: impl FnOnce(io::Error) -> TlsServerConfigurationError) -> Result<Vec<u8>, TlsServerConfigurationError>
+	fn load_optional_file(file_path: &Option<PathBuf>, open_error: impl FnOnce(io::Error) -> TlsServerConfigurationError, read_error: impl FnOnce(io::Error) -> TlsServerConfigurationError) -> Result<Vec<u8>, TlsServerConfigurationError>
 	{
 		let mut data = Vec::new();
 
@@ -279,7 +279,7 @@ impl TlsServerConfiguration
 	}
 
 	#[inline(always)]
-	fn root_certificate_store(certificate_authority_root_certificates_file: &PathBuf) -> Result<RootCertStore, TlsServerConfigurationError>
+	fn root_certificate_store(certificate_authority_root_certificates_files: &PathBuf) -> Result<RootCertStore, TlsServerConfigurationError>
 	{
 		use self::TlsServerConfigurationError::*;
 
@@ -294,7 +294,7 @@ impl TlsServerConfiguration
 			total_valid_count += valid_count;
 		}
 
-		if unlikely!(valid_count == 0)
+		if unlikely!(total_valid_count == 0)
 		{
 			Err(NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles)
 		}

@@ -64,7 +64,7 @@ impl<S: Sized + Deref<Stack>, C: Coroutine> StartedStackAndTypeSafeTransfer<S, C
 				{
 					Ok(complete) => Right(complete),
 
-					Err(panic_information) => resume_panic(panic_information),
+					Err(panic_information) => resume_unwind(panic_information),
 				}
 			}
 		}

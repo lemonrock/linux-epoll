@@ -2,10 +2,21 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[derive(Debug)]
-pub struct TlsStreamingSocketHandler<USSH: StreamingSocketHandler<SD>, SD: SocketData, S: Sized + Deref<Stack>>
+macro_rules! write_loop_or_await_or_error
 {
-	underlying_streaming_socket_handler: USSH,
-	coroutine: StackAndTypeSafeTransfer<S, Self>,
-	tls_server_session: ServerSession,
+	($io_error: ident, $yielder: expr, $complete_error_kind_wrapping_io_error: ident) =>
+	{
+		{
+			use self::ErrorKind::*;
+
+			match $io_error.kind()
+			{
+				Interrupted => continue,
+
+				WouldBlock => await_further_input_or_output_to_become_available!($yielder),
+
+				_ => return Err(CompleteError::$complete_error_kind_wrapping_io_error($io_error))
+			}
+		}
+	}
 }

@@ -4,7 +4,7 @@
 
 macro_rules! streaming_server_listener_reactor
 {
-	($reactor_name: ident, $sockaddr_type: ty, $file_descriptor_name: ty, $file_descriptor_kind: ident, $rust_socket_type: ty, $lower_case_kind: path) =>
+	($reactor_name: ident, $sockaddr_type: ty, $file_descriptor_name: ty, $file_descriptor_kind: ident, $rust_socket_type: ty, $lower_case_kind: ident) =>
 	{
 		/// This object wraps streaming server listener sockets of variety `$file_descriptor_kind`.
 		///

@@ -25,7 +25,7 @@ impl<S: Sized + Deref<Stack>, C: Coroutine> Drop for StackAndTypeSafeTransfer<S,
 			{
 				WouldLikeToResume(_) => panic!("A killed coroutine MUST NOT return `WouldLikeToResume`"),
 
-				Complete(Err(panic_information)) => resume_panic(panic_information),
+				Complete(Err(panic_information)) => resume_unwind(panic_information),
 
 				Complete(Ok(_)) => (),
 			}
@@ -67,7 +67,7 @@ impl<S: Sized + Deref<Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C>
 		{
 			WouldLikeToResume(yields) => Left((StartedStackAndTypeSafeTransfer::owns(self), yields)),
 
-			Complete(Err(panic_information)) => resume_panic(panic_information),
+			Complete(Err(panic_information)) => resume_unwind(panic_information),
 
 			Complete(Ok(complete)) => Right(complete),
 		}

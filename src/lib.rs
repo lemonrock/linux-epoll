@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 #![deny(unreachable_patterns)]
 #![cfg_attr(any(target_os = "android", target_os = "linux"), feature(core_intrinsics))]
+#![cfg_attr(any(target_os = "android", target_os = "linux"), feature(read_initializer))]
 #![cfg_attr(any(target_os = "android", target_os = "linux"), feature(self_struct_ctor))]
 
 

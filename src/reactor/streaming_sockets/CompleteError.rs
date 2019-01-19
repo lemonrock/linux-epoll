@@ -112,7 +112,7 @@ impl CompleteError
 				{
 					Killed => io::Error::from(ConnectionAborted),
 
-					Undifferentiated(io_error) | SocketRead(io_error) | SocketWrite(io_error) | SocketReadVectored(io_error) | SocketWriteVectored(io_error) => io_error,
+					Undifferentiated(io_error) | SocketRead(io_error) | SocketWrite(io_error) | SocketVectoredRead(io_error) | SocketVectoredWrite(io_error) => io_error,
 
 					_ => io::Error::from(Other),
 				}

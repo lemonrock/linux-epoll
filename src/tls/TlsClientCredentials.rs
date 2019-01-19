@@ -24,23 +24,23 @@ impl TlsClientCredentials
 	{
 		use self::TlsClientConfigurationError::*;
 
-		let file = File::open(&self.client_certificate_chain_file).map_err(|error| CouldNotOpenServerCertificateFile(error))?;
+		let file = File::open(&self.client_certificate_chain_file).map_err(|error| CouldNotOpenClientCertificateFile(error))?;
 		let mut reader = BufReader::new(file);
-		certs(&mut reader).map_err(|_| CouldNotReadServerCertificateFile)
+		certs(&mut reader).map_err(|_| CouldNotReadClientCertificateFile)
 	}
 
 	fn load_private_key(&self) -> Result<PrivateKey, TlsClientConfigurationError>
 	{
 		use self::TlsClientConfigurationError::*;
 
-		let pkcs8_private_keys = pkcs8_private_keys(&mut self.open_private_key_file()).map_err(|_| CouldNotReadServerPkcs8PrivateKey);
-		let rsa_private_keys = rsa_private_keys(&mut self.open_private_key_file()).map_err(|_| CouldNotReadServerRsaPrivateKey);
+		let pkcs8_private_keys = pkcs8_private_keys(&mut self.open_private_key_file()).map_err(|_| CouldNotReadClientPkcs8PrivateKey);
+		let rsa_private_keys = rsa_private_keys(&mut self.open_private_key_file()).map_err(|_| CouldNotReadClientRsaPrivateKey);
 
 		if pkcs8_private_keys.is_empty()
 		{
 			if rsa_private_keys.is_empty()
 			{
-				Err(ThereIsNeitherAPkcs8OrRsaServerPrivateKey)
+				Err(ThereIsNeitherAPkcs8OrRsaClientPrivateKey)
 			}
 			else
 			{

@@ -6,7 +6,7 @@
 #[derive(Debug)]
 struct StreamingSocketInternetProtocolVersion4Reactor<SSH: StreamingSocketHandler<sockaddr_in>>
 {
-	inner: StreamingSocketReactor<SSH, sockaddr_in>,
+	inner: StreamingSocketCommon<SSH, sockaddr_in>,
 }
 
 impl<SSH: StreamingSocketHandler<sockaddr_in>> Reactor for StreamingSocketInternetProtocolVersion4Reactor<SSH>
@@ -26,7 +26,7 @@ impl<SSH: StreamingSocketHandler<sockaddr_in>> Reactor for StreamingSocketIntern
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
-		StreamingSocketReactor::<StreamingSocketHandler<sockaddr_in>, sockaddr_in>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, registration_data)
+		StreamingSocketCommon::<StreamingSocketHandler<sockaddr_in>, sockaddr_in>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, registration_data)
 	}
 
 	#[inline(always)]

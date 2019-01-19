@@ -2,20 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-macro_rules! await_further_input_or_output_to_become_available
+macro_rules! read_loop_or_await_or_error
 {
-	($yielder: ident) =>
+	($io_error: ident, $yielder: expr, $complete_error_kind_wrapping_io_error: ident) =>
 	{
 		{
-			use self::ReactEdgeTriggeredStatus::*;
+			use self::ErrorKind::*;
 
-			match $yielder.await_further_input_or_output_to_become_available()?
+			match $io_error.kind()
 			{
-				InputOrOutputNowAvailable { .. } => continue,
+				Interrupted => continue,
 
-				ClosedWithError => return Err(CompleteError::ClosedWithError),
+				WouldBlock => await_further_input_or_output_to_become_available!($yielder),
 
-				RemotePeerClosedCleanly => return Err(CompleteError::RemotePeerClosedCleanly),
+				UnexpectedEof => 0,
+
+				_ => return Err(CompleteError::$complete_error_kind_wrapping_io_error($io_error))
 			}
 		}
 	}

@@ -11,7 +11,7 @@ pub enum TlsServerConfigurationError
 
 	CouldNotReadCertificateAuthoritiesPemFile,
 
-	NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFile,
+	NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles,
 
 	CouldNotOpenServerCertificateFile(io::Error),
 

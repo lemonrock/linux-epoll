@@ -6,7 +6,9 @@
     <option name="nocapture" value="false" />
     <option name="backtrace" value="SHORT" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-    <envs />
+    <envs>
+      <env name="CROSS_COMPILE" value="x86_64-linux-musl-" />
+    </envs>
     <method v="2" />
   </configuration>
 </component>

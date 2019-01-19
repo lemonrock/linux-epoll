@@ -11,12 +11,6 @@ pub struct TlsServerStream<'a, SD: SocketData>
 
 impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 {
-	#[inline(always)]
-	fn handshake(&mut self) -> Result<(), CompleteError>
-	{
-		self.generic_stream.tls_handshake(&self.tls_session)
-	}
-
 	type PostHandshakeInformation = (CommonTlsPostHandshakeInformation<'a>, ServerNameIndication<'a>);
 
 	#[inline(always)]

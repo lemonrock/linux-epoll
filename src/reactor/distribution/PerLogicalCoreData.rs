@@ -46,7 +46,7 @@ impl<T> PerLogicalCoreData<T>
 				let mut current_logical_core = 0;
 				for logical_core_index_reference in logical_cores.iter()
 				{
-					let logical_core_index = (*logical_core_index_reference);
+					let logical_core_index = *logical_core_index_reference;
 
 					while current_logical_core < logical_core_index
 					{

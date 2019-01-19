@@ -3,12 +3,9 @@
 
 
 use super::*;
-use ::std::panic::AssertUnwindSafe;
-use ::std::panic::catch_unwind;
-use ::std::panic::resume_unwind;
-use ::std::panic::UnwindSafe;
 
 
+include!("ChildOutcome.rs");
 include!("Coroutine.rs");
 include!("ParentInstructingChild.rs");
 include!("ResumeOnTopFunction.rs");

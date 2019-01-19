@@ -28,7 +28,7 @@ pub struct TlsClientConfiguration
 	pub tls_maximum_sessions_to_store_in_memory: usize,
 
 	/// A certificate and private key to authenticate with a TLS server.
-	pub client_credentials: OptioN<TlsClientCredentials>,
+	pub client_credentials: Option<TlsClientCredentials>,
 
 	/// ALPN protocols, such as `http/1.1` and `http/1.0`, in preference order.
 	pub application_layer_protocol_negotiation_protocols: IndexSet<ApplicationLayerProtocolNegotiationProtocol>,
@@ -79,8 +79,8 @@ impl TlsClientConfiguration
 		let mut client_configuration = ClientConfig::new();
 
 		{
-			let mut protocols = Vec::with_capacity(application_layer_protocol_negotiation_protocols.len());
-			for application_layer_protocol_negotiation_protocol in application_layer_protocol_negotiation_protocols
+			let mut protocols = Vec::with_capacity(self.application_layer_protocol_negotiation_protocols.len());
+			for application_layer_protocol_negotiation_protocol in self.application_layer_protocol_negotiation_protocols
 			{
 				assert_ne!(application_layer_protocol_negotiation_protocol, ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP, "HTTP_2_over_TCP can not be used with TLS");
 				protocols.push(application_layer_protocol_negotiation_protocol.to_string())
@@ -105,7 +105,7 @@ impl TlsClientConfiguration
 		if self.tls_maximum_sessions_to_store_in_memory == 0
 		{
 			client_configuration.enable_tickets = false;
-			client_configuration.set_persistence(Arc::new(NoClientSessionStorage));
+			client_configuration.set_persistence(Arc::new(NoClientSessionStorage {}));
 		}
 		else
 		{
@@ -205,7 +205,7 @@ impl TlsClientConfiguration
 			total_valid_count += valid_count;
 		}
 
-		if unlikely!(valid_count == 0)
+		if unlikely!(total_valid_count == 0)
 		{
 			Err(NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles)
 		}

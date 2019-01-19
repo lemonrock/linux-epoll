@@ -3,7 +3,7 @@
 
 
 /// Edge-triggered status.
-#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ReactEdgeTriggeredStatus
 {
 	/// Input (read) or output (write) is now available.

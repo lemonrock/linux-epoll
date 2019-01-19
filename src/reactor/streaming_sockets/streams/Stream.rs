@@ -38,7 +38,7 @@ pub trait Stream<'a>: Read + Write
 	/// Used to indicate that the user has finished with the stream.
 	///
 	/// Unencrypted streams will do nothing in this method; TLS streams will try to send a CloseNotify alert.
-	fn finish(mut self) -> Result<(), CompleteError>;
+	fn finish(self) -> Result<(), CompleteError>;
 }
 
 impl<'a, S: Stream<'a>> Read for S
