@@ -31,7 +31,7 @@ impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<S
 	}
 
 	#[inline(always)]
-	fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &StreamingServerListenerSocketFileDescriptor<SD>, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 	{
 		debug_assert_eq!(event_flags, EPollEventFlags::Input, "flags contained a flag other than `Input`");
 
