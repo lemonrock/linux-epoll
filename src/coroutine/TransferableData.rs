@@ -12,27 +12,11 @@ pub trait TransferableData
 	fn from_usize(value: usize) -> Self;
 }
 
-impl<T> TransferableData for T
-where T: Into<usize> + From<usize>
-{
-	#[inline(always)]
-	fn into_usize(self) -> usize
-	{
-		self.into()
-	}
-
-	#[inline(always)]
-	fn from_usize(value: usize) -> Self
-	{
-		Self::from(value)
-	}
-}
-
 macro_rules! as_transferable_data
 {
 	($name: tt) =>
 	{
-		impl<T> TransferableData for $name
+		impl TransferableData for $name
 		{
 			#[inline(always)]
 			fn into_usize(self) -> usize
