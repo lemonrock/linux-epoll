@@ -9,6 +9,8 @@ pub struct TlsServerStream<'a, SD: SocketData>
 	tls_session: ServerSession,
 }
 
+stream_read_write!(TlsServerStream);
+
 impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 {
 	type PostHandshakeInformation = (CommonTlsPostHandshakeInformation<'a>, ServerNameIndication<'a>);

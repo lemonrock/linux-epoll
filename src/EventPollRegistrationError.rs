@@ -3,7 +3,7 @@
 
 
 /// An error that can occur during registration with epoll.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum EventPollRegistrationError
 {
 	/// Error on creation of a file descriptor.
@@ -89,7 +89,7 @@ impl From<NewSocketServerListenerError> for EventPollRegistrationError
 	}
 }
 
-impl From<NewSocketServerListenerError> for EventPollRegistrationError
+impl From<CompleteError> for EventPollRegistrationError
 {
 	#[inline(always)]
 	fn from(error: CompleteError) -> Self
