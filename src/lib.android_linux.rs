@@ -112,7 +112,6 @@ use ::std::panic::AssertUnwindSafe;
 use ::std::panic::catch_unwind;
 use ::std::panic::PanicInfo;
 use ::std::panic::resume_unwind;
-use ::std::path::Path;
 use ::std::path::PathBuf;
 use ::std::ptr::drop_in_place;
 use ::std::ptr::NonNull;

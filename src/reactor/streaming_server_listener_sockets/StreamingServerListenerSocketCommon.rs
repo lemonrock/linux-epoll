@@ -123,11 +123,11 @@ impl<A: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockadd
 impl<A: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockaddr_un, A>
 {
 	#[inline(always)]
-	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: &UnixSocketAddress<impl AsRef<Path>>) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_un>, NewSocketServerListenerError>
+	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: UnixDomainSocketAddress) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_un>, NewSocketServerListenerError>
 	{
 		StreamingServerListenerSocketFileDescriptor::new_streaming_unix_domain_socket_server_listener
 		(
-			socket_address,
+			&socket_address.0,
 			settings.send_buffer_size_in_bytes,
 			settings.back_log,
 			current_logical_cpu(),

@@ -16,3 +16,4 @@ include!("StreamingServerListenerSocketInternetProtocolVersion4Reactor.rs");
 include!("StreamingServerListenerSocketInternetProtocolVersion6Reactor.rs");
 include!("StreamingServerListenerSocketSettings.rs");
 include!("StreamingServerListenerSocketUnixDomainReactor.rs");
+include!("UnixDomainSocketAddress.rs");
