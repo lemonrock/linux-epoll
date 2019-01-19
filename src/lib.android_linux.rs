@@ -44,6 +44,7 @@ use ::file_descriptors::posix_message_queues::ReceivePosixMessageQueueFileDescri
 use ::file_descriptors::posix_message_queues::SendPosixMessageQueueFileDescriptor;
 use ::file_descriptors::posix_message_queues::SendAndReceivePosixMessageQueueFileDescriptor;
 use ::file_descriptors::socket::*;
+use ::file_descriptors::socket::syscall::*;
 use ::file_descriptors::signalfd::*;
 use ::file_descriptors::signalfd::syscall::signalfd_siginfo;
 use ::file_descriptors::timerfd::TimerFileDescriptor;

@@ -5,12 +5,12 @@
 /// Holds a stack and a type-safe transfer of a started coroutine; suitable for the ultimate owner of a coroutine.
 ///
 /// On drop the the closure is killed and the stack is then relinquished.
-pub struct StartedStackAndTypeSafeTransfer<S: Sized + Deref<Stack>, C: Coroutine>
+pub struct StartedStackAndTypeSafeTransfer<S: Sized + Deref<Target=Stack>, C: Coroutine>
 {
 	owns: StackAndTypeSafeTransfer<S, C>,
 }
 
-impl<S: Sized + Deref<Stack>, C: Coroutine> StartedStackAndTypeSafeTransfer<S, C>
+impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StartedStackAndTypeSafeTransfer<S, C>
 {
 	#[inline(always)]
 	fn own(mut owns: StackAndTypeSafeTransfer<S, C>) -> Self
