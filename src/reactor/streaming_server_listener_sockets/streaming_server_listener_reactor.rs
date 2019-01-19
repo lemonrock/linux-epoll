@@ -46,10 +46,10 @@ macro_rules! streaming_server_listener_reactor
 			}
 		}
 
-		impl<SSHF: StreamingSocketHandlerFactory<$sockaddr_type>, A: AccessControl<$sockaddr_type>> StreamingServerListenerReactor for $reactor_name<SSHF, A>
+		impl<A: AccessControl<$sockaddr_type>> StreamingServerListenerReactor<$sockaddr_type, A> for $reactor_name<A>
 		{
 			#[inline(always)]
-			fn initialize(&mut self, common: StreamingServerListenerSocketCommon<SSHF, $sockaddr_type, A>)
+			fn initialize(&mut self, common: StreamingServerListenerSocketCommon<$sockaddr_type, A>)
 			{
 				unsafe { write(&mut self.common, common) }
 			}

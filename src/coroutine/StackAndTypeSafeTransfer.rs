@@ -33,7 +33,7 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> Drop for StackAndTypeSafeTran
 	}
 }
 
-impl<S: Sized + Deref<Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C>
+impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C>
 {
 	/// Creates a new instance.
 	#[inline(always)]

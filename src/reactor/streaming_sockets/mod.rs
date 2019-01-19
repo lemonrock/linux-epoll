@@ -16,5 +16,4 @@ pub mod stream_factories;
 include!("ByteCounter.rs");
 include!("CompleteError.rs");
 include!("StreamingSocketCommon.rs");
-include!("StreamingSocketHandlerFactory.rs");
 include!("StreamingSocketInternetProtocolVersion4Reactor.rs");

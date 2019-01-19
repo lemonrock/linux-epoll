@@ -6,7 +6,7 @@
 pub trait StreamFactory<'a, SD: SocketData>
 {
 	/// The type of the `Stream` being created.
-	type S: Stream<'a, SD>;
+	type S: Stream<'a>;
 
 	/// Any additional data needed to instantiate a new stream.
 	///

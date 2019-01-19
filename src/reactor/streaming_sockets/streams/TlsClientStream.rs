@@ -16,25 +16,25 @@ impl<'a, SD: SocketData> Stream <'a>for TlsClientStream<'a, SD>
 	#[inline(always)]
 	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation
 	{
-		CommonTlsPostHandshakeInformation::from_tls_session(&self.tls_session)
+		CommonTlsPostHandshakeInformation::from_tls_session(&mut self.tls_session)
 	}
 
 	#[inline(always)]
 	fn read_data(&mut self, read_into_buffer: &mut [u8]) -> Result<usize, CompleteError>
 	{
-		self.generic_stream.tls_read(&self.tls_session, read_into_buffer)
+		self.generic_stream.tls_read(&mut self.tls_session, read_into_buffer)
 	}
 
 	#[inline(always)]
 	fn write_data(&mut self, write_from_buffer: &[u8]) -> Result<usize, CompleteError>
 	{
-		self.generic_stream.tls_write(&self.tls_session, write_from_buffer)
+		self.generic_stream.tls_write(&mut self.tls_session, write_from_buffer)
 	}
 
 	#[inline(always)]
 	fn finish(mut self) -> Result<(), CompleteError>
 	{
-		self.tls_session.stream_close()
+		self.generic_stream.tls_finish(&mut self.tls_session)
 	}
 }
 

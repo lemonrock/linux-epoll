@@ -2,15 +2,15 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-trait IpLookupTableMatch
+trait IpLookupTableMatch<A>
 {
-	fn is_match<A>(&self, address: A) -> bool;
+	fn is_match(&self, remote_peer_address: A) -> bool;
 }
 
-impl IpLookupTableMatch for IpLookupTable
+impl<A> IpLookupTableMatch<A> for IpLookupTable<A, ()>
 {
 	#[inline(always)]
-	fn is_match<A>(&self, address: A) -> bool
+	fn is_match(&self, remote_peer_address: A) -> bool
 	{
 		self.longest_match(remote_peer_address).is_some()
 	}

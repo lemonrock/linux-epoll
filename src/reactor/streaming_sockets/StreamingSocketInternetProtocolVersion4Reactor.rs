@@ -2,20 +2,20 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// This object wraps streaming sockets for Internet Protocol version 4.
+/// This object wraps streaming sockets.
 #[derive(Debug)]
-struct StreamingSocketInternetProtocolVersion4Reactor<SSH: StreamingSocketHandler<sockaddr_in>>
+struct StreamingSocketInternetProtocolVersion4Reactor<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, sockaddr_in>, SU: StreamUser<'a, sockaddr_in>>
 {
-	inner: StreamingSocketCommon<SSH, sockaddr_in>,
+	inner: StreamingSocketCommon<'a, S, SF, SU, sockaddr_in>,
 }
 
-impl<SSH: StreamingSocketHandler<sockaddr_in>> Reactor for StreamingSocketInternetProtocolVersion4Reactor<SSH>
+impl<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, sockaddr_in>, SU: StreamUser<'a, sockaddr_in>> Reactor for StreamingSocketInternetProtocolVersion4Reactor<'a, S, SF, SU>
 {
 	type FileDescriptor = StreamingSocketInternetProtocolVersion4FileDescriptor;
 
 	const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::StreamingSocketInternetProtocolVersion4;
 
-	type RegistrationData = (SSH, StreamingSocketFileDescriptor<sockaddr_in>);
+	type RegistrationData = (StreamingSocketFileDescriptor<sockaddr_in>, &'a SF, SF::AdditionalArguments, &'a SU);
 
 	#[inline(always)]
 	fn our_arena(arenas: &impl Arenas) -> &Arena<Self>
@@ -26,7 +26,7 @@ impl<SSH: StreamingSocketHandler<sockaddr_in>> Reactor for StreamingSocketIntern
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
-		StreamingSocketCommon::<StreamingSocketHandler<sockaddr_in>, sockaddr_in>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, registration_data)
+		StreamingSocketCommon::<SF, SU, sockaddr_in>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, registration_data)
 	}
 
 	#[inline(always)]

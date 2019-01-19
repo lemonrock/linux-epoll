@@ -3,15 +3,15 @@
 
 
 #[derive(Debug)]
-struct StreamingSocketCommon<'a, SSF: StreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData>
+struct StreamingSocketCommon<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SD>, SD: SocketData>
 {
 	started_coroutine: StartedStackAndTypeSafeTransfer<S, Self>,
-	marker: &'a (SSF, SU, SD),
+	marker: &'a (SF, SU, SD),
 }
 
-impl<'a, SSF: StreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, SSF, SU, SD>
+impl<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SD>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, S, SF, SU, SD>
 {
-	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>, &'a SSF, SSF::AdditionalArguments, &'a SU);
+	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU);
 
 	type ResumeArguments = ReactEdgeTriggeredStatus;
 
@@ -30,16 +30,16 @@ impl<'a, SSF: StreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData> Corouti
 	}
 }
 
-impl<'a, SSF: ServerStreamFactory<'a, SD>, SU: StreamUser<SD>, SD: SocketData> StreamingSocketCommon<'a, SSF, SU, SD>
+impl<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SD>, SD: SocketData> StreamingSocketCommon<'a, S, SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (StreamingSocketFileDescriptor<SD>, &'a SSF, SSF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
 	{
 		// TODO: pre-allocate and check for allocation failures!
 		// TODO: Macros for 3 kinds of Reactor (IPV4, IPV6, Unix)
 		let	coroutine_stack_size: usize = XXXX;
 		let coroutine_stack = ProtectedFixedSizeStack::new(coroutine_stack_size);
-		let start_data = (&streaming_socket_handler, server_stream_factory, additional_arguments, stream_user);
+		let start_data = (&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user);
 
 		let started_coroutine = match StackAndTypeSafeTransfer::new(coroutine_stack).start(start_data)
 		{

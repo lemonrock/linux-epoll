@@ -33,7 +33,7 @@ pub trait Stream<'a>: Read + Write
 	/// Flush written data.
 	///
 	/// Not particularly useful, and there is no need to use this before calling `read_data()`, `write_data()` or `finish()`, all of which are self-flushing.
-	fn flush_written_data(&mut self) -> Result<CompleteError>;
+	fn flush_written_data(&mut self) -> Result<(), CompleteError>;
 
 	/// Used to indicate that the user has finished with the stream.
 	///

@@ -67,7 +67,7 @@ impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 impl<'a, SD: SocketData> TlsServerStream<'a, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a>) -> Result<Self, CompleteError>
+	pub(crate) fn new(generic_stream: GenericStream<'a, SD>) -> Result<Self, CompleteError>
 	{
 		Ok(Self(generic_stream))
 	}

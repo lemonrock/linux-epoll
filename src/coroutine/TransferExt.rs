@@ -6,7 +6,7 @@
 pub trait TransferExt: Sized
 {
 	/// Create a new instance with initial data.
-	fn new<TD: TransferableData, S: Sized + Deref<Stack>>(stack: S, context_function: ContextFn, initial_data_to_transfer: TD) -> (S, Self);
+	fn new<TD: TransferableData, S: Sized + Deref<Target=Stack>>(stack: S, context_function: ContextFn, initial_data_to_transfer: TD) -> (S, Self);
 
 	/// Get data.
 	#[inline(always)]
@@ -39,7 +39,7 @@ pub trait TransferExt: Sized
 impl TransferExt for Transfer
 {
 	#[inline(always)]
-	fn new<TD: TransferableData, S: Sized + Deref<Stack>>(stack: S, context_function: ContextFn, initial_data_to_transfer: TD) -> (S, Self)
+	fn new<TD: TransferableData, S: Sized + Deref<Target=Stack>>(stack: S, context_function: ContextFn, initial_data_to_transfer: TD) -> (S, Self)
 	{
 		let transfer = Transfer::new(unsafe { Context::new(stack.deref(), context_function) }, initial_data_to_transfer.into_usize());
 		(stack, transfer)

@@ -14,19 +14,25 @@ impl<'a, SD: SocketData> GenericStream<'a, SD>
 	#[inline(always)]
 	pub(crate) fn tls_handshake(&mut self, tls_session: &mut impl Session) -> Result<(), CompleteError>
 	{
-		tls_session.complete_handshaking(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
+		tls_session.complete_handshaking::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
 	}
 
 	#[inline(always)]
 	fn tls_read(&mut self, read_into_buffer: &mut [u8], tls_session: &mut impl Session) -> Result<usize, CompleteError>
 	{
-		self.tls_session.stream_read(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, read_into_buffer).map_err(CompleteError::Tls)
+		self.tls_session.stream_read::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, read_into_buffer).map_err(CompleteError::Tls)
 	}
 
 	#[inline(always)]
 	fn tls_write(&mut self, write_from_buffer: &mut [u8], tls_session: &mut impl Session) -> Result<usize, CompleteError>
 	{
-		self.tls_session.stream_write(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, write_from_buffer)
+		self.tls_session.stream_write::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, write_from_buffer)
+	}
+
+	#[inline(always)]
+	fn tls_finish(&mut self, tls_session: &mut impl Session) -> Result<usize, CompleteError>
+	{
+		self.tls_session.stream_close::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
 	}
 }
 

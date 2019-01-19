@@ -34,7 +34,7 @@ impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 	#[inline(always)]
 	fn finish(mut self) -> Result<(), CompleteError>
 	{
-		self.tls_session.stream_close()
+		self.generic_stream.tls_finish(&mut self.tls_session)
 	}
 }
 

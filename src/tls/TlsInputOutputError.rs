@@ -5,7 +5,7 @@
 #[derive(Debug)]
 pub(crate) enum TlsInputOutputError
 {
-	ProcessNewPackets(TLSError, Option<io::Error>),
+	ProcessNewPackets(TLSError),
 
 	EndOfFileWhilstHandshaking,
 
@@ -30,7 +30,7 @@ impl error::Error for TlsInputOutputError
 
 		match self
 		{
-			&ProcessNewPackets(ref error, ..) => Some(error),
+			&ProcessNewPackets(ref error) => Some(error),
 
 			&EndOfFileWhilstHandshaking => None,
 

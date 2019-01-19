@@ -246,7 +246,7 @@ impl TlsServerConfiguration
 	}
 
 	#[inline(always)]
-	fn open_private_key_file(&self) -> Result<BufReader, TlsServerConfigurationError>
+	fn open_private_key_file(&self) -> Result<BufReader<File>, TlsServerConfigurationError>
 	{
 		let file = File::open(&self.server_private_key_file).map_err(|error| TlsServerConfigurationError::CouldNotOpenServerPrivateKeysFile(error))?;
 		Ok(BufReader::new(file))

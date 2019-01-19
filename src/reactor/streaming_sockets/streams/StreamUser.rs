@@ -2,14 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// Creates instances of `StreamingSocketHandler`.
-pub trait StreamingSocketHandlerFactory<SD: SocketData>: Sized
+/// Use a stream.
+pub trait StreamUser<'a, S: Stream<'a>>
 {
-	/// Type returned.
-	type StreamingSocketHandler: StreamingSocketHandler<SD>;
-
-	/// Creates a new instance if possible.
-	///
-	/// Errors will cause a newly accepted connection to be closed.
-	fn create(&mut self) -> Result<Self::StreamingSocketHandler, ()>;
+	/// Use stream as if it was blocking.
+	fn use_stream(stream: S);
 }

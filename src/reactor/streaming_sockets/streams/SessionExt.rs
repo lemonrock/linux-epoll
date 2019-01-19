@@ -62,7 +62,7 @@ trait SessionExt: Session
 
 	/// Logic required to close a TLS stream by sending a close notify fatal alert.
 	#[inline(always)]
-	fn stream_close(&mut self) -> Result<(), CompleteError>
+	fn stream_close<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<(), CompleteError>
 	{
 		self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
 
@@ -172,7 +172,7 @@ trait SessionExt: Session
 						}
 					}
 
-					return Err(CompleteError::from(ProcessNewPackets(error, io_error.err())));
+					return Err(CompleteError::from(ProcessNewPackets(tls_error)));
 				}
 
 				break bytes_read
@@ -188,18 +188,18 @@ trait SessionExt: Session
 	#[inline(always)]
 	fn write_tls_vectored<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> io::Result<usize>
 	{
-		struct WriteVAdaptor<'a, SD: 'a>(&'a StreamingSocketFileDescriptor<SD>);
+		struct WriteVAdaptor<'a, SD: 'a + SocketData>(&'a StreamingSocketFileDescriptor<SD>);
 
-		impl WriteV for X
+		impl<'a, SD: 'a + SocketData> WriteV for WriteVAdaptor<'a, SD>
 		{
 			#[inline(always)]
-			fn writev(&mut self, vbytes: &[&[u8]]) -> Result<usize>
+			fn writev(&mut self, vbytes: &[&[u8]]) -> io::Result<usize>
 			{
 				self.write_vectored(vbytes)
 			}
 		}
 
-		self.writev_tls(WriteVAdapter(streaming_socket_file_descriptor))
+		self.writev_tls(WriteVAdaptor(streaming_socket_file_descriptor))
 	}
 }
 
