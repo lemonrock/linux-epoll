@@ -64,8 +64,6 @@ impl<A: Arenas> EventPoll<A>
 	}
 
 	/// Add a new reactor.
-	///
-	// TODO: Should only really be used for things that are 'addable'.
 	pub fn add<R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, registration_data)

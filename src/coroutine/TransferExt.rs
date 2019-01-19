@@ -24,9 +24,9 @@ pub trait TransferExt: Sized
 
 	/// Resume on top.
 	#[inline(always)]
-	fn resume_ontop<TD: TransferableData>(self, data_to_transfer: TD, resume_ontop_function: ResumeOntopFn) -> Self
+	fn resume_on_top<TD: TransferableData>(self, data_to_transfer: TD, resume_on_top_function: ResumeOnTopFunction) -> Self
 	{
-		unsafe { self.context.resume_ontop(data_to_transfer.into_usize(), resume_ontop_function) }
+		unsafe { self.context.resume_ontop(data_to_transfer.into_usize(), resume_on_top_function) }
 	}
 
 	#[doc(hidden)]

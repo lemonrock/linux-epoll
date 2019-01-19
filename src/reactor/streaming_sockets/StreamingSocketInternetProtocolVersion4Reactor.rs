@@ -26,9 +26,6 @@ impl<SSH: StreamingSocketHandler<sockaddr_in>> Reactor for StreamingSocketIntern
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
-		// Problem: creation
-		XXXX
-
 		StreamingSocketReactor::<StreamingSocketHandler<sockaddr_in>, sockaddr_in>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, registration_data)
 	}
 

@@ -2,18 +2,15 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-use ::std::panic::AssertUnwindSafe;
-use ::std::panic::catch_unwind;
-use ::std::panic::resume_unwind;
-use ::std::panic::UnwindSafe;
+/// A simple structure that wraps up what is required to yield from a coroutine that depends on further input or output data becoming available in order to make progress.
+pub struct InputOutputYielder<'a>(Yielder<'a, ReactEdgeTriggeredArguments, (), Result<(), CompleteError>>);
 
-
-include!("Coroutine.rs");
-include!("ParentInstructingChild.rs");
-include!("ResumeOnTopFunction.rs");
-include!("StackAndTypeSafeTransfer.rs");
-include!("TransferableData.rs");
-include!("TransferExt.rs");
-include!("TypeSafeTransfer.rs");
-include!("Yielder.rs");
+impl<'a> InputOutputYielder<'a>
+{
+	/// Yields to allow for further input or output data to become available.
+	#[inline(always)]
+	pub fn await_further_input_or_output_to_become_available(&mut self) -> Result<ReactEdgeTriggeredArguments, CompleteError>
+	{
+		self.0.yields((), CompleteError::Killed)
+	}
+}

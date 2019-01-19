@@ -5,7 +5,7 @@
 trait SessionExt: Session
 {
 	/// Logic required to complete handshaking before progressing with a connection.
-	fn complete_handshaking<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter) -> Result<(), TlsInputOutputError>
+	fn complete_handshaking<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<(), CompleteError>
 	{
 		while self.is_handshaking()
 		{
@@ -13,7 +13,7 @@ trait SessionExt: Session
 
 			if unlikely!(is_end_of_file)
 			{
-				return Err(TlsInputOutputError::EndOfFileWhilstHandshaking)
+				return Err(CompleteError::from(TlsInputOutputError::EndOfFileWhilstHandshaking))
 			}
 		}
 
@@ -23,7 +23,7 @@ trait SessionExt: Session
 	/// Logic required for an implementation of `io::Read.read()`.
 	///
 	/// Can legitimately return 0 bytes and ***NOT*** be end-of-file.
-	fn stream_read<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter, buf: &mut [u8]) -> Result<(), TlsInputOutputError>
+	fn stream_read<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &mut [u8]) -> Result<(), TlsInputOutputError>
 	{
 		self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
 
@@ -37,7 +37,7 @@ trait SessionExt: Session
 		{
 			Err(error) => match error.kind()
 			{
-				ErrorKind::ConnectionAborted => Err(TlsInputOutputError::CloseNotifyAlertReceived),
+				ErrorKind::ConnectionAborted => Err(CompleteError::from(TlsInputOutputError::CloseNotifyAlertReceived)),
 				_ => panic!("Unexpected error `{:?}` from Session.read()", error),
 			}
 
@@ -46,7 +46,7 @@ trait SessionExt: Session
 	}
 
 	/// Logic required for an implementation of `io::Write.write()`.
-	fn stream_write<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter, buf: &[u8]) -> Result<(), TlsInputOutputError>
+	fn stream_write<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &[u8]) -> Result<(), CompleteError>
 	{
 		use self::ParentInstructingChild::*;
 		use self::TlsInputOutputError::*;
@@ -65,9 +65,9 @@ trait SessionExt: Session
 	}
 
 	/// Logic required for an implementation of `io::Write.flush()`.
-	fn stream_flush<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter) -> Result<(), TlsInputOutputError>
+	fn stream_flush<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<(), CompleteError>
 	{
-		let is_end_of_file = self.complete_prior_input_output(streaming_socket_file_descriptor, yielder, byte_counter)?;
+		let is_end_of_file = self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
 		if is_end_of_file
 		{
 			return Ok(())
@@ -77,18 +77,7 @@ trait SessionExt: Session
 
 		if self.wants_write()
 		{
-			self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
-		}
-		Ok(())
-	}
-
-	#[doc(hidden)]
-	#[inline(always)]
-	fn complete_prior_input_output<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter) -> Result<bool, TlsInputOutputError>
-	{
-		if self.wants_write()
-		{
-			self.process_input_output_after_handshaking(streaming_socket_file_descriptor, yielder, byte_counter)
+			self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)
 		}
 		else
 		{
@@ -98,15 +87,30 @@ trait SessionExt: Session
 
 	#[doc(hidden)]
 	#[inline(always)]
-    fn process_input_output_after_handshaking<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter) -> Result<bool, TlsInputOutputError>
-    {
-		self.complete_input_output(streaming_socket_file_descriptor, yielder, byte_counter)
+	fn complete_prior_input_output<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<bool, CompleteError>
+	{
+		if self.wants_write()
+		{
+			self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)
+		}
+		else
+		{
+			Ok(())
+		}
 	}
 
 	#[doc(hidden)]
 	#[inline(always)]
-	fn complete_input_output<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut TlsYielder, byte_counter: &mut ByteCounter) -> Result<bool, TlsInputOutputError>
+    fn process_input_output_after_handshaking<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<bool, CompleteError>
+    {
+		self.complete_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)
+	}
+
+	#[doc(hidden)]
+	#[inline(always)]
+	fn complete_input_output<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter) -> Result<bool, CompleteError>
 	{
+		use self::CompleteError::*;
 		use self::ParentInstructingChild::*;
 		use self::TlsInputOutputError::*;
 		use io::ErrorKind::*;
@@ -118,19 +122,7 @@ trait SessionExt: Session
 			{
 				match self.write_tls_vectored(streaming_socket_file_descriptor)
 				{
-					Err(io_error) => match io_error.kind()
-					{
-						Interrupted => continue,
-
-						WouldBlock => match yielder.yields(())
-						{
-							Resume { .. } => continue,
-
-							Kill => return Err(Killed),
-						},
-
-						_ => return Err(SocketVectoredWrite)
-					}
+					Err(io_error) => loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
 
 					#[cfg(debug_assertions)] Ok(0) => panic!("Writes should always write more than one byte"),
 
@@ -152,29 +144,30 @@ trait SessionExt: Session
 			{
 				match self.read_tls(streaming_socket_file_descriptor)
 				{
-					Err(io_error) => match io_error.kind()
-					{
-						Interrupted => continue,
-
-						WouldBlock => match yielder.yields(())
-						{
-							Resume { .. } => continue,
-
-							Kill => return Err(Killed),
-						},
-
-						_ => return Err(SocketRead)
-					}
+					Err(io_error) => loop_or_await_or_error!(io_error, yielder, SocketRead),
 
 					Ok(bytes_read) =>
 					{
 						if let Err(tls_error) = self.process_new_packets()
 						{
-							// TODO: No longer needs to be a last-gasp write when using coroutines.
-							XXX
-							// In case we have a TLS alert message to send describing this error; try a last-gasp write.
-							let io_error = self.write_vectored(streaming_socket_file_descriptor);
-							return Err(ProcessNewPackets(error, io_error.err()));
+							// In case we have a TLS alert message to send describing this error we do a final write.
+							loop
+							{
+								match self.write_tls_vectored(streaming_socket_file_descriptor)
+								{
+									Err(io_error) => loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
+
+									#[cfg(debug_assertions)] Ok(0) => panic!("Writes should always write more than one byte"),
+
+									Ok(bytes_written) =>
+									{
+										byte_counter.bytes_written(bytes_written);
+										break
+									}
+								}
+							}
+
+							return Err(CompleteError::from(ProcessNewPackets(error, io_error.err())));
 						}
 
 						break bytes_read
@@ -192,11 +185,20 @@ trait SessionExt: Session
 	#[inline(always)]
 	fn write_tls_vectored<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> io::Result<usize>
 	{
+		struct WriteVAdaptor<'a, SD: 'a>(&'a StreamingSocketFileDescriptor<SD>);
+
+		impl WriteV for X
+		{
+			#[inline(always)]
+			fn writev(&mut self, vbytes: &[&[u8]]) -> Result<usize>
+			{
+				self.write_vectored(vbytes)
+			}
+		}
+
 		self.writev_tls(WriteVAdapter(streaming_socket_file_descriptor))
 	}
 }
-
-// TODO: WriteVAdapter
 
 impl SessionExt for ClientSession
 {

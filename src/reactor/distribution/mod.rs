@@ -2,22 +2,10 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[inline(always)]
-fn current_logical_cpu() -> i32
-{
-	#[link_name="c"]
-	extern "C"
-	{
-		fn sched_getcpu() -> c_int;
-	}
+use super::*;
 
-	let result = unsafe { ::libc::sched_getcpu() };
-	if likely!(result != -1)
-	{
-		result
-	}
-	else
-	{
-		panic!("sched_getcpu failed with `{:?}`", errno())
-	}
-}
+
+include!("current_logical_cpu.rs");
+include!("FileDescriptorConsumer.rs");
+include!("FileDescriptorDistributor.rs");
+include!("PerLogicalCoreData.rs");

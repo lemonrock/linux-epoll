@@ -6,7 +6,7 @@ use super::*;
 
 
 include!("ByteCounter.rs");
-include!("ReactEdgeTriggeredArguments.rs");
+include!("CompleteError.rs");
 include!("StreamingSocketCommon.rs");
 include!("StreamingSocketHandlerFactory.rs");
 include!("StreamingSocketInternetProtocolVersion4Reactor.rs");

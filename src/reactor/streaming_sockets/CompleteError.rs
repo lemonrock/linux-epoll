@@ -2,17 +2,19 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[derive(Debug)]
-pub(crate) enum TlsInputOutputError
+/// Error occuring on completion of a coroutine.
+pub enum CompleteError
 {
-	ProcessNewPackets(TLSError, Option<io::Error>),
+	SocketVectoredWrite(io::Error),
 
-	EndOfFileWhilstHandshaking,
+	SocketRead(io::Error),
 
-	BufferReadCloseNotifyAlertReceived,
+	Killed,
+
+	Tls(TlsInputOutputError),
 }
 
-impl Display for TlsInputOutputError
+impl Display for CompleteError
 {
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
@@ -21,20 +23,31 @@ impl Display for TlsInputOutputError
 	}
 }
 
-impl error::Error for TlsInputOutputError
+impl error::Error for CompleteError
 {
 	#[inline(always)]
 	fn source(&self) -> Option<&(error::Error + 'static)>
 	{
-		use self::TlsInputOutputError::*;
+		use self::CompleteError::*;
 
 		match self
 		{
-			&ProcessNewPackets(ref error, ..) => Some(error),
+			&SocketVectoredWrite(ref error) => Some(error),
 
-			&EndOfFileWhilstHandshaking => None,
+			&SocketRead(ref error) => Some(error),
 
-			&BufferReadCloseNotifyAlertReceived => None,
+			&Killed => None,
+
+			&Tls(ref error) => Some(error),
 		}
+	}
+}
+
+impl From<TlsInputOutputError> for CompleteError
+{
+	#[inline(always)]
+	fn from(error: TlsInputOutputError) -> Self
+	{
+		CompleteError::Tls(error)
 	}
 }

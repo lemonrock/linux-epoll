@@ -15,4 +15,3 @@ include!("TlsInputOutputError.rs");
 include!("TlsServerConfigurationError.rs");
 include!("TlsStreamingSocketHandler.rs");
 include!("TlsStreamingSocketHandlerFactory.rs");
-include!("TlsYielder.rs");

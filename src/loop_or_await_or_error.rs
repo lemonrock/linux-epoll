@@ -2,18 +2,21 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-use ::std::panic::AssertUnwindSafe;
-use ::std::panic::catch_unwind;
-use ::std::panic::resume_unwind;
-use ::std::panic::UnwindSafe;
+macro_rules! loop_or_await_or_error
+{
+	($io_error: ident, $yielder: ident, $complete_error_kind: ident) =>
+	{
+		{
+			use self::ErrorKind::*;
 
+			match $io_error.kind()
+			{
+				Interrupted => continue,
 
-include!("Coroutine.rs");
-include!("ParentInstructingChild.rs");
-include!("ResumeOnTopFunction.rs");
-include!("StackAndTypeSafeTransfer.rs");
-include!("TransferableData.rs");
-include!("TransferExt.rs");
-include!("TypeSafeTransfer.rs");
-include!("Yielder.rs");
+				WouldBlock => $yielder.await_further_input_or_output_to_become_available()?,
+
+				_ => return Err(CompleteError::$complete_error_kind)
+			}
+		}
+	}
+}

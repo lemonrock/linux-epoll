@@ -2,4 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-type TlsYielder = Yielder<ReactEdgeTriggeredArguments, (), Result<(), TlsInputOutputError>>;
+#[inline(always)]
+pub(crate) fn current_logical_cpu() -> u16
+{
+	#[link_name="c"]
+	extern "C"
+	{
+		fn sched_getcpu() -> c_int;
+	}
+
+	let result = unsafe { ::libc::sched_getcpu() };
+	if likely!(result != -1)
+	{
+		result as u32 as u16
+	}
+	else
+	{
+		panic!("sched_getcpu failed with `{:?}`", errno())
+	}
+}

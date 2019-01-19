@@ -20,9 +20,18 @@ impl<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a> Yielder<ResumeArguments,
 	}
 
 	/// Yields.
+	///
+	/// Returns either `Ok(resume_arguments)` or `Err(kill_error)`.
 	#[inline(always)]
-	pub fn yields(&'a mut self, data: Yields) -> ParentInstructingChild<ResumeArguments>
+	pub fn yields<E>(&'a mut self, data: Yields, kill_error: E) -> Result<ResumeArguments, E>
 	{
-		self.type_safe_transfer.resume_drop_safe(ChildOutcome::WouldLikeToResume { yields })
+		use self::ParentInstructingChild::*;
+
+		match self.type_safe_transfer.resume_drop_safe(ChildOutcome::WouldLikeToResume(yields))
+		{
+			Resume(resume_arguments) => Ok(resume_arguments),
+
+			Kill => Err(kill_error),
+		}
 	}
 }

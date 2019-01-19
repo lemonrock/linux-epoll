@@ -4,10 +4,7 @@
 
 enum ParentInstructingChild<ResumeArguments: Sized>
 {
-	Resume
-	{
-		resume_arguments: ResumeArguments,
-	},
+	Resume(ResumeArguments),
 
 	Kill,
 }

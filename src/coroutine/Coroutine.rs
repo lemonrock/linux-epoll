@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// A trait that coroutines should implement.
+/// A trait that stackful coroutines should implement.
 pub trait Coroutine
 {
 	/// Type of the arguments the coroutine is initially called with, eg `(usize, String)`.
@@ -28,14 +28,10 @@ pub trait Coroutine
 	{
 		let mut type_safe_transfer = TypeSafeTransfer::<ParentInstructingChild<Self::ResumeArguments>, ChildOutcome<Self::Yields, Self::Complete>>::wrap(transfer);
 		let start_child_arguments: Self::StartArguments = type_safe_transfer.start_child_arguments();
-		let yielder: Yielder<ResumeArguments, Yields, Complete> = Yielder::new(&mut type_safe_transfer);
+		let yielder: Yielder<Self::ResumeArguments, Self::Yields, Self::Complete> = Yielder::new(&mut type_safe_transfer);
 
-		let child_outcome = match catch_unwind(AssertUnwindSafe(|| Self::coroutine(start_child_arguments, yielder)))
-		{
-			Ok(result) => ChildOutcome::Complete { result },
-
-			Err(panic) => ChildOutcome::Panicked { panic },
-		};
+		let result = catch_unwind(AssertUnwindSafe(|| Self::coroutine(start_child_arguments, yielder)));
+		let child_outcome = ChildOutcome::Complete(result);
 
 		type_safe_transfer.resume_drop_safe(child_outcome);
 		unreachable!("Closure has completed")

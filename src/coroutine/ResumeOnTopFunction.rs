@@ -2,18 +2,5 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-use ::std::panic::AssertUnwindSafe;
-use ::std::panic::catch_unwind;
-use ::std::panic::resume_unwind;
-use ::std::panic::UnwindSafe;
-
-
-include!("Coroutine.rs");
-include!("ParentInstructingChild.rs");
-include!("ResumeOnTopFunction.rs");
-include!("StackAndTypeSafeTransfer.rs");
-include!("TransferableData.rs");
-include!("TransferExt.rs");
-include!("TypeSafeTransfer.rs");
-include!("Yielder.rs");
+/// A function pointer.
+pub type ResumeOnTopFunction = ResumeOntopFn;

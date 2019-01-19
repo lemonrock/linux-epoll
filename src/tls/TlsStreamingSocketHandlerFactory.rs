@@ -18,9 +18,6 @@ impl<USSHF: StreamingSocketHandlerFactory<SD>, SD: SocketData> StreamingSocketHa
 	#[inline(always)]
 	fn create(&mut self) -> Result<Self::StreamingSocketHandler, ()>
 	{
-		// TODO: pre-allocate and check for allocation failures!
-		XXX
-		let coroutine_stack = ProtectedFixedSizeStack::new(self.coroutine_stack_size);
 
 		// TODO: We don't have access to streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD> - it is provided on each react by the connection.
 

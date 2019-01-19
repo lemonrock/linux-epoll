@@ -13,13 +13,9 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 {
 	/// Creates a new instance.
 	#[inline(always)]
-	pub fn new<T>(stack: S, context_function: ContextFn, initial_data_to_transfer: T) -> (S, Self)
+	pub fn new(stack: S, context_function: ContextFn, irrelevant_initial_data_which_will_never_be_transferred_but_will_be_dropped: Send) -> (S, Self)
 	{
-		let mut data_to_transfer_drop_safe = Some(data_to_transfer);
-		let pointer_out = unsafe { NonNull::new_unchecked(&mut data_to_transfer_drop_safe as *mut Option<T>) };
-
-		let (stack, transfer) = Transfer::new(stack, context_function, pointer_out);
-		(stack, Self::wrap(transfer))
+		(stack, Self::wrap(Transfer::new(stack, context_function, irrelevant_initial_data_which_will_never_be_transferred_but_will_be_dropped)))
 	}
 
 	/// Wraps a transfer, eg from first call to `context_function`.
@@ -41,10 +37,34 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 	#[inline(always)]
 	pub(crate) fn resume_drop_safe(&mut self, data_to_transfer: Send) -> Receive
 	{
-		let mut data_to_transfer_drop_safe = Some(data_to_transfer);
-		let pointer_out = unsafe { NonNull::new_unchecked(&mut data_to_transfer_drop_safe as *mut Option<Send>) };
+		self.resume_drop_safe_unsafe_typing::<Send>(data_to_transfer)
+	}
 
-		self.transfer = self.transfer.resume(pointer_out);
+	/// Resumes on top with modification in-place.
+	///
+	/// Returns the data transferred to us after the resume.
+	///
+	/// Uses `take()` so that ownership is transferred to the stack that is extant when `resume_on_top_drop_safe()` returns.
+	///
+	/// It is unlikely you need to use this function.
+	#[inline(always)]
+	pub(crate) fn resume_on_top_drop_safe(&mut self, data_to_transfer: Send, resume_on_top_function: ResumeOnTopFunction) -> Receive
+	{
+		self.resume_on_top_drop_safe_unsafe_typing::<Send>(data_to_transfer, resume_on_top_function)
+	}
+
+	/// Resumes with modification in-place; data transferred can implement drop.
+	///
+	/// Returns the data transferred to us after the resume.
+	///
+	/// Uses `take()` so that ownership is transferred to the stack that is extant when `resume_drop_safe()` returns.
+	#[inline(always)]
+	pub(crate) fn resume_drop_safe_unsafe_typing<T>(&mut self, data_to_transfer: T) -> Receive
+	{
+		let mut data_to_transfer_drop_safe = Some(data_to_transfer);
+		let pointer_out = Self::option_to_pointer::<T>(&mut data_to_transfer_drop_safe);
+
+		self.transfer = self.transfer.resume::<NonNull<Option<T>>>(pointer_out);
 
 		self.take_data()
 	}
@@ -53,14 +73,16 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 	///
 	/// Returns the data transferred to us after the resume.
 	///
-	/// Uses `take()` so that ownership is transferred to the stack that is extant when `resume_ontop_drop_safe()` returns.
+	/// Uses `take()` so that ownership is transferred to the stack that is extant when `resume_on_top_drop_safe()` returns.
+	///
+	/// It is unlikely you need to use this function.
 	#[inline(always)]
-	pub(crate) fn resume_ontop_drop_safe(&mut self, data_to_transfer: Send, resume_ontop_function: ResumeOntopFn) -> Receive
+	pub(crate) fn resume_on_top_drop_safe_unsafe_typing<T>(&mut self, data_to_transfer: T, resume_on_top_function: ResumeOnTopFunction) -> Receive
 	{
 		let mut data_to_transfer_drop_safe = Some(data_to_transfer);
-		let pointer_out = unsafe { NonNull::new_unchecked(&mut data_to_transfer_drop_safe as *mut Option<Send>) };
+		let pointer_out = Self::option_to_pointer::<T>(&mut data_to_transfer_drop_safe);
 
-		self.transfer = self.transfer.resume_ontop(pointer_out, resume_ontop_function);
+		self.transfer = self.transfer.resume_on_top::<NonNull<Option<T>>>(pointer_out, resume_on_top_function);
 
 		self.take_data()
 	}
@@ -77,12 +99,17 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 		self.take_data_unsafe_typing::<Receive>()
 	}
 
-	/// Only call this once per resumption.
 	#[inline(always)]
 	fn take_data_unsafe_typing<UnsafeT>(&self) -> UnsafeT
 	{
 		let pointer_in = self.transfer.transferred_data::<NonNull<Option<UnsafeT>>>();
 		let data_from_transfer_drop_safe = unsafe { pointer_in.as_mut() };
 		data_from_transfer_drop_safe.take().expect("take_data can only be called once per resumption")
+	}
+
+	#[inline(always)]
+	fn option_to_pointer<T>(data_to_transfer_drop_safe: &mut Option<T>) -> NonNull<Option<T>>
+	{
+		unsafe { NonNull::new_unchecked(data_to_transfer_drop_safe as *mut Option<T>) }
 	}
 }

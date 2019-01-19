@@ -4,30 +4,7 @@
 
 enum ChildOutcome<Yields: Sized, Complete: Sized>
 {
-	WouldLikeToResume
-	{
-		yields: Yields,
-	},
+	WouldLikeToResume(Yields),
 
-	Complete
-	{
-		result: Complete,
-	},
-
-	Panicked
-	{
-		panic: Box<dyn Any + Send + 'static>,
-	},
-}
-
-impl<Yields: Sized, Complete: Sized> ChildOutcome<Yields, Complete>
-{
-	#[inline(always)]
-	fn resume_panic(self)
-	{
-		if let Some(ChildOutcome::Panicked { panic }) = self
-		{
-			resume_unwind(panic)
-		}
-	}
+	Complete(thread::Result<Complete>),
 }
