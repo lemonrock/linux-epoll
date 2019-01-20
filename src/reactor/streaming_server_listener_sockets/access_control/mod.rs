@@ -6,6 +6,6 @@ use super::*;
 
 
 include!("AccessControl.rs");
+include!("InternetProtocolSubnets.rs");
 include!("IpLookupTableMatch.rs");
-include!("PermittedInternetProtocolSubnets.rs");
 include!("RemotePeerAddressBasedAccessControl.rs");

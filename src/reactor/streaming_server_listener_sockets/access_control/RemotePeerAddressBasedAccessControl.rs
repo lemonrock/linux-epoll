@@ -28,7 +28,7 @@ impl RemotePeerAddressBasedAccessControl
 	/// Permitted lists are `Option`s.
 	/// If they are `None`, then the permitted list is not checked and all possible values are permitted (as long as the accompanying deny list does not deny them).
 	#[inline(always)]
-	pub fn new(denied_protocol_version_4_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_4_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, denied_protocol_version_6_subnets: PermittedInternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_6_subnets: Option<PermittedInternetProtocolSubnets<Ipv6Addr>>, denied_unix_domain_user_identifiers: HashSet<uid_t>, permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>) -> Self
+	pub fn new(denied_protocol_version_4_subnets: InternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_4_subnets: Option<InternetProtocolSubnets<Ipv4Addr>>, denied_protocol_version_6_subnets: InternetProtocolSubnets<Ipv6Addr>, permitted_protocol_version_6_subnets: Option<InternetProtocolSubnets<Ipv6Addr>>, denied_unix_domain_user_identifiers: HashSet<uid_t>, permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>) -> Self
 	{
 		Self
 		{
@@ -57,7 +57,7 @@ impl AccessControl<sockaddr_in> for RemotePeerAddressBasedAccessControl
 		match self.permitted_protocol_version_4_subnets
 		{
 			None => true,
-			Some(ref ip_lookup_table) => ip_lookup_table.is_match(remote_peer_address).is_match(remote_peer_address)
+			Some(ref ip_lookup_table) => ip_lookup_table.is_match(remote_peer_address)
 		}
 	}
 }
@@ -77,7 +77,7 @@ impl AccessControl<sockaddr_in6> for RemotePeerAddressBasedAccessControl
 		match self.permitted_protocol_version_6_subnets
 		{
 			None => true,
-			Some(ref ip_lookup_table) => ip_lookup_table.is_match(remote_peer_address).is_match(remote_peer_address)
+			Some(ref ip_lookup_table) => ip_lookup_table.is_match(remote_peer_address)
 		}
 	}
 }
@@ -89,7 +89,7 @@ impl AccessControl<sockaddr_un> for RemotePeerAddressBasedAccessControl
 	{
 		let credentials = streaming_socket_file_descriptor.remote_peer_credentials();
 
-		if unlikely!(self.denied_unix_domain_user_identifiers.contains(credentials.user_identifier))
+		if unlikely!(self.denied_unix_domain_user_identifiers.contains(&credentials.user_identifier))
 		{
 			return false
 		}
@@ -97,7 +97,7 @@ impl AccessControl<sockaddr_un> for RemotePeerAddressBasedAccessControl
 		match self.permitted_unix_domain_group_identifiers
 		{
 			None => true,
-			Some(ref group_identifiers) => group_identifiers.contains(credentials.group_identifier),
+			Some(ref group_identifiers) => group_identifiers.contains(&credentials.group_identifier),
 		}
 	}
 }

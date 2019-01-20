@@ -12,7 +12,7 @@ struct StreamingServerListenerSocketCommon<SD: SocketData, A: AccessControl<SD>>
 impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<SD, A>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLR: StreamingServerListenerReactor<SD, A>>(event_poll: &EventPoll<impl Arenas>, streaming_server_listener_socket_file_descriptor: StreamingServerListenerSocketFileDescriptor<SD>, access_control: A, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLR: StreamingServerListenerReactor<SD, A>>(event_poll: &EventPoll<impl Arenas>, streaming_server_listener_socket_file_descriptor: SSLR::FileDescriptor, access_control: A, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
 	{
 		const AddFlags: EPollAddFlags = EPollAddFlags::EdgeTriggeredInput | EPollAddFlags::Exclusive;
 
@@ -81,7 +81,7 @@ impl<A: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockaddr
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: SocketAddrV4) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_in>, NewSocketServerListenerError>
 	{
-		StreamingServerListenerSocketFileDescriptor::<sockaddr_in>::new_transmission_control_protocol_over_internet_protocol_version_4_server_listener
+		SocketFileDescriptor::<sockaddr_in>::new_transmission_control_protocol_over_internet_protocol_version_4_server_listener
 		(
 			socket_address,
 			settings.send_buffer_size_in_bytes,
@@ -103,7 +103,7 @@ impl<A: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockadd
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: SocketAddrV6) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_in6>, NewSocketServerListenerError>
 	{
-		StreamingServerListenerSocketFileDescriptor::<sockaddr_in6>::new_transmission_control_protocol_over_internet_protocol_version_6_server_listener
+		SocketFileDescriptor::<sockaddr_in6>::new_transmission_control_protocol_over_internet_protocol_version_6_server_listener
 		(
 			socket_address,
 			settings.send_buffer_size_in_bytes,
@@ -125,7 +125,7 @@ impl<A: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockaddr
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: UnixDomainSocketAddress) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_un>, NewSocketServerListenerError>
 	{
-		StreamingServerListenerSocketFileDescriptor::<sockaddr_un>::new_streaming_unix_domain_socket_server_listener
+		SocketFileDescriptor::<sockaddr_un>::new_streaming_unix_domain_socket_server_listener
 		(
 			&socket_address.0,
 			settings.send_buffer_size_in_bytes,

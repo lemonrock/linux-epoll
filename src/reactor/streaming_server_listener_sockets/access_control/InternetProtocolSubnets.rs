@@ -4,9 +4,9 @@
 
 /// `A` is either an Internet Protocol Version 4 address (`Ipv4Addr`) or an Internet Protocol Version 6 address (`Ipv6Addr`).
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct PermittedInternetProtocolSubnets<A>(HashMap<A, u8>);
+pub struct InternetProtocolSubnets<A>(HashMap<A, u8>);
 
-impl<A> Deref for PermittedInternetProtocolSubnets<A>
+impl<A> Deref for InternetProtocolSubnets<A>
 {
 	type Target = HashMap<A, u8>;
 
@@ -17,7 +17,7 @@ impl<A> Deref for PermittedInternetProtocolSubnets<A>
 	}
 }
 
-impl<A> DerefMut for PermittedInternetProtocolSubnets<A>
+impl<A> DerefMut for InternetProtocolSubnets<A>
 {
 	#[inline(always)]
 	fn deref_mut(&mut self) -> &mut Self::Target
@@ -26,7 +26,7 @@ impl<A> DerefMut for PermittedInternetProtocolSubnets<A>
 	}
 }
 
-impl<A> PermittedInternetProtocolSubnets<A>
+impl<A> InternetProtocolSubnets<A>
 {
 	#[inline(always)]
 	pub(crate) fn to_ip_lookup_table(self) -> IpLookupTable<A, ()>
@@ -40,7 +40,7 @@ impl<A> PermittedInternetProtocolSubnets<A>
 	}
 }
 
-impl PermittedInternetProtocolSubnets<Ipv4Addr>
+impl InternetProtocolSubnets<Ipv4Addr>
 {
 	/// * `address`: An Internet Protocol version 4 address.
 	/// * `mask`: A bit mask from 0 to 32 for Internet Protocol Version 4 addresses and from 0 to 128 for Internet Protocol Version 6 addresses.
@@ -52,7 +52,7 @@ impl PermittedInternetProtocolSubnets<Ipv4Addr>
 	}
 }
 
-impl PermittedInternetProtocolSubnets<Ipv6Addr>
+impl InternetProtocolSubnets<Ipv6Addr>
 {
 	/// * `address`: An Internet Protocol version 6 address.
 	/// * `mask`: A bit mask from 0 to 32 for Internet Protocol Version 4 addresses and from 0 to 128 for Internet Protocol Version 6 addresses.
