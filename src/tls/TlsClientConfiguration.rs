@@ -84,7 +84,7 @@ impl TlsClientConfiguration
 		else
 		{
 			client_configuration.enable_tickets = true;
-			client_configuration.set_persistence(Arc::new(ClientSessionMemoryCache::new(self.tls_maximum_sessions_to_store_in_memory)));
+			client_configuration.set_persistence(ClientSessionMemoryCache::new(self.tls_maximum_sessions_to_store_in_memory));
 		}
 
 		client_configuration.ct_logs = if self.enable_certificate_transparency_logs

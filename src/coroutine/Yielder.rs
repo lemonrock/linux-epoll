@@ -24,7 +24,7 @@ impl<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a> Yielder<'a, ResumeArgume
 	///
 	/// Returns either `Ok(resume_arguments)` or `Err(kill_error)`.
 	#[inline(always)]
-	pub fn yields<E>(&'a mut self, yields: Yields, kill_error: E) -> Result<ResumeArguments, E>
+	pub fn yields<E>(&self, yields: Yields, kill_error: E) -> Result<ResumeArguments, E>
 	{
 		use self::ParentInstructingChild::*;
 
