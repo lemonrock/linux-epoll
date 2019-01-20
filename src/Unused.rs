@@ -45,7 +45,7 @@ impl Reactor for Unused
 	}
 
 	#[inline(always)]
-	fn react(&mut self, _file_descriptor: &Self::FileDescriptor, _event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, _file_descriptor: &Self::FileDescriptor, _event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
 	{
 		panic!("Can not react")
 	}
