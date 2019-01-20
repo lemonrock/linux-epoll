@@ -52,7 +52,7 @@ impl TransferExt for Transfer
 	}
 
 	#[inline(always)]
-	fn context(&self) -> Context
+	fn context(self) -> Context
 	{
 		self.context
 	}

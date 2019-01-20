@@ -34,6 +34,12 @@ impl<'a, SD: SocketData> Stream <'a>for TlsClientStream<'a, SD>
 	}
 
 	#[inline(always)]
+	fn flush_written_data(&mut self) -> Result<(), CompleteError>
+	{
+		self.generic_stream.tls_flush_written_data(&mut self.tls_session)
+	}
+
+	#[inline(always)]
 	fn finish(mut self) -> Result<(), CompleteError>
 	{
 		self.generic_stream.tls_finish(&mut self.tls_session)

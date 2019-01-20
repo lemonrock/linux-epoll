@@ -60,6 +60,12 @@ impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 	}
 
 	#[inline(always)]
+	fn flush_written_data(&mut self) -> Result<(), CompleteError>
+	{
+		Ok(())
+	}
+
+	#[inline(always)]
 	fn finish(mut self) -> Result<(), CompleteError>
 	{
 		Ok(())

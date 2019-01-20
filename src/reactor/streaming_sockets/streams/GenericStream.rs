@@ -30,6 +30,12 @@ impl<'a, SD: SocketData> GenericStream<'a, SD>
 	}
 
 	#[inline(always)]
+	fn tls_flush_written_data(&mut self, tls_session: &mut impl Session) -> Result<(), CompleteError>
+	{
+		self.tls_session.stream_flush::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
+	}
+
+	#[inline(always)]
 	fn tls_finish(&mut self, tls_session: &mut impl Session) -> Result<usize, CompleteError>
 	{
 		self.tls_session.stream_close::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)

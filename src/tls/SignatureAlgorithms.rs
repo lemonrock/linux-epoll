@@ -2,5 +2,5 @@
 // Copyright © 2018 The developers of simple-http-server. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/simple-http-server/master/COPYRIGHT.
 
 
-/// A static slice of webpki SignatureAlogrithm.
+/// A static slice of webpki SignatureAlgorithm.
 pub type SignatureAlgorithms = &'static [&'static SignatureAlgorithm];

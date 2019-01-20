@@ -58,6 +58,7 @@ use ::lock_free_multi_producer_single_consumer_ring_buffer::*;
 use ::rustls::AllowAnyAnonymousOrAuthenticatedClient;
 use ::rustls::AllowAnyAuthenticatedClient;
 use ::rustls::Certificate;
+use ::rustls::ClientCertVerifier;
 use ::rustls::ClientConfig;
 use ::rustls::ClientSession;
 use ::rustls::ClientSessionMemoryCache;
