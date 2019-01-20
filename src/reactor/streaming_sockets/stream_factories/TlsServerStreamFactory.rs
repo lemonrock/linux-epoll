@@ -9,6 +9,15 @@ pub struct TlsServerStreamFactory
 	session_buffer_limit: usize,
 }
 
+impl Debug for TlsServerStreamFactory
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "TlsServerStreamFactory {{ tls_configuration: _, session_buffer_limit: {:?} }}", self.session_buffer_limit)
+	}
+}
+
 impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for TlsServerStreamFactory
 {
 	type S = TlsServerStream<'a, SD>;

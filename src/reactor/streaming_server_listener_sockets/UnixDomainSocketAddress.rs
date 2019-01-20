@@ -3,4 +3,5 @@
 
 
 /// Represents an Unix domain socket address.
+#[derive(Debug)]
 pub struct UnixDomainSocketAddress(pub UnixSocketAddress<PathBuf>);

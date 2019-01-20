@@ -3,6 +3,7 @@
 
 
 /// A simple structure to make it easy to 'yield' from a coroutine.
+#[derive(Debug)]
 pub struct Yielder<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a>
 {
 	type_safe_transfer: &'a mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>

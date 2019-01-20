@@ -3,46 +3,46 @@
 
 
 /// A TLS client stream.
+#[derive(Debug)]
 pub struct TlsClientStream<'a, SD: SocketData>
 {
-	generic_stream: GenericStream<'a, SD>,
-	tls_session: ClientSession,
+	tls_generic_stream: TlsGenericStream<'a, SD, ClientSession>,
 }
 
 stream_read_write!(TlsClientStream);
 
-impl<'a, SD: SocketData> Stream <'a>for TlsClientStream<'a, SD>
+impl<'a, SD: SocketData> Stream<'a> for TlsClientStream<'a, SD>
 {
 	type PostHandshakeInformation = CommonTlsPostHandshakeInformation<'a>;
 
 	#[inline(always)]
 	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation
 	{
-		CommonTlsPostHandshakeInformation::from_tls_session(&mut self.tls_session)
+		self.tls_generic_stream.common_tls_post_handshake_information()
 	}
 
 	#[inline(always)]
 	fn read_data(&mut self, read_into_buffer: &mut [u8]) -> Result<usize, CompleteError>
 	{
-		self.generic_stream.tls_read(&mut self.tls_session, read_into_buffer)
+		self.tls_generic_stream.read_data(read_into_buffer)
 	}
 
 	#[inline(always)]
 	fn write_data(&mut self, write_from_buffer: &[u8]) -> Result<usize, CompleteError>
 	{
-		self.generic_stream.tls_write(&mut self.tls_session, write_from_buffer)
+		self.tls_generic_stream.write_data(write_from_buffer)
 	}
 
 	#[inline(always)]
 	fn flush_written_data(&mut self) -> Result<(), CompleteError>
 	{
-		self.generic_stream.tls_flush_written_data(&mut self.tls_session)
+		self.tls_generic_stream.flush_written_data()
 	}
 
 	#[inline(always)]
 	fn finish(mut self) -> Result<(), CompleteError>
 	{
-		self.generic_stream.tls_finish(&mut self.tls_session)
+		self.tls_generic_stream.finish()
 	}
 }
 
@@ -53,16 +53,12 @@ impl<'a, SD: SocketData> TlsClientStream<'a, SD>
 	{
 		let hostname = DNSNameRef::try_from_ascii_str(ascii_host_name).expect("Invalid ASCII host name");
 		let mut tls_session = ClientSession::new(tls_configuration, hostname);
-		tls_session.set_buffer_limit(session_buffer_limit);
-
-		generic_stream.tls_handshake(&mut tls_session)?;
 
 		Ok
 		(
 			Self
 			{
-				generic_stream,
-				tls_session,
+				tls_generic_stream: TlsGenericStream::configure_and_handshake(generic_stream, tls_session, session_buffer_limit)?,
 			}
 		)
 	}

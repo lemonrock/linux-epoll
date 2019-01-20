@@ -3,6 +3,7 @@
 
 
 /// Wraps the type of the data being transferred.
+#[derive(Debug)]
 pub(crate) struct TypeSafeTransfer<Receive: Sized, Send: Sized>
 {
 	transfer: Transfer,

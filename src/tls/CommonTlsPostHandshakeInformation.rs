@@ -3,6 +3,7 @@
 
 
 /// TLS information available after successful handshaking that is common to both clients and servers.
+#[derive(Debug)]
 pub struct CommonTlsPostHandshakeInformation<'a>
 {
 	/// Negotiated protocol version.

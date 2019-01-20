@@ -5,6 +5,7 @@
 /// Holds a stack and a type-safe transfer; suitable for the ultimate owner of a coroutine.
 ///
 /// On drop the the closure is killed and the stack is then relinquished.
+#[derive(Debug)]
 pub struct StackAndTypeSafeTransfer<S: Sized + Deref<Target=Stack>, C: Coroutine>
 {
 	stack: S,

@@ -23,6 +23,16 @@ macro_rules! array_backed_arena
 			allocation: [ArenaElement<Holds>; $size],
 		}
 
+		impl<Holds: Reactor> Debug for $name<Holds>
+		where Holds::FileDescriptor: FromRawFd
+		{
+			#[inline(always)]
+			fn fmt(&self, f: &mut Formatter) -> fmt::Result
+			{
+				write!(f, "$name {{ next_available_slot: {:?}, allocation: [_; {:?}] }}", self.next_available_slot_index, $size)
+			}
+		}
+
 		impl<Holds: Reactor> Default for $name<Holds>
 		where Holds::FileDescriptor: FromRawFd
 		{

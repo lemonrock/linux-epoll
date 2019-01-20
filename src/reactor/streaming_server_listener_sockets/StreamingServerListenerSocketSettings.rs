@@ -3,27 +3,36 @@
 
 
 /// Settings to apply to a connection established by `accept()`.
-#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct StreamingServerListenerSocketSettings
 {
+	/// Send buffer size (in bytes).
 	pub send_buffer_size_in_bytes: usize,
 
+	/// Receive buffer size (in bytes).
 	pub receive_buffer_size_in_bytes: usize,
 
+	/// Idle for how many seconds before TCP keep-alive is started?
 	pub idles_before_keep_alive_seconds: u16,
 
+	/// Interval in seconds between TCP keep-alive probes.
 	pub keep_alive_interval_seconds: u16,
 
+	/// Maximum number of TCP keep-alive probes to send.
 	pub maximum_keep_alive_probes: u16,
 
+	/// How long to linger (in seconds).
 	pub linger_seconds: u16,
 
+	/// How long to linger in the TCP FIN-WAIT2 state (in seconds).
 	pub linger_in_FIN_WAIT2_seconds: u16,
 
 	/// Zero is rounded up to one.
+	///
+	/// How many TCP SYN segments to try to transmit before giving up on a connection attempt?
 	pub maximum_SYN_transmits: u16,
 
+	/// Back log of prior connections to honour (typically capped by Linux to 128).
 	pub back_log: u32,
 }
 

@@ -3,11 +3,8 @@
 
 
 /// A factory to create instances of `UnencryptedStream`.
-pub struct UnencryptedStreamFactory
-{
-	tls_configuration: Arc<ServerConfig>,
-	session_buffer_limit: usize,
-}
+#[derive(Debug)]
+pub struct UnencryptedStreamFactory;
 
 impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for UnencryptedStreamFactory
 {

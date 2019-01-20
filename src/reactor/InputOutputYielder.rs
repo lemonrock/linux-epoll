@@ -3,6 +3,7 @@
 
 
 /// A simple structure that wraps up what is required to yield from a coroutine that depends on further input or output data becoming available in order to make progress.
+#[derive(Debug)]
 pub struct InputOutputYielder<'a>(Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>);
 
 impl<'a> InputOutputYielder<'a>

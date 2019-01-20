@@ -11,6 +11,7 @@
 /// Vectored reads and vectored writes are not supported (although they could be) because they do not compose well when also using TLS streams; since most modern protocols are TLS-based, the a vectored read or write operation is much less useful than it once was.
 ///
 /// Likewise, sendfile is not directly supported, although if (ever) Rustls gets support the Linux's kernel implementation of a TLS-encrypted sendfile, we may add support for it.
+#[derive(Debug)]
 pub struct UnencryptedStream<'a, SD: SocketData>(GenericStream<'a, SD>);
 
 stream_read_write!(UnencryptedStream);

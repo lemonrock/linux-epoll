@@ -3,6 +3,7 @@
 
 
 /// A simple stack.
+#[derive(Debug)]
 pub struct SimpleStack;
 
 impl Deref for SimpleStack
