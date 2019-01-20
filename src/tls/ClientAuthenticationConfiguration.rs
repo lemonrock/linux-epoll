@@ -44,15 +44,15 @@ impl Default for ClientAuthenticationConfiguration
 impl ClientAuthenticationConfiguration
 {
 	#[inline(always)]
-	pub(crate) fn client_certificate_verifier(&self) -> Result<Arc<ClientCertVerifier>, TlsServerConfigurationError>
+	pub(crate) fn client_certificate_verifier(&self) -> Result<Arc<ClientCertVerifier>, RootCertificateStoreLoadError>
 	{
 		use self::ClientAuthenticationConfiguration::*;
 
 		match self
 		{
-			AllowAnyAuthenticated { ref certificate_authority_root_certificates_files } => Ok(AllowAnyAuthenticatedClient::new(TlsServerConfiguration::root_certificate_store(certificate_authority_root_certificates_files)?)),
+			AllowAnyAuthenticated { ref certificate_authority_root_certificates_files } => Ok(AllowAnyAuthenticatedClient::new(RootCertificateStoreLoadError::root_certificate_store(certificate_authority_root_certificates_files)?)),
 
-			AllowAnyAnonymousOrAuthenticated { ref certificate_authority_root_certificates_files } => Ok(AllowAnyAnonymousOrAuthenticatedClient::new(TlsServerConfiguration::root_certificate_store(certificate_authority_root_certificates_files)?)),
+			AllowAnyAnonymousOrAuthenticated { ref certificate_authority_root_certificates_files } => Ok(AllowAnyAnonymousOrAuthenticatedClient::new(RootCertificateStoreLoadError::root_certificate_store(certificate_authority_root_certificates_files)?)),
 
 			AllowAnyAnonymous => Ok(NoClientAuth::new()),
 		}

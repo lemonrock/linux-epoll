@@ -3,7 +3,7 @@
 
 
 /// An error that can occur during registration with epoll.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug)]
 pub enum EventPollRegistrationError
 {
 	/// Error on creation of a file descriptor.

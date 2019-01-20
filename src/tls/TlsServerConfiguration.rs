@@ -10,51 +10,25 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TlsServerConfiguration
 {
-	/// Location of certificate authorities for client certificates if used.
-	pub client_authentication_configuration: ClientAuthenticationConfiguration,
-
-	/// A static slice of supported signature algorithms.
-	pub supported_signature_algorithms: SignatureAlgorithms,
-
-	/// Which TLS versions to support?
-	pub supported_tls_versions: SupportedTlsVersions,
-
-	/// TLS message size Maximum Transmission Unit (MTU) in bytes.
-	pub tls_mtu: Option<usize>,
+	/// Configuration common to clients and servers.
+	pub common: TlsCommonConfiguration,
 
 	/// Maximum number of TLS sessions to store in memory.
 	///
 	/// If zero no sessions are stored.
 	pub tls_maximum_sessions_to_store_in_memory: usize,
 
-	/// Whether to support TLS session tickets
-	///
-	/// If false then tickets are not issued.
-	pub support_tls_session_tickets: bool,
+	/// Certificate chain.
+	pub certificate_chain_and_private_key: CertificateChainAndPrivateKey,
 
-	/// PEM-encoded file containing the server's certificate chain, from most derived to least.
-	pub server_certificate_chain_file: PathBuf,
-
-	/// PEM-encoded file containing the server's private keys, ether RSA or PKCS8.
-	///
-	/// Only the first key found of each type is used; if both are found, then PKCS8 is preferred.
-	///
-	/// Private key must be capable of signing the first certificate in the server's `server_certificate_chain_file`.
-	pub server_private_key_file: PathBuf,
+	/// Location of certificate authorities for client certificates if used.
+	pub client_authentication_configuration: ClientAuthenticationConfiguration,
 
 	/// Online Certificate Status Protocol (OCSP) file, if any.
 	pub online_certificate_status_protocol_file: Option<PathBuf>,
 
 	/// Signed Certificate Timestamp List (SCT) file, if any.
 	pub signed_certificate_timestamp_list_file: Option<PathBuf>,
-
-	/// ALPN protocols, such as `http/1.1` and `http/1.0`, in preference order.
-	pub application_layer_protocol_negotiation_protocols: IndexSet<ApplicationLayerProtocolNegotiationProtocol>,
-
-	/// Session buffer limit (in bytes).
-	///
-	/// A value of 0 implies no limit and infinite potential growth.
-	pub session_buffer_limit: usize,
 }
 
 impl TlsServerConfiguration
@@ -63,53 +37,37 @@ impl TlsServerConfiguration
 	///
 	/// `application_layer_protocol_negotiation_protocols` must not contain `ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP` or a panic will occur when creating the server configuration.
 	#[inline(always)]
-	pub fn new(client_authentication_configuration: ClientAuthenticationConfiguration, server_certificate_chain_file: PathBuf, server_private_key_file: PathBuf, application_layer_protocol_negotiation_protocols: IndexSet<ApplicationLayerProtocolNegotiationProtocol>) -> Self
+	pub fn new(certificate_chain_and_private_key: CertificateChainAndPrivateKey, client_authentication_configuration: ClientAuthenticationConfiguration) -> Self
 	{
 		Self
 		{
-			client_authentication_configuration,
-			supported_signature_algorithms: Self::default_supported_signature_algorithms(),
-			supported_tls_versions: Self::default_supported_tls_versions(),
-			tls_mtu: Self::default_tls_mtu(),
+			common: TlsCommonConfiguration::default(),
 			tls_maximum_sessions_to_store_in_memory: Self::default_tls_maximum_sessions_to_store_in_memory(),
-			support_tls_session_tickets: Self::default_support_tls_session_tickets(),
-			server_certificate_chain_file,
-			server_private_key_file,
+			certificate_chain_and_private_key,
+			client_authentication_configuration,
 			online_certificate_status_protocol_file: Self::default_online_certificate_status_protocol_file(),
 			signed_certificate_timestamp_list_file: Self::default_signed_certificate_timestamp_list_file(),
-			application_layer_protocol_negotiation_protocols,
-			session_buffer_limit: Self::default_session_buffer_limit()
 		}
 	}
 
 	#[inline(always)]
 	pub(crate) fn server_configuration(&self) -> Result<Arc<ServerConfig>, TlsServerConfigurationError>
 	{
-		let mut server_configuration = ServerConfig::new(self.client_authentication_configuration.client_certificate_verifier());
+		let mut server_configuration = ServerConfig::new(self.client_authentication_configuration.client_certificate_verifier()?);
+
+		server_configuration.set_protocols(&(self.common.application_layer_protocol_negotiation_protocols.to_rustls_form())[..]);
+
+		server_configuration.ciphersuites = self.common.supported_signature_algorithms;
+
+		server_configuration.set_mtu(self.common.tls_mtu);
+
+		server_configuration.versions = self.common.supported_tls_versions.versions();
 
 		{
-			let mut protocols = Vec::with_capacity(self.application_layer_protocol_negotiation_protocols.len());
-			for application_layer_protocol_negotiation_protocol in self.application_layer_protocol_negotiation_protocols
-			{
-				assert_ne!(application_layer_protocol_negotiation_protocol, ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP, "HTTP_2_over_TCP can not be used with TLS");
-				protocols.push(application_layer_protocol_negotiation_protocol.to_string())
-			}
-
-			server_configuration.set_protocols(&protocols[..]);
-		}
-
-		server_configuration.ciphersuites = self.supported_signature_algorithms;
-
-		server_configuration.set_mtu(self.tls_mtu);
-
-		server_configuration.versions = self.supported_tls_versions.versions();
-
-		{
-			let certificate_chain = self.load_certificate_chain()?;
-			let private_key = self.load_private_key()?;
+			let (certificate_chain, private_key) = self.certificate_chain_and_private_key.load_certificate_chain_and_private_key()?;
 			let online_certificate_status_protocol = self.load_online_certificate_status_protocol_file()?;
 			let signed_certificate_timestamp_list = self.load_signed_certificate_timestamp_list_file()?;
-			server_configuration.set_single_cert_with_ocsp_and_sct(certificate_chain, private_key, online_certificate_status_protocol, signed_certificate_timestamp_list).map_err(|error| TlsServerConfigurationError::CouldNotSetCertificateChainAndPrivateKey(error))?;
+			server_configuration.set_single_cert_with_ocsp_and_sct(certificate_chain, private_key, online_certificate_status_protocol, signed_certificate_timestamp_list)?;
 		}
 
 		server_configuration.session_storage = if self.tls_maximum_sessions_to_store_in_memory == 0
@@ -118,76 +76,20 @@ impl TlsServerConfiguration
 		}
 		else
 		{
+			server_configuration.ticketer = Ticketer::new();
 			ServerSessionMemoryCache::new(self.tls_maximum_sessions_to_store_in_memory)
 		};
-
-		if self.support_tls_session_tickets
-		{
-			server_configuration.ticketer = Ticketer::new();
-		}
 
 		server_configuration.ignore_client_order = true;
 
 		Ok(Arc::new(server_configuration))
 	}
 
-	/// Defaults to:-
-	///
-	/// *`ECDSA_P256_SHA256`
-	/// *`ECDSA_P256_SHA384`
-	/// *`ECDSA_P384_SHA256`
-	/// *`ECDSA_P384_SHA384`
-	/// *`RSA_PSS_2048_8192_SHA256_LEGACY_KEY`
-	/// *`RSA_PSS_2048_8192_SHA384_LEGACY_KEY`
-	/// *`RSA_PSS_2048_8192_SHA512_LEGACY_KEY`
-	/// *`RSA_PKCS1_2048_8192_SHA256`
-	/// *`RSA_PKCS1_2048_8192_SHA384`
-	/// *`RSA_PKCS1_2048_8192_SHA512`
-	/// *`RSA_PKCS1_3072_8192_SHA384`
-	#[inline(always)]
-	pub const fn default_supported_signature_algorithms() -> SignatureAlgorithms
-	{
-		&[
-			&ECDSA_P256_SHA256,
-			&ECDSA_P256_SHA384,
-			&ECDSA_P384_SHA256,
-			&ECDSA_P384_SHA384,
-			&RSA_PSS_2048_8192_SHA256_LEGACY_KEY,
-			&RSA_PSS_2048_8192_SHA384_LEGACY_KEY,
-			&RSA_PSS_2048_8192_SHA512_LEGACY_KEY,
-			&RSA_PKCS1_2048_8192_SHA256,
-			&RSA_PKCS1_2048_8192_SHA384,
-			&RSA_PKCS1_2048_8192_SHA512,
-			&RSA_PKCS1_3072_8192_SHA384
-		]
-	}
-	
-	/// Defaults to TLS 1.3 and TLS 1.2.
-	#[inline(always)]
-	pub const fn default_supported_tls_versions() -> SupportedTlsVersions
-	{
-		SupportedTlsVersions::default()
-	}
-
-	/// Defaults to `None`.
-	#[inline(always)]
-	pub const fn default_tls_mtu() -> Option<usize>
-	{
-		None
-	}
-
 	/// Defaults to 256.
 	#[inline(always)]
-	pub const fn default_tls_maximum_sessions_to_store_in_memoryu() -> usize
+	pub const fn default_tls_maximum_sessions_to_store_in_memory() -> usize
 	{
 		256
-	}
-
-	/// Defaults to true.
-	#[inline(always)]
-	pub const fn default_support_tls_session_tickets() -> bool
-	{
-		true
 	}
 
 	/// Defaults to None.
@@ -202,54 +104,6 @@ impl TlsServerConfiguration
 	pub fn default_signed_certificate_timestamp_list_file() -> Option<PathBuf>
 	{
 		None
-	}
-
-	/// Defaults to 16Kb.
-	#[inline(always)]
-	pub fn default_session_buffer_limit() -> usize
-	{
-		16 * 1024
-	}
-
-	#[inline(always)]
-	fn load_certificate_chain(&self) -> Result<Vec<Certificate>, TlsServerConfigurationError>
-	{
-		use self::TlsServerConfigurationError::*;
-
-		let file = File::open(&self.server_certificate_chain_file).map_err(|error| CouldNotOpenServerCertificateFile(error))?;
-		let mut reader = BufReader::new(file);
-		certs(&mut reader).map_err(|_| CouldNotReadServerCertificateFile)
-	}
-
-	fn load_private_key(&self) -> Result<PrivateKey, TlsServerConfigurationError>
-	{
-		use self::TlsServerConfigurationError::*;
-
-		let pkcs8_private_keys = pkcs8_private_keys(&mut self.open_private_key_file()).map_err(|_| CouldNotReadServerPkcs8PrivateKey);
-		let rsa_private_keys = rsa_private_keys(&mut self.open_private_key_file()).map_err(|_| CouldNotReadServerRsaPrivateKey);
-
-		if pkcs8_private_keys.is_empty()
-		{
-			if rsa_private_keys.is_empty()
-			{
-				Err(ThereIsNeitherAPkcs8OrRsaServerPrivateKey)
-			}
-			else
-			{
-				Ok((unsafe { rsa_private_keys.get_unchecked(0) }).clone())
-			}
-		}
-		else
-		{
-			Ok((unsafe { pkcs8_private_keys.get_unchecked(0) }).clone())
-		}
-	}
-
-	#[inline(always)]
-	fn open_private_key_file(&self) -> Result<BufReader<File>, TlsServerConfigurationError>
-	{
-		let file = File::open(&self.server_private_key_file).map_err(|error| TlsServerConfigurationError::CouldNotOpenServerPrivateKeysFile(error))?;
-		Ok(BufReader::new(file))
 	}
 
 	#[inline(always)]
@@ -276,31 +130,5 @@ impl TlsServerConfiguration
 		}
 
 		data
-	}
-
-	#[inline(always)]
-	fn root_certificate_store(certificate_authority_root_certificates_files: &PathBuf) -> Result<RootCertStore, TlsServerConfigurationError>
-	{
-		use self::TlsServerConfigurationError::*;
-
-		let mut root_certificate_store = RootCertStore::empty();
-
-		let mut total_valid_count = 0;
-		for certificate_authority_root_certificates_file in certificate_authority_root_certificates_files.iter()
-		{
-			let file = File::open(certificate_authority_root_certificates_file).map_err(|error| CouldNotOpenCertificateAuthoritiesPemFile(error))?;
-			let mut buf_reader = BufReader::new(file);
-			let (valid_count, _invalid_count) = root_certificate_store.add_pem_file(&mut buf_reader).map_err(|_| CouldNotReadCertificateAuthoritiesPemFile)?;
-			total_valid_count += valid_count;
-		}
-
-		if unlikely!(total_valid_count == 0)
-		{
-			Err(NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles)
-		}
-		else
-		{
-			Ok(root_certificate_store)
-		}
 	}
 }

@@ -7,23 +7,9 @@
 #[derive(Debug)]
 pub enum TlsServerConfigurationError
 {
-	CouldNotOpenCertificateAuthoritiesPemFile(io::Error),
+	ClientCertificateAuthority(RootCertificateStoreLoadError),
 
-	CouldNotReadCertificateAuthoritiesPemFile,
-
-	NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles,
-
-	CouldNotOpenServerCertificateFile(io::Error),
-
-	CouldNotReadServerCertificateFile,
-
-	CouldNotOpenServerPrivateKeyFile(io::Error),
-
-	CouldNotReadServerPkcs8PrivateKey,
-
-	CouldNotReadServerRsaPrivateKey,
-
-	ThereIsNeitherAPkcs8OrRsaServerPrivateKey,
+	CertificateChainAndPrivateKeyError(CertificateChainAndPrivateKeyError),
 
 	CouldNotOpenOnlineCertificateStatusProtocolFile(io::Error),
 
@@ -33,7 +19,7 @@ pub enum TlsServerConfigurationError
 
 	CouldNotReadSignedCertificateTimestampStatusFile(io::Error),
 
-	CouldNotSetCertificateChainAndPrivateKey(TLSError),
+	CouldNotSetCertificateChainPrivateKeyOcspAndSct(TLSError),
 }
 
 impl Display for TlsServerConfigurationError
@@ -54,23 +40,7 @@ impl error::Error for TlsServerConfigurationError
 
 		match self
 		{
-			&CouldNotOpenCertificateAuthoritiesPemFile(ref error) => Some(error),
-
-			&CouldNotReadCertificateAuthoritiesPemFile => None,
-
-			&NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFile => None,
-
-			&CouldNotOpenServerCertificateFile(ref error) => Some(error),
-
-			&CouldNotReadServerCertificateFile => None,
-
-			&CouldNotOpenServerPrivateKeyFile(ref error) => Some(error),
-
-			&CouldNotReadServerPkcs8PrivateKey => None,
-
-			&CouldNotReadServerRsaPrivateKey => None,
-
-			&ThereIsNeitherAPkcs8OrRsaServerPrivateKey => None,
+			&ClientCertificateAuthority(ref error) => Some(error),
 
 			&CouldNotOpenOnlineCertificateStatusProtocolFile(ref error) => Some(error),
 
@@ -80,7 +50,34 @@ impl error::Error for TlsServerConfigurationError
 
 			&CouldNotReadSignedCertificateTimestampStatusFile(ref error) => Some(error),
 
-			&CouldNotSetCertificateChainAndPrivateKey(ref error) => Some(error),
+			&CouldNotSetCertificateChainPrivateKeyOcspAndSct(ref error) => Some(error),
 		}
+	}
+}
+
+impl From<RootCertificateStoreLoadError> for TlsServerConfigurationError
+{
+	#[inline(always)]
+	fn from(error: RootCertificateStoreLoadError) -> Self
+	{
+		TlsServerConfigurationError::ClientCertificateAuthority(error)
+	}
+}
+
+impl From<CertificateChainAndPrivateKeyError> for TlsServerConfigurationError
+{
+	#[inline(always)]
+	fn from(error: CertificateChainAndPrivateKeyError) -> Self
+	{
+		TlsServerConfigurationError::CertificateChainAndPrivateKeyError(error)
+	}
+}
+
+impl From<TLSError> for TlsServerConfigurationError
+{
+	#[inline(always)]
+	fn from(error: TLSError) -> Self
+	{
+		TlsServerConfigurationError::CouldNotSetCertificateChainPrivateKeyOcspAndSct(error)
 	}
 }

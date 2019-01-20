@@ -7,25 +7,9 @@
 #[derive(Debug)]
 pub enum TlsClientConfigurationError
 {
-	CouldNotOpenCertificateAuthoritiesPemFile(io::Error),
+	ServerCertificateAuthority(RootCertificateStoreLoadError),
 
-	CouldNotReadCertificateAuthoritiesPemFile,
-
-	NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles,
-
-	CouldNotOpenClientCertificateFile(io::Error),
-
-	CouldNotReadClientCertificateFile,
-
-	CouldNotOpenClientPrivateKeyFile(io::Error),
-
-	CouldNotReadClientPkcs8PrivateKey,
-
-	CouldNotReadClientRsaPrivateKey,
-
-	ThereIsNeitherAPkcs8OrRsaClientPrivateKey,
-	
-	CouldNotSetCertificateChainAndPrivateKey(TLSError),
+	CertificateChainAndPrivateKeyError(CertificateChainAndPrivateKeyError),
 }
 
 impl Display for TlsClientConfigurationError
@@ -46,25 +30,27 @@ impl error::Error for TlsClientConfigurationError
 
 		match self
 		{
-			&CouldNotOpenCertificateAuthoritiesPemFile(ref error) => Some(error),
+			&ServerCertificateAuthority(ref error) => Some(error),
 
-			&CouldNotReadCertificateAuthoritiesPemFile => None,
-
-			&NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFile => None,
-
-			&CouldNotOpenClientCertificateFile(ref error) => Some(error),
-
-			&CouldNotReadClientCertificateFile => None,
-
-			&CouldNotOpenClientPrivateKeyFile(ref error) => Some(error),
-
-			&CouldNotReadClientPkcs8PrivateKey => None,
-
-			&CouldNotReadClientRsaPrivateKey => None,
-
-			&ThereIsNeitherAPkcs8OrRsaClientPrivateKey => None,
-
-			&CouldNotSetCertificateChainAndPrivateKey(ref error) => Some(error),
+			&CertificateChainAndPrivateKeyError(ref error) => Some(error),
 		}
+	}
+}
+
+impl From<RootCertificateStoreLoadError> for TlsClientConfigurationError
+{
+	#[inline(always)]
+	fn from(error: RootCertificateStoreLoadError) -> Self
+	{
+		TlsClientConfigurationError::ServerCertificateAuthority(error)
+	}
+}
+
+impl From<CertificateChainAndPrivateKeyError> for TlsClientConfigurationError
+{
+	#[inline(always)]
+	fn from(error: CertificateChainAndPrivateKeyError) -> Self
+	{
+		TlsClientConfigurationError::CertificateChainAndPrivateKeyError(error)
 	}
 }

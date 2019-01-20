@@ -6,14 +6,17 @@ use super::*;
 
 
 include!("ApplicationLayerProtocolNegotiationProtocol.rs");
+include!("CertificateChainAndPrivateKey.rs");
+include!("CertificateChainAndPrivateKeyError.rs");
 include!("ClientAuthenticationConfiguration.rs");
 include!("CommonTlsPostHandshakeInformation.rs");
+include!("RootCertificateStoreLoadError.rs");
 include!("ServerNameIndication.rs");
 include!("SignatureAlgorithms.rs");
 include!("SupportedTlsVersions.rs");
 include!("TlsClientConfiguration.rs");
 include!("TlsClientConfigurationError.rs");
-include!("TlsClientCredentials.rs");
+include!("TlsCommonConfiguration.rs");
 include!("TlsInputOutputError.rs");
 include!("TlsServerConfiguration.rs");
 include!("TlsServerConfigurationError.rs");
