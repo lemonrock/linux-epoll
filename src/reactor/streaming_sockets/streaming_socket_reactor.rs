@@ -30,7 +30,7 @@ macro_rules! streaming_socket_reactor
 			#[inline(always)]
 			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 			{
-				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, registration_data)
+				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self>(event_poll, registration_data)
 			}
 
 			#[inline(always)]
@@ -38,6 +38,10 @@ macro_rules! streaming_socket_reactor
 			{
 				self.inner.react(event_poll, file_descriptor, event_flags, terminate)
 			}
+		}
+
+		impl<'a, SF: StreamFactory<'a, $sockaddr_type>, SU: StreamUser<'a, SF::S>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type> for $reactor_name<'a, SF, SU>
+		{
 		}
 	}
 }

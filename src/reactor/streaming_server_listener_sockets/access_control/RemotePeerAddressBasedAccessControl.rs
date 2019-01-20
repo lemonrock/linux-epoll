@@ -45,7 +45,7 @@ impl RemotePeerAddressBasedAccessControl
 impl AccessControl<sockaddr_in> for RemotePeerAddressBasedAccessControl
 {
 	#[inline(always)]
-	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_in, _file_descriptor: &SocketFileDescriptor<sockaddr_in>) -> bool
+	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_in, _streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_in>) -> bool
 	{
 		let remote_peer_address: Ipv4Addr = unsafe { transmute(remote_peer_address) };
 
@@ -65,7 +65,7 @@ impl AccessControl<sockaddr_in> for RemotePeerAddressBasedAccessControl
 impl AccessControl<sockaddr_in6> for RemotePeerAddressBasedAccessControl
 {
 	#[inline(always)]
-	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_in6, _file_descriptor: &SocketFileDescriptor<sockaddr_in6>) -> bool
+	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_in6, _streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_in6>) -> bool
 	{
 		let remote_peer_address: Ipv6Addr = unsafe { transmute(remote_peer_address) };
 
@@ -85,9 +85,9 @@ impl AccessControl<sockaddr_in6> for RemotePeerAddressBasedAccessControl
 impl AccessControl<sockaddr_un> for RemotePeerAddressBasedAccessControl
 {
 	#[inline(always)]
-	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_un, file_descriptor: &SocketFileDescriptor<sockaddr_un>) -> bool
+	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_un, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_un>) -> bool
 	{
-		let credentials = file_descriptor.remote_peer_credentials();
+		let credentials = streaming_socket_file_descriptor.remote_peer_credentials();
 
 		if unlikely!(self.denied_unix_domain_user_identifiers.contains(credentials.user_identifier))
 		{

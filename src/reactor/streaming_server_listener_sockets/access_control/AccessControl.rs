@@ -6,14 +6,14 @@
 pub trait AccessControl<SD: SocketData>
 {
 	/// Is the remote peer allowed based on its address or credentials?
-	fn is_remote_peer_allowed(&self, remote_peer_address: SD, file_descriptor: &SocketFileDescriptor<SD>) -> bool;
+	fn is_remote_peer_allowed(&self, remote_peer_address: SD, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> bool;
 }
 
 impl<A: AccessControl<SD>, SD: SocketData> AccessControl<SD> for Rc<A>
 {
 	#[inline(always)]
-	fn is_remote_peer_allowed(&self, remote_peer_address: SD, file_descriptor: &SocketFileDescriptor<SD>) -> bool
+	fn is_remote_peer_allowed(&self, remote_peer_address: SD, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> bool
 	{
-		self.deref().is_remote_peer_allowed(remote_peer_address, file_descriptor)
+		self.deref().is_remote_peer_allowed(remote_peer_address, streaming_socket_file_descriptor)
 	}
 }

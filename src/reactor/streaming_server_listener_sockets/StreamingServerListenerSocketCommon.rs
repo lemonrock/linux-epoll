@@ -41,7 +41,7 @@ impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<S
 
 			match file_descriptor.accept()
 			{
-				Ok(AcceptedConnection { streaming_socket_file_descriptor, peer_address }) => if likely!(self.is_remote_peer_allowed(peer_address))
+				Ok(AcceptedConnection { streaming_socket_file_descriptor, peer_address }) => if likely!(self.is_remote_peer_allowed(peer_address, &streaming_socket_file_descriptor))
 				{
 					self.file_descriptor_distributor.assign(streaming_socket_file_descriptor)
 				},
@@ -63,9 +63,9 @@ impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<S
 	}
 
 	#[inline(always)]
-	fn is_remote_peer_allowed(&self, remote_peer_address: SD) -> bool
+	fn is_remote_peer_allowed(&self, remote_peer_address: SD, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> bool
 	{
-		self.access_control.is_remote_peer_allowed(remote_peer_address)
+		self.access_control.is_remote_peer_allowed(remote_peer_address, streaming_socket_file_descriptor)
 	}
 
 	#[inline(always)]
@@ -81,7 +81,7 @@ impl<A: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockaddr
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: SocketAddrV4) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_in>, NewSocketServerListenerError>
 	{
-		StreamingServerListenerSocketFileDescriptor::new_transmission_control_protocol_over_internet_protocol_version_4_server_listener
+		StreamingServerListenerSocketFileDescriptor::<sockaddr_in>::new_transmission_control_protocol_over_internet_protocol_version_4_server_listener
 		(
 			socket_address,
 			settings.send_buffer_size_in_bytes,
@@ -103,7 +103,7 @@ impl<A: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockadd
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: SocketAddrV6) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_in6>, NewSocketServerListenerError>
 	{
-		StreamingServerListenerSocketFileDescriptor::new_transmission_control_protocol_over_internet_protocol_version_6_server_listener
+		StreamingServerListenerSocketFileDescriptor::<sockaddr_in6>::new_transmission_control_protocol_over_internet_protocol_version_6_server_listener
 		(
 			socket_address,
 			settings.send_buffer_size_in_bytes,
@@ -125,7 +125,7 @@ impl<A: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockaddr
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: UnixDomainSocketAddress) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_un>, NewSocketServerListenerError>
 	{
-		StreamingServerListenerSocketFileDescriptor::new_streaming_unix_domain_socket_server_listener
+		StreamingServerListenerSocketFileDescriptor::<sockaddr_un>::new_streaming_unix_domain_socket_server_listener
 		(
 			&socket_address.0,
 			settings.send_buffer_size_in_bytes,

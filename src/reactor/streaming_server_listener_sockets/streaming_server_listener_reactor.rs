@@ -21,7 +21,7 @@ macro_rules! streaming_server_listener_reactor
 
 			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$file_descriptor_kind;
 
-			type RegistrationData = (StreamingServerListenerSocketSettings, $rust_socket_type, A, FileDescriptorDistributor<$sockaddr_type>);
+			type RegistrationData = (Arc<StreamingServerListenerSocketSettings>, $rust_socket_type, A, FileDescriptorDistributor<$sockaddr_type>);
 
 			#[inline(always)]
 			fn our_arena(arenas: &impl Arenas) -> &Arena<Self>
@@ -34,9 +34,9 @@ macro_rules! streaming_server_listener_reactor
 			{
 				let (settings, socket_address, access_control, file_descriptor_distributor) = registration_data;
 
-				let streaming_server_listener_socket_file_descriptor = StreamingServerListenerSocketCommon::<$sockaddr_type, A>::new_streaming_socket_file_descriptor(settings, socket_address)?;
+				let streaming_server_listener_socket_file_descriptor = StreamingServerListenerSocketCommon::<$sockaddr_type, A>::new_streaming_socket_file_descriptor(&settings, socket_address)?;
 
-				StreamingServerListenerSocketCommon::<$sockaddr_type, A>::do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll, streaming_server_listener_socket_file_descriptor, access_control, file_descriptor_distributor)
+				StreamingServerListenerSocketCommon::<$sockaddr_type, A>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self>(event_poll, streaming_server_listener_socket_file_descriptor, access_control, file_descriptor_distributor)
 			}
 
 			#[inline(always)]
