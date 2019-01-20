@@ -2,17 +2,19 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// A simple stack.
+pub struct SimpleStack;
 
+impl Deref for SimpleStack
+{
+	type Target = Stack;
 
-include!("ChildOutcome.rs");
-include!("Coroutine.rs");
-include!("ParentInstructingChild.rs");
-include!("ResumeOnTopFunction.rs");
-include!("SimpleStack.rs");
-include!("StackAndTypeSafeTransfer.rs");
-include!("StartedStackAndTypeSafeTransfer.rs");
-include!("TransferableData.rs");
-include!("TransferExt.rs");
-include!("TypeSafeTransfer.rs");
-include!("Yielder.rs");
+	#[inline(always)]
+	fn deref(&self) -> &Self::Target
+	{
+		// TODO: pre-allocate and check for allocation failures!
+		let coroutine_stack_size: usize = xxxx;
+		let coroutine_stack = ProtectedFixedSizeStack::new(coroutine_stack_size);
+		unimplemented!();
+	}
+}

@@ -9,7 +9,7 @@ pub struct TlsServerStreamFactory
 	session_buffer_limit: usize,
 }
 
-impl<'a, SD: SocketData> StreamFactory<'a, SD> for TlsServerStreamFactory
+impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for TlsServerStreamFactory
 {
 	type S = TlsServerStream<'a, SD>;
 

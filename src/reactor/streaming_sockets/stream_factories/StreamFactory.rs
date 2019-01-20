@@ -3,7 +3,7 @@
 
 
 /// A factory to abstract the creation of `Stream` instances.
-pub trait StreamFactory<'a, SD: SocketData>
+pub trait StreamFactory<'a, SD: 'a + SocketData>
 {
 	/// The type of the `Stream` being created.
 	type S: Stream<'a>;

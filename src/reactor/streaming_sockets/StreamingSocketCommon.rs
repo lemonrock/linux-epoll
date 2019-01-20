@@ -3,13 +3,13 @@
 
 
 #[derive(Debug)]
-struct StreamingSocketCommon<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SD>, SD: SocketData>
+struct StreamingSocketCommon<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData>
 {
-	started_coroutine: StartedStackAndTypeSafeTransfer<S, Self>,
+	started_coroutine: StartedStackAndTypeSafeTransfer<SimpleStack, Self>,
 	marker: &'a (SF, SU, SD),
 }
 
-impl<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SD>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, S, SF, SU, SD>
+impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, SF, SU, SD>
 {
 	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU);
 
@@ -30,18 +30,14 @@ impl<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUs
 	}
 }
 
-impl<'a, S: Sized + Deref<Target=Stack>, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SD>, SD: SocketData> StreamingSocketCommon<'a, S, SF, SU, SD>
+impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> StreamingSocketCommon<'a, SF, SU, SD>
 {
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
 	{
-		// TODO: pre-allocate and check for allocation failures!
-		// TODO: Macros for 3 kinds of Reactor (IPV4, IPV6, Unix)
-		let	coroutine_stack_size: usize = XXXX;
-		let coroutine_stack = ProtectedFixedSizeStack::new(coroutine_stack_size);
 		let start_data = (&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user);
 
-		let started_coroutine = match StackAndTypeSafeTransfer::new(coroutine_stack).start(start_data)
+		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_data)
 		{
 			Right(completed) => return completed.map_err(|complete_error| complete_error.into()),
 

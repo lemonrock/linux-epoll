@@ -9,7 +9,7 @@ pub struct UnencryptedStreamFactory
 	session_buffer_limit: usize,
 }
 
-impl<'a, SD: SocketData> StreamFactory<'a, SD> for UnencryptedStreamFactory
+impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for UnencryptedStreamFactory
 {
 	type S = UnencryptedStream<'a, SD>;
 
