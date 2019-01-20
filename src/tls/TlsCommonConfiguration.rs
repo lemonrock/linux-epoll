@@ -74,12 +74,7 @@ impl TlsCommonConfiguration
 	#[inline(always)]
 	pub fn cipher_suites(&self) -> Vec<&'static SupportedCipherSuite>
 	{
-		let mut cipher_suites = Vec::with_capacity(self.cipher_suites.len());
-		for cipher_suite in self.cipher_suites
-		{
-			cipher_suites.push(*cipher_suite)
-		}
-		cipher_suites
+		self.cipher_suites.clone()
 	}
 
 	/// Defaults to TLS 1.3 and TLS 1.2.

@@ -46,9 +46,9 @@ impl CertificateChainAndPrivateKey
 	{
 		use self::CertificateChainAndPrivateKeyError::*;
 
-		let pkcs8_private_keys = pkcs8_private_keys(&mut self.open_private_keys_file()?).map_err(|error| CouldNotReadPkcs8PrivateKey);
+		let pkcs8_private_keys = pkcs8_private_keys(&mut self.open_private_keys_file()?).map_err(|error| CouldNotReadPkcs8PrivateKey)?;
 
-		let rsa_private_keys = rsa_private_keys(&mut self.open_private_keys_file()?).map_err(|error| CouldNotReadRsaPrivateKey);
+		let rsa_private_keys = rsa_private_keys(&mut self.open_private_keys_file()?).map_err(|error| CouldNotReadRsaPrivateKey)?;
 
 		if pkcs8_private_keys.is_empty()
 		{

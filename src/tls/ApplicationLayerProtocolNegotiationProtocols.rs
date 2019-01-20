@@ -3,7 +3,7 @@
 
 
 /// Application layer protocols to negotiate in preference order.
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ApplicationLayerProtocolNegotiationProtocols(pub IndexSet<ApplicationLayerProtocolNegotiationProtocol>);
 
 impl Deref for ApplicationLayerProtocolNegotiationProtocols
@@ -32,11 +32,12 @@ impl ApplicationLayerProtocolNegotiationProtocols
 	#[inline(always)]
 	pub fn to_rustls_form(&self) -> Vec<String>
 	{
-		let mut protocols = Vec::with_capacity(self.application_layer_protocol_negotiation_protocols.len());
-		for application_layer_protocol_negotiation_protocol in self.application_layer_protocol_negotiation_protocols
+		let mut protocols = Vec::with_capacity(self.0.len());
+		for application_layer_protocol_negotiation_protocol in self.0
 		{
 			assert_ne!(application_layer_protocol_negotiation_protocol, ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP, "HTTP_2_over_TCP can not be used with TLS");
 			protocols.push(application_layer_protocol_negotiation_protocol.to_string())
 		}
+		protocols
 	}
 }

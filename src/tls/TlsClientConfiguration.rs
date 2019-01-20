@@ -64,7 +64,7 @@ impl TlsClientConfiguration
 
 		client_configuration.ciphersuites = self.common.cipher_suites();
 
-		client_configuration.set_mtu(self.common.tls_mtu);
+		client_configuration.set_mtu(&self.common.tls_mtu);
 
 		client_configuration.versions = self.common.supported_tls_versions.versions();
 
@@ -112,7 +112,7 @@ impl TlsClientConfiguration
 
 	/// Defaults to `false`, as it is not encrypted.
 	#[inline(always)]
-	pub(crate) fn default_server_name_indication() -> bool
+	pub(crate) fn default_enable_server_name_indication() -> bool
 	{
 		false
 	}

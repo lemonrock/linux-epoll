@@ -26,7 +26,7 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 	{
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 
-		event_poll.register(signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this|
+		event_poll.register::<Self>(signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this|
 		{
 			unsafe
 			{
