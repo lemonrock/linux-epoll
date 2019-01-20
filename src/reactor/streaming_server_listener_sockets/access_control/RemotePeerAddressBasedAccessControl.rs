@@ -10,7 +10,6 @@
 /// For unix domain sockets, there is a deny list of user identifiers and a permitted list of (primary) group identifiers.
 /// The deny list is checked first, and, if the user identifier is not present, the allow list is then checked.
 /// This allows for generic white listing rules (eg for all administrators) and then for explicit exemptions (eg a recently departed administrator).
-#[derive(Debug)]
 pub struct RemotePeerAddressBasedAccessControl
 {
 	denied_protocol_version_4_subnets: IpLookupTable<Ipv4Addr, ()>,
@@ -19,6 +18,15 @@ pub struct RemotePeerAddressBasedAccessControl
 	permitted_protocol_version_6_subnets: Option<IpLookupTable<Ipv6Addr, ()>>,
 	denied_unix_domain_user_identifiers: HashSet<uid_t>,
 	permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>,
+}
+
+impl Debug for RemotePeerAddressBasedAccessControl
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "RemotePeerAddressBasedAccessControl {{ denied_protocol_version_4_subnets: _, permitted_protocol_version_4_subnets: _, denied_protocol_version_6_subnets: _, permitted_protocol_version_6_subnets: _, denied_unix_domain_user_identifiers: {:?}, permitted_unix_domain_group_identifiers: {:?} }}", self.denied_unix_domain_user_identifiers, self.permitted_unix_domain_group_identifiers)
+	}
 }
 
 impl RemotePeerAddressBasedAccessControl
