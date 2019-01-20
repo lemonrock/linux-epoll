@@ -29,7 +29,8 @@ impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for TlsClientStreamFactory
 	fn new_stream_and_handshake(&self, streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>, yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
 	{
 		let ascii_host_name = additional_arguments;
-		let generic_stream = GenericStream::new(&streaming_socket_file_descriptor, InputOutputYielder::new(yielder), ByteCounter::new());
-		TlsClientStream::new(generic_stream, &self.tls_configuration, &self.session_buffer_limit, ascii_host_name)
+
+		let generic_stream = GenericStream::wrap(streaming_socket_file_descriptor, yielder);
+		TlsClientStream::new(generic_stream, &self.tls_configuration, self.session_buffer_limit, ascii_host_name)
 	}
 }

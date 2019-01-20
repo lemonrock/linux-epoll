@@ -2,11 +2,19 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[derive(Debug)]
 struct StreamingSocketCommon<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData>
 {
 	started_coroutine: StartedStackAndTypeSafeTransfer<SimpleStack, Self>,
 	marker: &'a (SF, SU, SD),
+}
+
+impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> Debug for StreamingSocketCommon<'a, SF, SU, SD>
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "StreamingSocketCommon {{ started_coroutine: {:?} }}", self.started_coroutine)
+	}
 }
 
 impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, SF, SU, SD>

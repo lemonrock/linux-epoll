@@ -19,6 +19,7 @@ impl<T> Deref for PerLogicalCoreData<T>
 		&self.logical_cores_data
 	}
 }
+
 impl<T> DerefMut for PerLogicalCoreData<T>
 {
 	#[inline(always)]
@@ -30,9 +31,9 @@ impl<T> DerefMut for PerLogicalCoreData<T>
 
 impl<T> PerLogicalCoreData<T>
 {
-	/// `t_initializer` is called for each defined logical core in `logical_cores`; it is passed the logical core's identifier.
+	/// `constructor` is called for each defined logical core in `logical_cores`; it is passed the logical core's identifier.
 	#[inline(always)]
-	pub fn new(logical_cores: &LogicalCores, t_initializer: FnMut(usize)) -> Self
+	pub fn new(logical_cores: &LogicalCores, constructor: impl FnMut(u16) -> T) -> Self
 	{
 		let number_of_logical_cores = logical_cores.len();
 		assert_ne!(number_of_logical_cores, 0, "There are no logical cores specified");
@@ -44,19 +45,19 @@ impl<T> PerLogicalCoreData<T>
 				// Since the highest logical core is not necessarily the same as the length, this could still be resized.
 				let mut logical_cores_data = Vec::with_capacity(number_of_logical_cores);
 				let mut current_logical_core = 0;
-				for logical_core_index_reference in logical_cores.iter()
+				for logical_core_identifier_reference in logical_cores.iter()
 				{
-					let logical_core_index = *logical_core_index_reference;
+					let logical_core_identifier = *logical_core_identifier_reference;
 
-					while current_logical_core < logical_core_index
+					while current_logical_core < logical_core_identifier
 					{
 						logical_cores_data.push(None);
 						current_logical_core += 1;
 					}
-					debug_assert_eq!(current_logical_core, logical_core_index);
-					logical_cores_data.push(Some(t_initializer(logical_core_index as u16)));
+					debug_assert_eq!(current_logical_core, logical_core_identifier);
+					logical_cores_data.push(Some(constructor(logical_core_identifier as u16)));
 
-					current_logical_core = logical_core_index + 1;
+					current_logical_core = logical_core_identifier + 1;
 				}
 				debug_assert_eq!(current_logical_core, logical_cores_data.len());
 
@@ -69,41 +70,41 @@ impl<T> PerLogicalCoreData<T>
 	///
 	/// If the logical core does not exist (or does not have assigned data), returns None; this can happen on Linux if using the SO_INCOMING_CPU socket option, which can map to a CPU not assigned to the process.
 	#[inline(always)]
-	pub fn get(&self, logical_core_index: u16) -> Option<&T>
+	pub fn get(&self, logical_core_identifier: u16) -> Option<&T>
 	{
-		let logical_core_index = logical_core_index as usize;
-		if unlikely!(logical_core_index >= self.logical_cores_data.len())
+		let logical_core_identifier = logical_core_identifier as usize;
+		if unlikely!(logical_core_identifier >= self.logical_cores_data.len())
 		{
 			return None
 		}
-		unsafe { self.logical_cores_data.get_unchecked(logical_core_index).as_ref() }
+		unsafe { self.logical_cores_data.get_unchecked(logical_core_identifier).as_ref() }
 	}
 
 	/// Gets the mutable data for a particular logical core.
 	///
 	/// If the logical core does not exist (or does not have assigned data), returns None; this can happen on Linux if using the` SO_INCOMING_CPU` socket option, which can return an index for a CPU not assigned to the process.
 	#[inline(always)]
-	pub fn get_mut(&mut self, logical_core_index: u16) -> Option<&mut T>
+	pub fn get_mut(&mut self, logical_core_identifier: u16) -> Option<&mut T>
 	{
-		let logical_core_index = logical_core_index as usize;
-		if unlikely!(logical_core_index >= self.logical_cores_data.len())
+		let logical_core_identifier = logical_core_identifier as usize;
+		if unlikely!(logical_core_identifier >= self.logical_cores_data.len())
 		{
 			return None
 		}
-		unsafe { self.logical_cores_data.get_unchecked_mut(logical_core_index).as_mut() }
+		unsafe { self.logical_cores_data.get_unchecked_mut(logical_core_identifier).as_mut() }
 	}
 
 	/// Takes the data for a particular logical core.
 	///
 	/// If the logical core does not exist (or does not have assigned data), returns None; this can happen on Linux if using the SO_INCOMING_CPU socket option, which can map to a CPU not assigned to the process.
 	#[inline(always)]
-	pub fn take(&mut self, logical_core_index: u16) -> Option<T>
+	pub fn take(&mut self, logical_core_identifier: u16) -> Option<T>
 	{
-		let logical_core_index = logical_core_index as usize;
-		if unlikely!(logical_core_index >= self.logical_cores_data.len())
+		let logical_core_identifier = logical_core_identifier as usize;
+		if unlikely!(logical_core_identifier >= self.logical_cores_data.len())
 		{
 			return None
 		}
-		unsafe { self.logical_cores_data.get_unchecked_mut(logical_core_index).take() }
+		unsafe { self.logical_cores_data.get_unchecked_mut(logical_core_identifier).take() }
 	}
 }

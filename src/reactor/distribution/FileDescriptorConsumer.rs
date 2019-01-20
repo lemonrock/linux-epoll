@@ -12,7 +12,7 @@ pub struct FileDescriptorConsumer<SD: SocketData>
 impl<SD: SocketData> FileDescriptorConsumer<SD>
 {
 	#[inline(always)]
-	fn new(consumer: FileDescriptorConsumer<SD>) -> Self
+	fn new(consumer: RingBufferConsumer<StreamingSocketFileDescriptor<SD>>) -> Self
 	{
 		Self
 		{
@@ -28,12 +28,14 @@ impl<SD: SocketData> FileDescriptorConsumer<SD>
 
 		for streaming_socket_file_descriptor in slice_guard
 		{
-			let registration_data: SomeReactor::RegistrationData = XXXX;
-			match event_poll.add::<SomeReactor>(registration_data)
-			{
-				Err(_event_poll_registration_error) => (),
-				Ok(()) => (),
-			}
+//			let registration_data: SomeReactor::RegistrationData = XXXX;
+//			match event_poll.add::<SomeReactor>(registration_data)
+//			{
+//				Err(_event_poll_registration_error) => (),
+//				Ok(()) => (),
+//			}
+
+			unimplemented!("TODO");
 
 			// TODO: some sort of error log... capture dropped file descriptors and other nasty errors.
 

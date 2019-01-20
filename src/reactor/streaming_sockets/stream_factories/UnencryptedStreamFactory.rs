@@ -15,7 +15,7 @@ impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for UnencryptedStreamFactory
 	#[inline(always)]
 	fn new_stream_and_handshake(&self, streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>, yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, _additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
 	{
-		let generic_stream = GenericStream::new(&streaming_socket_file_descriptor, InputOutputYielder::new(yielder), ByteCounter::new());
+		let generic_stream = GenericStream::wrap(streaming_socket_file_descriptor, yielder);
 		UnencryptedStream::new(generic_stream)
 	}
 }

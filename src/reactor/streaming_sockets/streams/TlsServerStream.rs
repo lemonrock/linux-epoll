@@ -18,7 +18,7 @@ impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 	#[inline(always)]
 	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation
 	{
-		(self.tls_generic_stream.common_tls_post_handshake_information(), self.tls_session.get_sni_hostname())
+		(self.tls_generic_stream.common_tls_post_handshake_information(), self.tls_generic_stream.server_name_indication_handshake_information())
 	}
 
 	#[inline(always)]

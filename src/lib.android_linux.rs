@@ -55,6 +55,7 @@ use ::libc::gid_t;
 use ::libc::sched_getcpu;
 use ::libc::uid_t;
 use ::lock_free_multi_producer_single_consumer_ring_buffer::*;
+use ::rustls::ALL_CIPHERSUITES;
 use ::rustls::AllowAnyAnonymousOrAuthenticatedClient;
 use ::rustls::AllowAnyAuthenticatedClient;
 use ::rustls::Certificate;
@@ -124,18 +125,6 @@ use ::std::sync::atomic::Ordering::Relaxed;
 use ::std::thread;
 use ::treebitmap::IpLookupTable;
 use ::webpki::DNSNameRef;
-use ::webpki::ECDSA_P256_SHA256;
-use ::webpki::ECDSA_P256_SHA384;
-use ::webpki::ECDSA_P384_SHA256;
-use ::webpki::ECDSA_P384_SHA384;
-use ::webpki::RSA_PKCS1_2048_8192_SHA256;
-use ::webpki::RSA_PKCS1_2048_8192_SHA384;
-use ::webpki::RSA_PKCS1_2048_8192_SHA512;
-use ::webpki::RSA_PKCS1_3072_8192_SHA384;
-use ::webpki::RSA_PSS_2048_8192_SHA256_LEGACY_KEY;
-use ::webpki::RSA_PSS_2048_8192_SHA384_LEGACY_KEY;
-use ::webpki::RSA_PSS_2048_8192_SHA512_LEGACY_KEY;
-use ::webpki::SignatureAlgorithm;
 
 
 /// Implementations of the `Arena` trait.
@@ -160,6 +149,34 @@ pub mod terminate;
 
 /// Supporting logic for TLS.
 pub mod tls;
+
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS13_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[0];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS13_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[1];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS13_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[2];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[3];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[4];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[5];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[6];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[7];
+
+/// Horrible hack to make public a constant from rustls.
+pub const TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[8];
 
 
 include!("EventPoll.rs");

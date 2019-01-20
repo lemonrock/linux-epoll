@@ -3,11 +3,11 @@
 
 
 /// TLS configuration common to clients and servers.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq)]
 pub struct TlsCommonConfiguration
 {
-	/// A static slice of supported signature algorithms.
-	pub supported_signature_algorithms: SignatureAlgorithms,
+	/// The preferred cipher suites.
+	pub cipher_suites: Vec<&'static SupportedCipherSuite>,
 
 	/// Which TLS versions to support?
 	pub supported_tls_versions: SupportedTlsVersions,
@@ -31,7 +31,7 @@ impl Default for TlsCommonConfiguration
 	{
 		Self
 		{
-			supported_signature_algorithms: Self::default_supported_signature_algorithms(),
+			cipher_suites: Self::default_cipher_suites(),
 			supported_tls_versions: Self::default_supported_tls_versions(),
 			tls_mtu: Self::default_tls_mtu(),
 			application_layer_protocol_negotiation_protocols: Self::default_application_layer_protocol_negotiation_protocols(),
@@ -44,33 +44,42 @@ impl TlsCommonConfiguration
 {
 	/// Defaults to:-
 	///
-	/// *`ECDSA_P256_SHA256`
-	/// *`ECDSA_P256_SHA384`
-	/// *`ECDSA_P384_SHA256`
-	/// *`ECDSA_P384_SHA384`
-	/// *`RSA_PSS_2048_8192_SHA256_LEGACY_KEY`
-	/// *`RSA_PSS_2048_8192_SHA384_LEGACY_KEY`
-	/// *`RSA_PSS_2048_8192_SHA512_LEGACY_KEY`
-	/// *`RSA_PKCS1_2048_8192_SHA256`
-	/// *`RSA_PKCS1_2048_8192_SHA384`
-	/// *`RSA_PKCS1_2048_8192_SHA512`
-	/// *`RSA_PKCS1_3072_8192_SHA384`
+	/// * `TLS13_CHACHA20_POLY1305_SHA256`
+	/// * `TLS13_AES_256_GCM_SHA384`
+	/// * `TLS13_AES_128_GCM_SHA256`
+	/// * `TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256`
+	/// * `TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256`
+	/// * `TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`
+	/// * `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`
+	/// * `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`
+	/// * `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`
 	#[inline(always)]
-	pub const fn default_supported_signature_algorithms() -> SignatureAlgorithms
+	pub const fn default_cipher_suites() -> Vec<&'static SupportedCipherSuite>
 	{
-		&[
-			&ECDSA_P256_SHA256,
-			&ECDSA_P256_SHA384,
-			&ECDSA_P384_SHA256,
-			&ECDSA_P384_SHA384,
-			&RSA_PSS_2048_8192_SHA256_LEGACY_KEY,
-			&RSA_PSS_2048_8192_SHA384_LEGACY_KEY,
-			&RSA_PSS_2048_8192_SHA512_LEGACY_KEY,
-			&RSA_PKCS1_2048_8192_SHA256,
-			&RSA_PKCS1_2048_8192_SHA384,
-			&RSA_PKCS1_2048_8192_SHA512,
-			&RSA_PKCS1_3072_8192_SHA384
+		vec!
+		[
+			TLS13_CHACHA20_POLY1305_SHA256,
+			TLS13_AES_256_GCM_SHA384,
+			TLS13_AES_128_GCM_SHA256,
+			TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+			TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+			TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 		]
+	}
+
+	/// A vector, in preference order, of cipher suites.
+	#[inline(always)]
+	pub fn cipher_suites(&self) -> Vec<&'static SupportedCipherSuite>
+	{
+		let mut cipher_suites = Vec::with_capacity(self.cipher_suites.len());
+		for cipher_suite in self.cipher_suites
+		{
+			cipher_suites.push(*cipher_suite)
+		}
+		cipher_suites
 	}
 
 	/// Defaults to TLS 1.3 and TLS 1.2.

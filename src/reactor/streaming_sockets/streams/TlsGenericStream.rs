@@ -3,13 +3,22 @@
 
 
 #[derive(Debug)]
-struct TlsGenericStream<'a, SD: SocketData, S: Session>
+struct TlsGenericStream<'a, SD: SocketData, S: SessionExt>
 {
 	generic_stream: GenericStream<'a, SD>,
 	tls_session: S,
 }
 
-impl<'a, SD: SocketData, S: Session> TlsGenericStream<'a, SD, S>
+impl<'a, SD: SocketData> TlsGenericStream<'a, SD, ServerSession>
+{
+	#[inline(always)]
+	fn server_name_indication_handshake_information(&'a self) -> Option<&'a str>
+	{
+		self.tls_session.get_sni_hostname()
+	}
+}
+
+impl<'a, SD: SocketData, S: SessionExt> TlsGenericStream<'a, SD, S>
 {
 	#[inline(always)]
 	fn configure_and_handshake(generic_stream: GenericStream<'a, SD>, tls_session: S, session_buffer_limit: usize) -> Result<Self, CompleteError>
@@ -35,13 +44,13 @@ impl<'a, SD: SocketData, S: Session> TlsGenericStream<'a, SD, S>
 	#[inline(always)]
 	fn read_data(&mut self, read_into_buffer: &mut [u8]) -> Result<usize, CompleteError>
 	{
-		self.generic_stream.tls_read(&self.tls_session, read_into_buffer)
+		self.generic_stream.tls_read(&mut self.tls_session, read_into_buffer)
 	}
 
 	#[inline(always)]
 	fn write_data(&mut self, write_from_buffer: &[u8]) -> Result<usize, CompleteError>
 	{
-		self.generic_stream.tls_write(&self.tls_session, write_from_buffer)
+		self.generic_stream.tls_write(&mut self.tls_session, write_from_buffer)
 	}
 
 	#[inline(always)]

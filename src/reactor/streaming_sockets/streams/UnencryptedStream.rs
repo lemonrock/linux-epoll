@@ -31,7 +31,7 @@ impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 	{
 		loop
 		{
-			let bytes_read = match self.0.streaming_socket_file_descriptor.read(read_into_buffer)
+			let bytes_read = match self.0.streaming_socket_file_descriptor.receive_from(read_into_buffer)
 			{
 				Err(io_error) => read_loop_or_await_or_error!(io_error, &mut self.0.input_output_yielder, SocketRead),
 
@@ -48,7 +48,7 @@ impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 	{
 		loop
 		{
-			let bytes_written = match self.0.streaming_socket_file_descriptor.write(write_from_buffer)
+			let bytes_written = match self.0.streaming_socket_file_descriptor.send_to(write_from_buffer)
 			{
 				Err(io_error) => write_loop_or_await_or_error!(io_error, &mut self.0.input_output_yielder, SocketWrite),
 

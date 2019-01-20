@@ -5,12 +5,21 @@
 /// Holds a stack and a type-safe transfer; suitable for the ultimate owner of a coroutine.
 ///
 /// On drop the the closure is killed and the stack is then relinquished.
-#[derive(Debug)]
 pub struct StackAndTypeSafeTransfer<S: Sized + Deref<Target=Stack>, C: Coroutine>
 {
 	stack: S,
-	type_safe_transfer: TypeSafeTransfer<ParentInstructingChild<C::ResumeArguments>, ChildOutcome<C::Yields, C::Complete>>,
+	type_safe_transfer: TypeSafeTransfer<ChildOutcome<C::Yields, C::Complete>, ParentInstructingChild<C::ResumeArguments>>,
 	child_coroutine_is_active: bool,
+}
+
+impl<S: Sized + Deref<Target=Stack>, C: Coroutine> Debug for StackAndTypeSafeTransfer<S, C>
+where S: Debug, C::ResumeArguments: Debug, C::Yields: Debug, C::Complete: Debug
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "StackAndTypeSafeTransfer {{ stack: {:?}, type_safe_transfer: {:?}, child_coroutine_is_active: {:?} }}", self.stack, self.type_safe_transfer, self.child_coroutine_is_active)
+	}
 }
 
 impl<S: Sized + Deref<Target=Stack>, C: Coroutine> Drop for StackAndTypeSafeTransfer<S, C>
@@ -40,7 +49,7 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C
 	#[inline(always)]
 	pub fn new(stack: S) -> Self
 	{
-		let (stack, type_safe_transfer) = TypeSafeTransfer::new::<C::StartArguments>(stack, C::context_coroutine_wrapper, ParentInstructingChild::Kill);
+		let (stack, type_safe_transfer) = TypeSafeTransfer::new::<S>(stack, C::context_coroutine_wrapper);
 
 		Self
 		{
@@ -66,7 +75,7 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C
 
 		match child_outcome
 		{
-			WouldLikeToResume(yields) => Left((StartedStackAndTypeSafeTransfer::owns(self), yields)),
+			WouldLikeToResume(yields) => Left((yields, StartedStackAndTypeSafeTransfer::own(self))),
 
 			Complete(Err(panic_information)) => resume_unwind(panic_information),
 

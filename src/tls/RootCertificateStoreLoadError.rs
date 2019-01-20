@@ -7,7 +7,10 @@
 pub enum RootCertificateStoreLoadError
 {
 	/// Could not open a certificate authorities (CA) PEM file.
-	CouldNotOpenCertificateAuthoritiesPemFile(io::Error),
+	CouldNotOpenCertificateAuthoritiesPemFile(PathBuf, io::Error),
+
+	/// Could not read a certificate authorities (CA) PEM file.
+	CouldNotReadCertificateAuthoritiesPemFile(PathBuf),
 
 	/// After reading all certificate authority (CA) PEM files not a single valid certificate authority certificate (sic) was found.
 	NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles,
@@ -27,13 +30,15 @@ impl error::Error for RootCertificateStoreLoadError
 	#[inline(always)]
 	fn source(&self) -> Option<&(error::Error + 'static)>
 	{
-		use self::TlsClientConfigurationError::*;
+		use self::RootCertificateStoreLoadError::*;
 
 		match self
 		{
-			&CouldNotOpenCertificateAuthoritiesPemFile(ref error) => Some(error),
+			&CouldNotOpenCertificateAuthoritiesPemFile(ref _path, ref error) => Some(error),
 
-			&CouldNotReadCertificateAuthoritiesPemFile => None,
+			&CouldNotReadCertificateAuthoritiesPemFile(..) => None,
+
+			&NoValidCertificateAuthoritiesInCertificateAuthoritiesPemFiles => None,
 		}
 	}
 }
@@ -44,16 +49,16 @@ impl RootCertificateStoreLoadError
 	#[inline(always)]
 	pub	fn root_certificate_store(certificate_authority_root_certificates_files: &PathBuf) -> Result<RootCertStore, Self>
 	{
-		use self::Self::*;
+		use self::RootCertificateStoreLoadError::*;
 
 		let mut root_certificate_store = RootCertStore::empty();
 
 		let mut total_valid_count = 0;
 		for certificate_authority_root_certificates_file in certificate_authority_root_certificates_files.iter()
 		{
-			let file = File::open(certificate_authority_root_certificates_file).map_err(|error| CouldNotOpenCertificateAuthoritiesPemFile(error))?;
+			let file = File::open(certificate_authority_root_certificates_file).map_err(|error| CouldNotOpenCertificateAuthoritiesPemFile(certificate_authority_root_certificates_file.clone(), error))?;
 			let mut buf_reader = BufReader::new(file);
-			let (valid_count, _invalid_count) = root_certificate_store.add_pem_file(&mut buf_reader).map_err(|_| CouldNotReadCertificateAuthoritiesPemFile)?;
+			let (valid_count, _invalid_count) = root_certificate_store.add_pem_file(&mut buf_reader).map_err(|_| CouldNotReadCertificateAuthoritiesPemFile(certificate_authority_root_certificates_file.clone()))?;
 			total_valid_count += valid_count;
 		}
 

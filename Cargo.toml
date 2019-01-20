@@ -23,10 +23,10 @@ assume-file-descriptors-are-never-duplicated = []
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 context = "^2.1.0"
-cpu-affinity = "^0.1.1"
+cpu-affinity = "^0.1.2"
 ct-logs = "*"
 either = "^1.4.0"
-file-descriptors = "^0.8.1"
+file-descriptors = "^0.8.2"
 indexmap = "^1.0.2"
 libc = "^0.2.44"
 likely = "^0.1"

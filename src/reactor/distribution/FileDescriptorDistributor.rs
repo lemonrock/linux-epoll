@@ -19,7 +19,7 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 		let number_of_threads = logical_cores.len();
 
 		let mut per_thread_data = Vec::with_capacity(number_of_threads);
-		for logical_core_index in logical_cores.iter()
+		for logical_core_identifier in logical_cores.iter()
 		{
 			let (consumer, producers) = RingBuffer::new(ring_buffer_capacity, number_of_threads);
 			let file_descriptor_distributor = Self::new(maximum_number_of_file_descriptors_pending_distribution_per_logical_core, logical_cores, producers);
@@ -33,9 +33,9 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 	{
 		Self
 		{
-			producers: PerLogicalCoreData::new(logical_cores, |logical_core_index|
+			producers: PerLogicalCoreData::new(logical_cores, |_logical_core_identifier|
 			{
-				(producers.pop(), Vec::with_capacity(maximum_number_of_file_descriptors_pending_distribution_per_logical_core))
+				(producers.pop().unwrap(), Vec::with_capacity(maximum_number_of_file_descriptors_pending_distribution_per_logical_core))
 			})
 		}
 	}
@@ -44,19 +44,19 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 	#[inline(always)]
 	pub fn assign(&mut self, streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>)
 	{
-		let logical_core_index = streaming_socket_file_descriptor.logical_core_index() as usize;
+		let logical_core_identifier = streaming_socket_file_descriptor.logical_core_identifier();
 
-		let &mut (producer, file_descriptors) = match self.producers.get_mut(logical_core_index)
+		let &mut (producer, file_descriptors) = match self.producers.get_mut(logical_core_identifier)
 		{
 			Some(data) => data,
 
-			// The the `logical_core_index` might not have associated data because it was obtained using the `SO_INCOMING_CPU` socket option which can return an index for a CPU not assigned to this process.
+			// The the `logical_core_identifier` might not have associated data because it was obtained using the `SO_INCOMING_CPU` socket option which can return an index for a CPU not assigned to this process.
 			None => self.producers.get_mut(current_logical_cpu()).unwrap(),
 		};
 
 		while unlikely!(file_descriptors.len() == file_descriptors.capacity())
 		{
-			producer.repeatedly_acquire_and_try_to_populate(file_descriptors)
+			producer.repeatedly_acquire_and_try_to_populate(&mut file_descriptors)
 		}
 
 		file_descriptors.push(streaming_socket_file_descriptor)
@@ -70,9 +70,9 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 	{
 		for data in self.producers.iter_mut()
 		{
-			if let Some(&mut (producer, file_descriptors)) = data
+			if let Some((producer, mut file_descriptors)) = data
 			{
-				producer.repeatedly_acquire_and_try_to_populate(file_descriptors);
+				producer.repeatedly_acquire_and_try_to_populate(&mut file_descriptors);
 				file_descriptors.clear()
 			}
 		}

@@ -9,7 +9,7 @@ trait SessionExt: Session
 	{
 		while self.is_handshaking()
 		{
-			let is_end_of_file = self.complete_input_output(streaming_socket_file_descriptor, yielder, byte_counter, true)?;
+			let is_end_of_file = self.complete_input_output(streaming_socket_file_descriptor, yielder, byte_counter)?;
 
 			if unlikely!(is_end_of_file)
 			{
@@ -23,7 +23,7 @@ trait SessionExt: Session
 	/// Logic required for an implementation of `io::Read.read()`.
 	///
 	/// Can legitimately return 0 bytes and ***NOT*** be end-of-file.
-	fn stream_read<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &mut [u8]) -> Result<usize, TlsInputOutputError>
+	fn stream_read<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>, yielder: &mut InputOutputYielder, byte_counter: &mut ByteCounter, buf: &mut [u8]) -> Result<usize, CompleteError>
 	{
 		self.complete_prior_input_output::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)?;
 
@@ -37,7 +37,7 @@ trait SessionExt: Session
 		{
 			Err(error) => match error.kind()
 			{
-				ErrorKind::ConnectionAborted => Err(CompleteError::from(TlsInputOutputError::CloseNotifyAlertReceived)),
+				ErrorKind::ConnectionAborted => Err(CompleteError::from(TlsInputOutputError::BufferReadCloseNotifyAlertReceived)),
 				_ => panic!("Unexpected error `{:?}` from Session.read()", error),
 			}
 
@@ -68,7 +68,7 @@ trait SessionExt: Session
 
 		self.send_close_notify();
 
-		self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)
+		self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter).map(|_| ())
 	}
 
 	/// Logic required for an implementation of `io::Write.flush()`.
@@ -84,7 +84,7 @@ trait SessionExt: Session
 
 		if self.wants_write()
 		{
-			self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter)
+			self.process_input_output_after_handshaking::<SD>(streaming_socket_file_descriptor, yielder, byte_counter).map(|_| ())
 		}
 		else
 		{
@@ -102,7 +102,7 @@ trait SessionExt: Session
 		}
 		else
 		{
-			Ok(())
+			Ok(false)
 		}
 	}
 
@@ -124,7 +124,7 @@ trait SessionExt: Session
 		{
 			loop
 			{
-				match self.write_tls_vectored(streaming_socket_file_descriptor)
+				match self.write_underlying_vectored(streaming_socket_file_descriptor)
 				{
 					Err(io_error) => write_loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
 
@@ -142,11 +142,11 @@ trait SessionExt: Session
 		// rustls always wants to read more data all the time, except when there is unprocessed (readable) plaintext, ie its plaintext buffer is not empty.
 		//
 		// During handshaking, there is never unprocessed (readable) plaintext, and so `self.wants_read()` is always true.
-		let bytes_read = if self.wants_read()
+		if self.wants_read()
 		{
-			loop
+			let bytes_read = loop
 			{
-				let bytes_read = match self.read_tls(streaming_socket_file_descriptor)
+				let bytes_read = match self.read_underlying(streaming_socket_file_descriptor)
 				{
 					Err(io_error) => read_loop_or_await_or_error!(io_error, yielder, SocketRead),
 
@@ -158,7 +158,7 @@ trait SessionExt: Session
 					// In case we have a TLS alert message to send describing this error we do a final write.
 					loop
 					{
-						match self.write_tls_vectored(streaming_socket_file_descriptor)
+						match self.write_underlying_vectored(streaming_socket_file_descriptor)
 						{
 							Err(io_error) => write_loop_or_await_or_error!(io_error, yielder, SocketVectoredWrite),
 
@@ -175,18 +175,46 @@ trait SessionExt: Session
 					return Err(CompleteError::from(ProcessNewPackets(tls_error)));
 				}
 
-				break bytes_read
-			}
-		};
-
-		byte_counter.bytes_read(bytes_read);
-		let is_end_of_file = bytes_read == 0;
-		Ok(is_end_of_file)
+				break bytes_read;
+			};
+			byte_counter.bytes_read(bytes_read);
+			let is_end_of_file = bytes_read == 0;
+			Ok(is_end_of_file)
+		}
+		else
+		{
+			Ok(false)
+		}
 	}
 
 	#[doc(hidden)]
 	#[inline(always)]
-	fn write_tls_vectored<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> io::Result<usize>
+	fn read_underlying<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> io::Result<usize>
+	{
+		// Whilst StreamingSocketFileDescriptor implements Read, the Read trait requires the reference to be mutable (eg `&mut StreamingSocketFileDescriptor`).
+		struct ReadAdaptor<'a, SD: 'a + SocketData>(&'a StreamingSocketFileDescriptor<SD>);
+
+		impl<'a, SD: 'a + SocketData> Read for ReadAdaptor<'a, SD>
+		{
+			#[inline(always)]
+			fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>
+			{
+				self.0.receive_from(buf)
+			}
+
+			#[inline(always)]
+			unsafe fn initializer(&self) -> Initializer
+			{
+				Initializer::nop()
+			}
+		}
+
+		self.read_tls(&mut ReadAdaptor(streaming_socket_file_descriptor))
+	}
+
+	#[doc(hidden)]
+	#[inline(always)]
+	fn write_underlying_vectored<SD: SocketData>(&mut self, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> io::Result<usize>
 	{
 		struct WriteVAdaptor<'a, SD: 'a + SocketData>(&'a StreamingSocketFileDescriptor<SD>);
 
@@ -195,11 +223,11 @@ trait SessionExt: Session
 			#[inline(always)]
 			fn writev(&mut self, vbytes: &[&[u8]]) -> io::Result<usize>
 			{
-				self.write_vectored(vbytes)
+				self.0.write_vectored(vbytes)
 			}
 		}
 
-		self.writev_tls(WriteVAdaptor(streaming_socket_file_descriptor))
+		self.writev_tls(&mut WriteVAdaptor(streaming_socket_file_descriptor))
 	}
 }
 

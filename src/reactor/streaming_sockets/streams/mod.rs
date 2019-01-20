@@ -17,5 +17,6 @@ include!("stream_read_write.rs");
 include!("StreamUser.rs");
 include!("TlsClientStream.rs");
 include!("TlsGenericStream.rs");
+include!("TlsInputOutputError.rs");
 include!("TlsServerStream.rs");
 include!("UnencryptedStream.rs");

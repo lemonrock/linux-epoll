@@ -12,6 +12,6 @@ pub(crate) fn current_logical_cpu() -> u16
 	}
 	else
 	{
-		panic!("sched_getcpu failed with `{:?}`", io::Error::get_last_os_error())
+		panic!("sched_getcpu failed with `{:?}`", io::Error::last_os_error())
 	}
 }

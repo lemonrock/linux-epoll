@@ -7,7 +7,7 @@
 /// TLS is implemented using the rustls TLS library.
 ///
 /// Note that it is not possible to configure which cipher suites are used; rustls chooses a minimal, currently known to be secure set with a preference for CHA-CHA.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq)]
 pub struct TlsServerConfiguration
 {
 	/// Configuration common to clients and servers.
@@ -57,9 +57,9 @@ impl TlsServerConfiguration
 
 		server_configuration.set_protocols(&(self.common.application_layer_protocol_negotiation_protocols.to_rustls_form())[..]);
 
-		server_configuration.ciphersuites = self.common.supported_signature_algorithms;
+		server_configuration.ciphersuites = self.common.cipher_suites();
 
-		server_configuration.set_mtu(self.common.tls_mtu);
+		server_configuration.mtu = self.common.tls_mtu;
 
 		server_configuration.versions = self.common.supported_tls_versions.versions();
 
@@ -129,6 +129,6 @@ impl TlsServerConfiguration
 			file.read_to_end(&mut data).map_err(read_error)?;
 		}
 
-		data
+		Ok(data)
 	}
 }

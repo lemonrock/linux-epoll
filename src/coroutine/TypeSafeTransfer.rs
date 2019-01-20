@@ -14,9 +14,10 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 {
 	/// Creates a new instance.
 	#[inline(always)]
-	pub fn new<S: Sized + Deref<Target=Stack>>(stack: S, context_function: ContextFn, irrelevant_initial_data_which_will_never_be_transferred_but_will_be_dropped: Send) -> (S, Self)
+	pub fn new<S: Sized + Deref<Target=Stack>>(stack: S, context_function: ContextFn) -> (S, Self)
 	{
-		(stack, Self::wrap(Transfer::new(stack, context_function, irrelevant_initial_data_which_will_never_be_transferred_but_will_be_dropped)))
+		let this = Self::wrap(Transfer::new(Context::new(&stack, context_function), 0));
+		(stack, this)
 	}
 
 	/// Wraps a transfer, eg from first call to `context_function`.
