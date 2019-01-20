@@ -16,9 +16,9 @@ impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<S
 	{
 		const AddFlags: EPollAddFlags = EPollAddFlags::EdgeTriggeredInput | EPollAddFlags::Exclusive;
 
-		event_poll.register::<SSLR>(streaming_server_listener_socket_file_descriptor, AddFlags, |r|
+		event_poll.register::<SSLR>(streaming_server_listener_socket_file_descriptor, AddFlags, |uninitialized_reactor|
 		{
-			r.initialize
+			uninitialized_reactor.initialize
 			(
 				Self
 				{

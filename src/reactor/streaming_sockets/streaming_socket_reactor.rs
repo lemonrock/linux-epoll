@@ -10,7 +10,7 @@ macro_rules! streaming_socket_reactor
 		#[derive(Debug)]
 		struct $reactor_name<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>>
 		{
-			inner: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>,
+			common: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>,
 		}
 
 		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>> Reactor for $reactor_name<'a, SF, SU>
@@ -36,12 +36,17 @@ macro_rules! streaming_socket_reactor
 			#[inline(always)]
 			fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 			{
-				self.inner.react(event_poll, file_descriptor, event_flags, terminate)
+				self.common.react(event_poll, file_descriptor, event_flags, terminate)
 			}
 		}
 
 		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type> for $reactor_name<'a, SF, SU>
 		{
+			#[inline(always)]
+			fn initialize(&mut self, common: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>)
+			{
+				unsafe { write(&mut self.common, common) }
+			}
 		}
 	}
 }

@@ -6,12 +6,3 @@ trait IpLookupTableMatch<A>
 {
 	fn is_match(&self, remote_peer_address: A) -> bool;
 }
-
-impl<A> IpLookupTableMatch<A> for IpLookupTable<A, ()>
-{
-	#[inline(always)]
-	fn is_match(&self, remote_peer_address: A) -> bool
-	{
-		self.longest_match(remote_peer_address).is_some()
-	}
-}

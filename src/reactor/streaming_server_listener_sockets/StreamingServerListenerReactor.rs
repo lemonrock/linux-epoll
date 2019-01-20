@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-trait StreamingServerListenerReactor<SD: SocketData, A: AccessControl<SD>>: Reactor
+trait StreamingServerListenerReactor<SD: SocketData, A: AccessControl<SD>>: Reactor<FileDescriptor=StreamingServerListenerSocketFileDescriptor<SD>>
 {
 	fn initialize(&mut self, common: StreamingServerListenerSocketCommon<SD, A>);
 }

@@ -5,7 +5,6 @@
 struct StreamingSocketCommon<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData>
 {
 	started_coroutine: StartedStackAndTypeSafeTransfer<'a, SimpleStack, Self>,
-	marker: (SF, SU, SD),
 }
 
 impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> Debug for StreamingSocketCommon<'a, SF, SU, SD>
@@ -41,25 +40,28 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> StreamingSocketCommon<'a, SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD>>(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD>>(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
 	{
 		let start_data = (&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user);
 
 		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_data)
 		{
-			Right(completed) => return completed,
+			Right(completed) => return { completed?; Ok(()) },
 
 			Left(((), started_coroutine)) => started_coroutine,
 		};
 
 		const AddFlags: EPollAddFlags = EPollAddFlags::Input | EPollAddFlags::InputPriority | EPollAddFlags::Output | EPollAddFlags::ReadShutdown | EPollAddFlags::EdgeTriggered;
 
-		event_poll.register::<SSR>(streaming_socket_file_descriptor, AddFlags, |uninitialized_this|
+		event_poll.register::<SSR>(streaming_socket_file_descriptor, AddFlags, |uninitialized_reactor|
 		{
-			unsafe
-			{
-				write(&mut uninitialized_this.started_coroutine, started_coroutine);
-			}
+			uninitialized_reactor.initialize
+			(
+				Self
+				{
+					started_coroutine,
+				}
+			);
 			Ok(())
 		})
 	}

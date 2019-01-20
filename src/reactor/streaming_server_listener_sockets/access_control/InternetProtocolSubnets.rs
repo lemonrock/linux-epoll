@@ -43,6 +43,15 @@ macro_rules! ip_lookup_table_does_not_expose_a_private_trait_implementation_for_
 				internet_protocol_address_access_control_list
 			}
 		}
+
+		impl IpLookupTableMatch<$rust_socket_type> for IpLookupTable<$rust_socket_type, ()>
+		{
+			#[inline(always)]
+			fn is_match(&self, remote_peer_address: $rust_socket_type) -> bool
+			{
+				self.longest_match(remote_peer_address).is_some()
+			}
+		}
 	}
 }
 
