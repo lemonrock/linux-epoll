@@ -8,12 +8,12 @@ macro_rules! streaming_socket_reactor
 	{
 		/// This object wraps streaming sockets.
 		#[derive(Debug)]
-		struct $reactor_name<'a, SF: StreamFactory<'a, $sockaddr_type>, SU: StreamUser<'a, SF::S>>
+		struct $reactor_name<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>>
 		{
 			inner: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>,
 		}
 
-		impl<'a, SF: StreamFactory<'a, $sockaddr_type>, SU: StreamUser<'a, SF::S>> Reactor for $reactor_name<'a, SF, SU>
+		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>> Reactor for $reactor_name<'a, SF, SU>
 		{
 			type FileDescriptor = $file_descriptor_name;
 
@@ -40,7 +40,7 @@ macro_rules! streaming_socket_reactor
 			}
 		}
 
-		impl<'a, SF: StreamFactory<'a, $sockaddr_type>, SU: StreamUser<'a, SF::S>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type> for $reactor_name<'a, SF, SU>
+		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type> for $reactor_name<'a, SF, SU>
 		{
 		}
 	}

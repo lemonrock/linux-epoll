@@ -88,6 +88,7 @@ use ::std::fmt::Debug;
 use ::std::fmt::Display;
 use ::std::fmt::Formatter;
 use ::std::fs::File;
+use ::std::hash::Hash;
 use ::std::io;
 use ::std::io::BufReader;
 use ::std::io::ErrorKind;

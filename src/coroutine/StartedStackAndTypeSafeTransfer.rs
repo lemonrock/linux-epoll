@@ -5,12 +5,12 @@
 /// Holds a stack and a type-safe transfer of a started coroutine; suitable for the ultimate owner of a coroutine.
 ///
 /// On drop the the closure is killed and the stack is then relinquished.
-pub struct StartedStackAndTypeSafeTransfer<S: Sized + Deref<Target=Stack>, C: Coroutine>
+pub struct StartedStackAndTypeSafeTransfer<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>>
 {
-	owns: StackAndTypeSafeTransfer<S, C>,
+	owns: StackAndTypeSafeTransfer<'a, S, C>,
 }
 
-impl<S: Sized + Deref<Target=Stack>, C: Coroutine> Debug for StartedStackAndTypeSafeTransfer<S, C>
+impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> Debug for StartedStackAndTypeSafeTransfer<'a, S, C>
 where S: Debug, C::ResumeArguments: Debug, C::Yields: Debug, C::Complete: Debug
 {
 	#[inline(always)]
@@ -20,10 +20,10 @@ where S: Debug, C::ResumeArguments: Debug, C::Yields: Debug, C::Complete: Debug
 	}
 }
 
-impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StartedStackAndTypeSafeTransfer<S, C>
+impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> StartedStackAndTypeSafeTransfer<'a, S, C>
 {
 	#[inline(always)]
-	fn own(mut owns: StackAndTypeSafeTransfer<S, C>) -> Self
+	fn own(mut owns: StackAndTypeSafeTransfer<'a, S, C>) -> Self
 	{
 		owns.child_coroutine_is_active = true;
 

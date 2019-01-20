@@ -2,13 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-struct StreamingSocketCommon<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData>
+struct StreamingSocketCommon<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData>
 {
-	started_coroutine: StartedStackAndTypeSafeTransfer<SimpleStack, Self>,
-	marker: &'a (SF, SU, SD),
+	started_coroutine: StartedStackAndTypeSafeTransfer<'a, SimpleStack, Self>,
+	marker: (SF, SU, SD),
 }
 
-impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> Debug for StreamingSocketCommon<'a, SF, SU, SD>
+impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> Debug for StreamingSocketCommon<'a, SF, SU, SD>
 {
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
@@ -17,7 +17,7 @@ impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> D
 	}
 }
 
-impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> Coroutine for StreamingSocketCommon<'a, SF, SU, SD>
+impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> Coroutine<'a> for StreamingSocketCommon<'a, SF, SU, SD>
 {
 	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU);
 
@@ -28,7 +28,7 @@ impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> C
 	type Complete = Result<(), CompleteError>;
 
 	#[inline(always)]
-	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
+	fn coroutine<'yielder: 'a>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
 	{
 		let (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user) = start_arguments;
 
@@ -38,7 +38,7 @@ impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> C
 	}
 }
 
-impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> StreamingSocketCommon<'a, SF, SU, SD>
+impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> StreamingSocketCommon<'a, SF, SU, SD>
 {
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD>>(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
@@ -47,9 +47,9 @@ impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> S
 
 		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_data)
 		{
-			Right(completed) => return completed.map_err(|complete_error| complete_error.into()),
+			Right(completed) => return completed,
 
-			Left((), started_coroutine) => started_coroutine,
+			Left(((), started_coroutine)) => started_coroutine,
 		};
 
 		const AddFlags: EPollAddFlags = EPollAddFlags::Input | EPollAddFlags::InputPriority | EPollAddFlags::Output | EPollAddFlags::ReadShutdown | EPollAddFlags::EdgeTriggered;
@@ -67,13 +67,9 @@ impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> S
 	#[inline(always)]
 	fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &StreamingSocketFileDescriptor<SD>, event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
 	{
-		const ClosedWithError: EPollEventFlags = EPollEventFlags::InputPriority | EPollEventFlags::OutOfBandDataCanBeRead | EPollEventFlags::Error | EPollEventFlags::Error | EPollEventFlags::OtherErrorOrNoBuffersQueued;
-
-		const RemotePeerClosedCleanly: EPollEventFlags = EPollEventFlags::ReadShutdown | EPollEventFlags::HangUp;
-
 		use self::ReactEdgeTriggeredStatus::*;
 
-		if event_flags.intersects(ClosedWithError)
+		if event_flags.intersects(EPollEventFlags::InputPriority | EPollEventFlags::OutOfBandDataCanBeRead | EPollEventFlags::Error | EPollEventFlags::Error | EPollEventFlags::OtherErrorOrNoBuffersQueued)
 		{
 			match self.started_coroutine.resume(ClosedWithError)
 			{
@@ -88,9 +84,9 @@ impl<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: SocketData> S
 				Right(_complete) => Ok(true),
 			}
 		}
-		else if event_flags.intersects(RemotePeerClosedCleanly)
+		else if event_flags.intersects(EPollEventFlags::ReadShutdown | EPollEventFlags::HangUp)
 		{
-			match self.started_coroutine.resume(ClosedWithError)
+			match self.started_coroutine.resume(RemotePeerClosedCleanly)
 			{
 				Left(_yields @ ()) => if cfg!(debug_assertions)
 				{

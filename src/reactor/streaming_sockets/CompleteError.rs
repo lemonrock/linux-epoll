@@ -105,7 +105,7 @@ impl CompleteError
 
 		match result
 		{
-			Ok(()) => Ok(()),
+			Ok(value) => Ok(value),
 
 			Err(complete_error) => Err
 			(

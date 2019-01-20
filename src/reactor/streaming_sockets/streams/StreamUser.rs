@@ -6,5 +6,5 @@
 pub trait StreamUser<'a, S: Stream<'a>>
 {
 	/// Use stream as if it was blocking.
-	fn use_stream(stream: S);
+	fn use_stream(&self, stream: S) -> Result<(), CompleteError>;
 }

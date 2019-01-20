@@ -2,6 +2,6 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-trait StreamingSocketReactor<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: 'a + SocketData>
+trait StreamingSocketReactor<'a, SF: StreamFactory<'a, SD>, SU: StreamUser<'a, SF::S>, SD: 'a + SocketData>: Reactor
 {
 }

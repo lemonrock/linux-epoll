@@ -3,10 +3,10 @@
 
 
 /// `A` is either an Internet Protocol Version 4 address (`Ipv4Addr`) or an Internet Protocol Version 6 address (`Ipv6Addr`).
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct InternetProtocolSubnets<A>(HashMap<A, u8>);
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct InternetProtocolSubnets<A: Debug + Clone + PartialEq + Eq + PartialOrd + Hash>(HashMap<A, u8>);
 
-impl<A> Deref for InternetProtocolSubnets<A>
+impl<A: Debug + Clone + PartialEq + Eq + PartialOrd + Hash> Deref for InternetProtocolSubnets<A>
 {
 	type Target = HashMap<A, u8>;
 
@@ -17,7 +17,7 @@ impl<A> Deref for InternetProtocolSubnets<A>
 	}
 }
 
-impl<A> DerefMut for InternetProtocolSubnets<A>
+impl<A: Debug + Clone + PartialEq + Eq + PartialOrd + Hash> DerefMut for InternetProtocolSubnets<A>
 {
 	#[inline(always)]
 	fn deref_mut(&mut self) -> &mut Self::Target
@@ -26,19 +26,29 @@ impl<A> DerefMut for InternetProtocolSubnets<A>
 	}
 }
 
-impl<A> InternetProtocolSubnets<A>
+macro_rules! ip_lookup_table_does_not_expose_a_private_trait_implementation_for_address_despite_github_issue_from_months_ago
 {
-	#[inline(always)]
-	pub(crate) fn to_ip_lookup_table(self) -> IpLookupTable<A, ()>
+	($rust_socket_type: ty) =>
 	{
-		let mut internet_protocol_address_access_control_list = IpLookupTable::with_capacity(self.0.len());
-		for (address, mask) in self.0.drain()
+		impl InternetProtocolSubnets<$rust_socket_type>
 		{
-			internet_protocol_address_access_control_list.insert(address, mask as u32, ());
+			#[inline(always)]
+			pub(crate) fn to_ip_lookup_table(self) -> IpLookupTable<$rust_socket_type, ()>
+			{
+				let mut internet_protocol_address_access_control_list = IpLookupTable::with_capacity(self.0.len());
+				for (address, mask) in self.0.drain()
+				{
+					internet_protocol_address_access_control_list.insert(address, mask as u32, ());
+				}
+				internet_protocol_address_access_control_list
+			}
 		}
-		internet_protocol_address_access_control_list
 	}
 }
+
+ip_lookup_table_does_not_expose_a_private_trait_implementation_for_address_despite_github_issue_from_months_ago!(Ipv4Addr);
+
+ip_lookup_table_does_not_expose_a_private_trait_implementation_for_address_despite_github_issue_from_months_ago!(Ipv6Addr);
 
 impl InternetProtocolSubnets<Ipv4Addr>
 {

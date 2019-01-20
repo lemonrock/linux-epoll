@@ -3,24 +3,24 @@
 
 
 /// A trait that stackful coroutines should implement.
-pub trait Coroutine
+pub trait Coroutine<'a>
 {
 	/// Type of the arguments the coroutine is initially called with, eg `(usize, String)`.
-	type StartArguments: Sized;
+	type StartArguments: 'a + Sized;
 
 	/// Type of the arguments the coroutine is resumed with, eg `(u8, Vec<f64>)`.
-	type ResumeArguments: Sized;
+	type ResumeArguments: 'a + Sized;
 
 	/// Type of the result from a yield of the coroutine.
-	type Yields: Sized;
+	type Yields: 'a + Sized;
 
 	/// Type of the final result from the coroutine.
-	type Complete: Sized;
+	type Complete: 'a + Sized;
 
 	/// Implement this for the coroutine's behaviour.
 	///
 	/// Panics inside the coroutine are transferred to the calling thread and raised.
-	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete;
+	fn coroutine<'yielder: 'a>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete;
 
 	#[doc(hidden)]
 	#[inline(never)]
@@ -28,7 +28,7 @@ pub trait Coroutine
 	{
 		let mut type_safe_transfer = TypeSafeTransfer::<ParentInstructingChild<Self::ResumeArguments>, ChildOutcome<Self::Yields, Self::Complete>>::wrap(transfer);
 		let start_child_arguments: Self::StartArguments = type_safe_transfer.start_child_arguments();
-		let yielder: Yielder<Self::ResumeArguments, Self::Yields, Self::Complete> = Yielder::new(&mut type_safe_transfer);
+		let yielder = Yielder::new(&mut type_safe_transfer);
 
 		let result = catch_unwind(AssertUnwindSafe(|| Self::coroutine(start_child_arguments, yielder)));
 		let child_outcome = ChildOutcome::Complete(result);
