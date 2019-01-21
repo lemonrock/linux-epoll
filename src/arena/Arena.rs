@@ -3,7 +3,7 @@
 
 
 /// An arena.
-pub trait Arena<Holds: Reactor>
+pub trait Arena<Holds: Reactor<AS, Self>, AS: Arenas>: Sized
 {
 	/// Allocate a `Holds` within this arena.
 	///

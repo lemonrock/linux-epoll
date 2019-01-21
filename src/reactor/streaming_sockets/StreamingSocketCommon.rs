@@ -40,7 +40,7 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> StreamingSocketCommon<'a, SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD>>(event_poll: &EventPoll<impl Arenas>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
 	{
 		let start_data = (&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user);
 
@@ -53,7 +53,7 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 
 		const AddFlags: EPollAddFlags = EPollAddFlags::Input | EPollAddFlags::InputPriority | EPollAddFlags::Output | EPollAddFlags::ReadShutdown | EPollAddFlags::EdgeTriggered;
 
-		event_poll.register::<SSR>(streaming_socket_file_descriptor, AddFlags, |uninitialized_reactor|
+		event_poll.register::<SSR, A, _>(streaming_socket_file_descriptor, AddFlags, |uninitialized_reactor|
 		{
 			uninitialized_reactor.initialize
 			(

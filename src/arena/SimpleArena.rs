@@ -5,23 +5,25 @@
 /// A simple arena.
 ///
 /// Dropping this arena will free all memory for all elements `Hold`, irrespective if they are still being referenced.
-/// Ordinarily, since an arena lasts at least as long as an epoll file descriptor, this is not an issue.
+/// Ordinarily, since an arena lasts at least as long as an `EPollFileDescriptor`, this is not an issue.
 ///
 /// If `Hold` implements `Drop`, it will be honoured on drop of this arena.
 /// It will also be honoured when `reclaim()` is called; do not call `reclaim()` after `allocate()` without initializing `Hold` to a known, valid state.
 ///
 /// Default creates an empty arena.
 #[derive(Debug)]
-pub struct SimpleArena<Holds: Reactor>
+pub struct SimpleArena<Holds: Reactor<AS, Self>, AS: Arenas>
 where Holds::FileDescriptor: FromRawFd
 {
 	next_available_slot_index: Cell<ArenaIndex>,
+
+	marker: PhantomData<AS>,
 
 	// Sadly this causes pointer-chasing as Rust does not yet permit creation of dynamically sized types.
 	allocation: Box<[ArenaElement<Holds>]>,
 }
 
-impl<Holds: Reactor> Default for SimpleArena<Holds>
+impl<Holds: Reactor<AS, Self>, AS: Arenas> Default for SimpleArena<Holds, AS>
 where Holds::FileDescriptor: FromRawFd
 {
 	#[inline(always)]
@@ -31,7 +33,7 @@ where Holds::FileDescriptor: FromRawFd
 	}
 }
 
-impl<Holds: Reactor> Arena<Holds> for SimpleArena<Holds>
+impl<Holds: Reactor<AS, Self>, AS: Arenas> Arena<Holds, AS> for SimpleArena<Holds, AS>
 where Holds::FileDescriptor: FromRawFd
 {
 	#[inline(always)]
@@ -74,7 +76,7 @@ where Holds::FileDescriptor: FromRawFd
 	}
 }
 
-impl<Holds: Reactor> SimpleArena<Holds>
+impl<Holds: Reactor<AS, Self>, AS: Arenas> SimpleArena<Holds, AS>
 where Holds::FileDescriptor: FromRawFd
 {
 	/// Creates a new instance.
@@ -85,6 +87,8 @@ where Holds::FileDescriptor: FromRawFd
 		Self
 		{
 			next_available_slot_index: Cell::new(ArenaElement::<Holds>::first(maximum_number_of_elements)),
+
+			marker: PhantomData,
 
 			allocation:
 			{
@@ -109,15 +113,5 @@ where Holds::FileDescriptor: FromRawFd
 		debug_assert!(arena_index < self.allocation.len(), "Arena index was out-of-range");
 
 		unsafe { self.allocation.get_unchecked(arena_index) }
-	}
-}
-
-impl SimpleArena<Unused>
-{
-	/// Used to construct an empty, unused arena.
-	#[inline(always)]
-	pub fn unused_and_empty() -> Self
-	{
-		Self::new(0)
 	}
 }

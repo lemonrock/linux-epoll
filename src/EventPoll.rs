@@ -4,13 +4,13 @@
 
 /// Wraps event polling.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EventPoll<A: Arenas>
+pub struct EventPoll<AS: Arenas>
 {
 	epoll_file_descriptor: EPollFileDescriptor,
-	arenas: A,
+	arenas: AS,
 }
 
-impl<A: Arenas> Drop for EventPoll<A>
+impl<AS: Arenas> Drop for EventPoll<AS>
 {
 	#[inline(always)]
 	fn drop(&mut self)
@@ -45,13 +45,13 @@ impl<A: Arenas> Drop for EventPoll<A>
 	}
 }
 
-impl<A: Arenas> EventPoll<A>
+impl<AS: Arenas> EventPoll<AS>
 {
 	/// Creates a new instance.
 	///
 	/// Only one instance per thread is normally required.
 	#[inline(always)]
-	pub fn new(arenas: A) -> Result<Self, CreationError>
+	pub fn new(arenas: AS) -> Result<Self, CreationError>
 	{
 		Ok
 		(
@@ -64,14 +64,14 @@ impl<A: Arenas> EventPoll<A>
 	}
 
 	/// Add a new reactor.
-	pub fn add<R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	pub fn add<R: Reactor<AS, A>, A: Arena<R, AS>>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, registration_data)
 	}
 
 	/// Register a new file descriptor and allocate space for its management data in an arena.
 	#[inline(always)]
-	pub(crate) fn register<R: Reactor>(&self, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: impl FnOnce(&mut R) -> Result<(), EventPollRegistrationError>) -> Result<(), EventPollRegistrationError>
+	pub(crate) fn register<R: Reactor<AS, A>, A: Arena<R, AS>, F: FnOnce(&mut R) -> Result<(), EventPollRegistrationError>>(&self, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: F) -> Result<(), EventPollRegistrationError>
 	{
 		let arena = R::our_arena(&self.arenas);
 

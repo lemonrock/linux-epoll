@@ -4,7 +4,7 @@
 
 macro_rules! streaming_socket_reactor
 {
-	($reactor_name: ident, $sockaddr_type: ty, $file_descriptor_name: ty, $file_descriptor_kind: ident, $lower_case_kind: ident) =>
+	($reactor_name: ident, $sockaddr_type: ty, $file_descriptor_name: ty, $title_case: ident, $lower_case_kind: ident, $title_case_arena: ident) =>
 	{
 		/// This object wraps streaming sockets.
 		#[derive(Debug)]
@@ -13,34 +13,34 @@ macro_rules! streaming_socket_reactor
 			common: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>,
 		}
 
-		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>> Reactor for $reactor_name<'a, SF, SU>
+		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> Reactor<AS, A> for $reactor_name<'a, SF, SU>
 		{
 			type FileDescriptor = $file_descriptor_name;
 
-			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$file_descriptor_kind;
+			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$title_case;
 
 			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, &'a SF, SF::AdditionalArguments, &'a SU);
 
 			#[inline(always)]
-			fn our_arena(arenas: &impl Arenas) -> &Arena<Self>
+			fn our_arena(arenas: &AS) -> &A
 			{
 				arenas.$lower_case_kind()
 			}
 
 			#[inline(always)]
-			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<AS>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 			{
-				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self>(event_poll, registration_data)
+				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, AS, A>(event_poll, registration_data)
 			}
 
 			#[inline(always)]
-			fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+			fn react(&mut self, event_poll: &EventPoll<AS>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 			{
 				self.common.react(event_poll, file_descriptor, event_flags, terminate)
 			}
 		}
 
-		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type> for $reactor_name<'a, SF, SU>
+		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type, AS, A> for $reactor_name<'a, SF, SU>
 		{
 			#[inline(always)]
 			fn initialize(&mut self, common: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>)

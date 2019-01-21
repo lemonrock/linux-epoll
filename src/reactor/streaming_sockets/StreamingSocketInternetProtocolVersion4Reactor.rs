@@ -2,4 +2,4 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-streaming_socket_reactor!(StreamingSocketInternetProtocolVersion4Reactor, sockaddr_in, StreamingSocketInternetProtocolVersion4FileDescriptor, StreamingSocketInternetProtocolVersion4, streaming_socket_internet_protocol_version_4);
+streaming_socket_reactor!(StreamingSocketInternetProtocolVersion4Reactor, sockaddr_in, StreamingSocketInternetProtocolVersion4FileDescriptor, StreamingSocketInternetProtocolVersion4, streaming_socket_internet_protocol_version_4, StreamingSocketInternetProtocolVersion4Arena);

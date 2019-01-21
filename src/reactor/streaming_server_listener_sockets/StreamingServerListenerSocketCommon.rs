@@ -3,20 +3,20 @@
 
 
 #[derive(Debug)]
-struct StreamingServerListenerSocketCommon<SD: SocketData, A: AccessControl<SD>>
+struct StreamingServerListenerSocketCommon<SD: SocketData, AC: AccessControl<SD>>
 {
-	access_control: A,
+	access_control: AC,
 	file_descriptor_distributor: FileDescriptorDistributor<SD>,
 }
 
-impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<SD, A>
+impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<SD, AC>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLR: StreamingServerListenerReactor<SD, A>>(event_poll: &EventPoll<impl Arenas>, streaming_server_listener_socket_file_descriptor: SSLR::FileDescriptor, access_control: A, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLSR: StreamingServerListenerSocketReactor<SD, AC, AS, A>, AS: Arenas, A: Arena<SSLSR, AS>>(event_poll: &EventPoll<AS>, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
 	{
 		const AddFlags: EPollAddFlags = EPollAddFlags::EdgeTriggeredInput | EPollAddFlags::Exclusive;
 
-		event_poll.register::<SSLR>(streaming_server_listener_socket_file_descriptor, AddFlags, |uninitialized_reactor|
+		event_poll.register::<SSLSR, A, _>(streaming_server_listener_socket_file_descriptor, AddFlags, |uninitialized_reactor|
 		{
 			uninitialized_reactor.initialize
 			(
@@ -76,7 +76,7 @@ impl<SD: SocketData, A: AccessControl<SD>> StreamingServerListenerSocketCommon<S
 	}
 }
 
-impl<A: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockaddr_in, A>
+impl<AC: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockaddr_in, AC>
 {
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: SocketAddrV4) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_in>, NewSocketServerListenerError>
@@ -98,7 +98,7 @@ impl<A: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockaddr
 	}
 }
 
-impl<A: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockaddr_in6, A>
+impl<AC: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockaddr_in6, AC>
 {
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: SocketAddrV6) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_in6>, NewSocketServerListenerError>
@@ -120,7 +120,7 @@ impl<A: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockadd
 	}
 }
 
-impl<A: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockaddr_un, A>
+impl<AC: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockaddr_un, AC>
 {
 	#[inline(always)]
 	fn new_streaming_socket_file_descriptor(settings: &StreamingServerListenerSocketSettings, socket_address: UnixDomainSocketAddress) -> Result<StreamingServerListenerSocketFileDescriptor<sockaddr_un>, NewSocketServerListenerError>

@@ -6,7 +6,7 @@
 #[derive(Debug)]
 pub struct AllSignalsReactor<SH: SignalHandler>(SH);
 
-impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
+impl<AS: Arenas<Signal=Self, SignalArena=A>, A: Arena<Self, AS>, SH: SignalHandler> Reactor<AS, A> for AllSignalsReactor<SH>
 {
 	type FileDescriptor = SignalFileDescriptor;
 
@@ -15,18 +15,18 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 	type RegistrationData = SH;
 
 	#[inline(always)]
-	fn our_arena(arenas: &impl Arenas) -> &Arena<Self>
+	fn our_arena(arenas: &AS) -> &A
 	{
 		arenas.signal()
 	}
 
 	/// Starts blocking signals at this point.
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<impl Arenas>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<AS>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 
-		event_poll.register::<Self>(signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this|
+		event_poll.register::<Self, A, _>(signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this|
 		{
 			unsafe
 			{
@@ -36,7 +36,7 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 		})
 	}
 
-	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, _event_poll: &EventPoll<AS>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 	{
 		debug_assert_eq!(event_flags, EPollEventFlags::Input, "flags contained a flag other than `Input`");
 

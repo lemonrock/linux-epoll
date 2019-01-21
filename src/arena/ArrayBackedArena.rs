@@ -9,21 +9,23 @@ macro_rules! array_backed_arena
 		/// An array-backed arena of size $size.
 		///
 		/// Dropping this arena will free all memory for all elements `Hold`, irrespective if they are still being referenced.
-		/// Ordinarily, since an arena lasts at least as long as an epoll file descriptor, this is not an issue.
+		/// Ordinarily, since an arena lasts at least as long as an `EPollFileDescriptor`, this is not an issue.
 		///
 		/// If `Hold` implements `Drop`, it will be honoured on drop of this arena.
 		/// It will also be honoured when `reclaim()` is called; do not call `reclaim()` after `allocate()` without initializing `Hold` to a known, valid state.
 		///
 		/// Default creates an empty arena.
-		pub struct $name<Holds: Reactor>
+		pub struct $name<Holds: Reactor<AS, Self>, AS: Arenas>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			next_available_slot_index: Cell<ArenaIndex>,
 
+			marker: PhantomData<AS>,
+
 			allocation: [ArenaElement<Holds>; $size],
 		}
 
-		impl<Holds: Reactor> Debug for $name<Holds>
+		impl<Holds: Reactor<AS, Self>, AS: Arenas> Debug for $name<Holds, AS>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			#[inline(always)]
@@ -33,7 +35,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: Reactor> Default for $name<Holds>
+		impl<Holds: Reactor<AS, Self>, AS: Arenas> Default for $name<Holds, AS>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			#[inline(always)]
@@ -43,7 +45,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: Reactor> Arena<Holds> for $name<Holds>
+		impl<Holds: Reactor<AS, Self>, AS: Arenas> Arena<Holds, AS> for $name<Holds, AS>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			#[inline(always)]
@@ -86,7 +88,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: Reactor> $name<Holds>
+		impl<Holds: Reactor<AS, Self>, AS: Arenas> $name<Holds, AS>
 		where Holds::FileDescriptor: FromRawFd
 		{
 			const Size: usize = $size;
@@ -99,6 +101,8 @@ macro_rules! array_backed_arena
 				Self
 				{
 					next_available_slot_index: Cell::new(ArenaElement::<Holds>::first(maximum_number_of_elements)),
+
+					marker: PhantomData,
 
 					allocation:
 					{

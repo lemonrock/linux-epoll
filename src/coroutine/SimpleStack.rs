@@ -14,8 +14,8 @@ impl Deref for SimpleStack
 	fn deref(&self) -> &Self::Target
 	{
 		// TODO: pre-allocate and check for allocation failures!
-		let coroutine_stack_size: usize = xxxx;
-		let coroutine_stack = ProtectedFixedSizeStack::new(coroutine_stack_size);
+//		let coroutine_stack_size: usize = xxxx;
+//		let coroutine_stack = ProtectedFixedSizeStack::new(coroutine_stack_size);
 		unimplemented!();
 	}
 }
