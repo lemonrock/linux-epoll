@@ -154,32 +154,35 @@ pub mod terminate;
 pub mod tls;
 
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS13_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[0];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS13_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[1];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS13_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[2];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[3];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[4];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[5];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[6];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[7];
 
-/// Horrible hack to make public a staticant from rustls.
+/// Horrible hack to make public a static from rustls.
 pub static TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[8];
+
+
+include!("file_descriptor_kind_dispatch.rs");
 
 
 include!("EventPoll.rs");

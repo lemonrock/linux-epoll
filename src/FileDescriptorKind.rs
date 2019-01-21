@@ -128,111 +128,35 @@ impl FileDescriptorKind
 
 	/// Result is an error if the associated file descriptor has already been closed; this can happen due to spurious epoll events (eg receiving read and write as separate events).
 	#[inline(always)]
-	pub fn react<A: Arenas>(event_poll: &EventPoll<A>, event_poll_token: EventPollToken, spurious_event_suppression_of_already_closed_file_descriptors: &mut HashSet<RawFd>, arenas: &A, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<(), String>
+	pub fn react<AS: Arenas>(event_poll: &EventPoll<AS>, event_poll_token: EventPollToken, spurious_event_suppression_of_already_closed_file_descriptors: &mut HashSet<RawFd>, arenas: &AS, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<(), String>
 	{
-		macro_rules! dispatch
+		#[inline(always)]
+		fn dispatch<AS: Arenas, R: Reactor<AS, A>, A: Arena<R, AS>>((event_poll, spurious_event_suppression_of_already_closed_file_descriptors, event_flags, terminate): (&EventPoll<AS>, &mut HashSet<RawFd>, EPollEventFlags, &impl Terminate), arena: &A, arena_index: ArenaIndex, reactor: &mut R, file_descriptor: R::FileDescriptor) -> Result<(), String>
 		{
-			($event_poll: ident, $event_poll_token: ident, $spurious_event_suppression_of_already_closed_file_descriptors: ident, $arenas: ident, $event_flags: ident, $terminate: ident, $($title_case: tt => $lower_case: tt,)*) =>
+			match reactor.react(event_poll, &file_descriptor, event_flags, terminate)
 			{
+				Err(reason) => Err(reason),
+				Ok(close_file_descriptor) =>
 				{
-					let raw_file_descriptor = Self::raw_file_descriptor($event_poll_token);
-					if $spurious_event_suppression_of_already_closed_file_descriptors.contains(&raw_file_descriptor)
+					if unlikely!(close_file_descriptor)
 					{
-						return Ok(())
+						let first_insertion = spurious_event_suppression_of_already_closed_file_descriptors.insert(file_descriptor.as_raw_fd());
+						debug_assert!(first_insertion, "Spurious event somehow not captured and double-close of file descriptor occurred");
+
+						event_poll.deregister_and_close(file_descriptor);
+						arena.reclaim(arena_index);
 					}
-
-					let arena_index = Self::arena_index($event_poll_token);
-
-					use self::FileDescriptorKind::*;
-
-					match Self::file_descriptor_kind($event_poll_token)
+					else
 					{
-						$(
-							$title_case =>
-							{
-								let arena = $arenas.$lower_case();
-
-								let (instance, file_descriptor) = arena.get(arena_index, raw_file_descriptor);
-
-								match instance.react($event_poll, &file_descriptor, $event_flags, $terminate)
-								{
-									Err(reason) => Err(reason),
-									Ok(close_file_descriptor) =>
-									{
-										if unlikely!(close_file_descriptor)
-										{
-											$event_poll.deregister_and_close(file_descriptor);
-											let first_insertion = $spurious_event_suppression_of_already_closed_file_descriptors.insert(raw_file_descriptor);
-											debug_assert!(first_insertion, "Spurious event somehow not captured and double-close of file descriptor occurred");
-											arena.reclaim(arena_index);
-										}
-										else
-										{
-											forget(file_descriptor);
-										}
-										Ok(())
-									}
-								}
-							}
-						)*
+						forget(file_descriptor);
 					}
+					Ok(())
 				}
 			}
 		}
 
-		dispatch!
-		{
-			event_poll, event_poll_token, spurious_event_suppression_of_already_closed_file_descriptors, arenas, event_flags, terminate,
+		let raw_file_descriptor = Self::raw_file_descriptor(event_poll_token);
 
-			CharacterDevice => character_device,
-
-			EventPoll => event_poll,
-
-			Event => event,
-
-			FANotify => fanotify,
-
-			INotify => inotify,
-
-			ReceivePipe => receive_pipe,
-
-			SendPipe => send_pipe,
-
-			ReceivePosixMessageQueue => receive_posix_message_queue,
-
-			SendPosixMessageQueue => send_posix_message_queue,
-
-			SendAndReceivePosixMessageQueue => send_and_receive_posix_message_queue,
-
-			Signal => signal,
-
-			Terminal => terminal,
-
-			Timer => timer,
-
-			DatagramClientSocketInternetProtocolVersion4 => datagram_client_socket_internet_protocol_version_4,
-
-			DatagramClientSocketInternetProtocolVersion6 => datagram_client_socket_internet_protocol_version_6,
-
-			DatagramClientSocketUnixDomain => datagram_client_socket_unix_domain,
-
-			DatagramServerListenerSocketInternetProtocolVersion4 => datagram_server_listener_socket_internet_protocol_version_4,
-
-			DatagramServerListenerSocketInternetProtocolVersion6 => datagram_server_listener_socket_internet_protocol_version_6,
-
-			DatagramServerListenerSocketUnixDomain => datagram_server_listener_socket_unix_domain,
-
-			StreamingSocketInternetProtocolVersion4 => streaming_socket_internet_protocol_version_4,
-
-			StreamingSocketInternetProtocolVersion6 => streaming_socket_internet_protocol_version_6,
-
-			StreamingSocketUnixDomain => streaming_socket_unix_domain,
-
-			StreamingServerListenerSocketInternetProtocolVersion4 => streaming_server_listener_socket_internet_protocol_version_4,
-
-			StreamingServerListenerSocketInternetProtocolVersion6 => streaming_server_listener_socket_internet_protocol_version_6,
-
-			StreamingServerListenerSocketUnixDomain => streaming_server_listener_socket_unix_domain,
-		}
+		file_descriptor_kind_dispatch!(arenas, event_poll_token, raw_file_descriptor, dispatch, (event_poll, spurious_event_suppression_of_already_closed_file_descriptors, event_flags, terminate))
 	}
 }

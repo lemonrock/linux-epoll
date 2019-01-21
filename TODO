@@ -1,8 +1,9 @@
 TODO
-	- clone() for file descriptors (using dup)
 	- drop token logic for epoll file descriptor
+	- Instantiate each logical-core with a thread.
 	- FileDescriptorCOnsumer
 	- Arenas for coroutine stacks
+
 	- how to client and server streaming sockets (perhaps 2 kinds of reactors therefore more arenas)
 
 	- how to manage multiple file descriptors where all are epoll'd to achive a task
