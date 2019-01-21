@@ -22,7 +22,7 @@ use self::coroutine::*;
 use self::reactor::*;
 use self::reactor::distribution::*;
 use self::reactor::streaming_sockets::*;
-#[macro_use] use self::reactor::streaming_sockets::streams::*;
+use self::reactor::streaming_sockets::streams::*;
 use self::reactor::streaming_sockets::stream_factories::*;
 use self::reactor::streaming_server_listener_sockets::access_control::*;
 use self::terminate::*;

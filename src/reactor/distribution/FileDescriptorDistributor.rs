@@ -19,7 +19,7 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 		let number_of_threads = logical_cores.len();
 
 		let mut per_thread_data = Vec::with_capacity(number_of_threads);
-		for logical_core_identifier in logical_cores.iter()
+		for _ in logical_cores.iter()
 		{
 			let (consumer, producers) = RingBuffer::new(ring_buffer_capacity, number_of_threads);
 			let file_descriptor_distributor = Self::new(maximum_number_of_file_descriptors_pending_distribution_per_logical_core, logical_cores, producers);
