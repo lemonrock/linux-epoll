@@ -26,7 +26,7 @@ impl<SD: SocketData> FileDescriptorConsumer<SD>
 	{
 		let slice_guard = self.consumer.consume();
 
-		for streaming_socket_file_descriptor in slice_guard
+		for _streaming_socket_file_descriptor in slice_guard
 		{
 //			let registration_data: SomeReactor::RegistrationData = XXXX;
 //			match event_poll.add::<SomeReactor>(registration_data)

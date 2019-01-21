@@ -67,7 +67,7 @@ impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 	}
 
 	#[inline(always)]
-	fn finish(mut self) -> Result<(), CompleteError>
+	fn finish(self) -> Result<(), CompleteError>
 	{
 		Ok(())
 	}

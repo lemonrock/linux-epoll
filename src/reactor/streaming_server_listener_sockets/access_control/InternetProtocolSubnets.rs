@@ -33,7 +33,7 @@ macro_rules! ip_lookup_table_does_not_expose_a_private_trait_implementation_for_
 		impl InternetProtocolSubnets<$rust_socket_type>
 		{
 			#[inline(always)]
-			pub(crate) fn to_ip_lookup_table(self) -> IpLookupTable<$rust_socket_type, ()>
+			pub(crate) fn to_ip_lookup_table(mut self) -> IpLookupTable<$rust_socket_type, ()>
 			{
 				let mut internet_protocol_address_access_control_list = IpLookupTable::with_capacity(self.0.len());
 				for (address, mask) in self.0.drain()

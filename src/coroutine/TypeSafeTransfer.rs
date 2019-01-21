@@ -16,7 +16,7 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 	#[inline(always)]
 	pub fn new<S: Sized + Deref<Target=Stack>>(stack: S, context_function: ContextFn) -> (S, Self)
 	{
-		let this = Self::wrap(Transfer::new(Context::new(&stack, context_function), 0));
+		let this = Self::wrap(Transfer::new(unsafe { Context::new(&stack, context_function) }, 0));
 		(stack, this)
 	}
 
@@ -66,7 +66,7 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 		let mut data_to_transfer_drop_safe = Some(data_to_transfer);
 		let pointer_out = Self::option_to_pointer::<T>(&mut data_to_transfer_drop_safe);
 
-		self.transfer = self.transfer.resume::<NonNull<Option<T>>>(pointer_out);
+		self.transfer.resume::<NonNull<Option<T>>>(pointer_out);
 
 		self.take_data()
 	}
@@ -84,7 +84,7 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 		let mut data_to_transfer_drop_safe = Some(data_to_transfer);
 		let pointer_out = Self::option_to_pointer::<T>(&mut data_to_transfer_drop_safe);
 
-		self.transfer = self.transfer.resume_on_top::<NonNull<Option<T>>>(pointer_out, resume_on_top_function);
+		self.transfer.resume_on_top::<NonNull<Option<T>>>(pointer_out, resume_on_top_function);
 
 		self.take_data()
 	}
@@ -104,7 +104,7 @@ impl<Receive: Sized, Send: Sized> TypeSafeTransfer<Receive, Send>
 	#[inline(always)]
 	fn take_data_unsafe_typing<UnsafeT>(&self) -> UnsafeT
 	{
-		let pointer_in = self.transfer.transferred_data::<NonNull<Option<UnsafeT>>>();
+		let mut pointer_in = self.transfer.transferred_data::<NonNull<Option<UnsafeT>>>();
 		let data_from_transfer_drop_safe = unsafe { pointer_in.as_mut() };
 		data_from_transfer_drop_safe.take().expect("take_data can only be called once per resumption")
 	}

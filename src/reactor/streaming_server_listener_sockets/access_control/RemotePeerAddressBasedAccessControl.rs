@@ -93,7 +93,7 @@ impl AccessControl<sockaddr_in6> for RemotePeerAddressBasedAccessControl
 impl AccessControl<sockaddr_un> for RemotePeerAddressBasedAccessControl
 {
 	#[inline(always)]
-	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_un, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_un>) -> bool
+	fn is_remote_peer_allowed(&self, _remote_peer_address: sockaddr_un, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_un>) -> bool
 	{
 		let credentials = streaming_socket_file_descriptor.remote_peer_credentials();
 

@@ -3,7 +3,7 @@
 
 
 /// List from <https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids> as of January 15th, 2019.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ApplicationLayerProtocolNegotiationProtocol
 {
 	/// HTTP/0.9 defined in RFC 1945.

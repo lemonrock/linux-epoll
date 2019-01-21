@@ -33,7 +33,7 @@ impl<T> PerLogicalCoreData<T>
 {
 	/// `constructor` is called for each defined logical core in `logical_cores`; it is passed the logical core's identifier.
 	#[inline(always)]
-	pub fn new(logical_cores: &LogicalCores, constructor: impl FnMut(u16) -> T) -> Self
+	pub fn new(logical_cores: &LogicalCores, mut constructor: impl FnMut(u16) -> T) -> Self
 	{
 		let number_of_logical_cores = logical_cores.len();
 		assert_ne!(number_of_logical_cores, 0, "There are no logical cores specified");
@@ -92,6 +92,24 @@ impl<T> PerLogicalCoreData<T>
 			return None
 		}
 		unsafe { self.logical_cores_data.get_unchecked_mut(logical_core_identifier).as_mut() }
+	}
+
+	/// Gets the mutable data for a particular logical core; if no data for that core, gets it for the `default_logical_core_identifier`.
+	///
+	/// If the logical core does not exist (or does not have assigned data), returns None; this can happen on Linux if using the` SO_INCOMING_CPU` socket option, which can return an index for a CPU not assigned to the process.
+	#[inline(always)]
+	pub fn get_mut_or(&mut self, logical_core_identifier: u16, default_logical_core_identifier: impl FnOnce() -> u16) -> &mut T
+	{
+		let logical_core_identifier = if unlikely!(self.get(logical_core_identifier).is_none())
+		{
+			default_logical_core_identifier() as usize
+		}
+		else
+		{
+			logical_core_identifier as usize
+		};
+
+		unsafe { self.logical_cores_data.get_unchecked_mut(logical_core_identifier).as_mut().unwrap() }
 	}
 
 	/// Takes the data for a particular logical core.

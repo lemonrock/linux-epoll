@@ -33,9 +33,9 @@ impl ApplicationLayerProtocolNegotiationProtocols
 	pub fn to_rustls_form(&self) -> Vec<String>
 	{
 		let mut protocols = Vec::with_capacity(self.0.len());
-		for application_layer_protocol_negotiation_protocol in self.0
+		for application_layer_protocol_negotiation_protocol in self.0.iter()
 		{
-			assert_ne!(application_layer_protocol_negotiation_protocol, ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP, "HTTP_2_over_TCP can not be used with TLS");
+			assert_ne!(application_layer_protocol_negotiation_protocol, &ApplicationLayerProtocolNegotiationProtocol::HTTP_2_over_TCP, "HTTP_2_over_TCP can not be used with TLS");
 			protocols.push(application_layer_protocol_negotiation_protocol.to_string())
 		}
 		protocols

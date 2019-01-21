@@ -54,7 +54,7 @@ impl TlsCommonConfiguration
 	/// * `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`
 	/// * `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`
 	#[inline(always)]
-	pub const fn default_cipher_suites() -> Vec<&'static SupportedCipherSuite>
+	pub fn default_cipher_suites() -> Vec<&'static SupportedCipherSuite>
 	{
 		vec!
 		[
@@ -79,7 +79,7 @@ impl TlsCommonConfiguration
 
 	/// Defaults to TLS 1.3 and TLS 1.2.
 	#[inline(always)]
-	pub const fn default_supported_tls_versions() -> SupportedTlsVersions
+	pub fn default_supported_tls_versions() -> SupportedTlsVersions
 	{
 		SupportedTlsVersions::default()
 	}

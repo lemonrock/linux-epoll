@@ -21,7 +21,7 @@ impl<'a, SD: SocketData> TlsGenericStream<'a, SD, ServerSession>
 impl<'a, SD: SocketData, S: SessionExt> TlsGenericStream<'a, SD, S>
 {
 	#[inline(always)]
-	fn configure_and_handshake(generic_stream: GenericStream<'a, SD>, tls_session: S, session_buffer_limit: usize) -> Result<Self, CompleteError>
+	fn configure_and_handshake(mut generic_stream: GenericStream<'a, SD>, mut tls_session: S, session_buffer_limit: usize) -> Result<Self, CompleteError>
 	{
 		tls_session.set_buffer_limit(session_buffer_limit);
 		generic_stream.tls_handshake(&mut tls_session)?;

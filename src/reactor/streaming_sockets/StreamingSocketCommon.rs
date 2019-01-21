@@ -42,18 +42,14 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
 	{
-		let start_data = (&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user);
-
-		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_data)
+		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start((&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user))
 		{
 			Right(completed) => return { completed?; Ok(()) },
 
 			Left(((), started_coroutine)) => started_coroutine,
 		};
 
-		const AddFlags: EPollAddFlags = EPollAddFlags::Input | EPollAddFlags::InputPriority | EPollAddFlags::Output | EPollAddFlags::ReadShutdown | EPollAddFlags::EdgeTriggered;
-
-		event_poll.register::<SSR, A, _>(streaming_socket_file_descriptor, AddFlags, |uninitialized_reactor|
+		event_poll.register::<SSR, A, _>(streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor|
 		{
 			uninitialized_reactor.initialize
 			(
@@ -67,11 +63,11 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 	}
 
 	#[inline(always)]
-	fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &StreamingSocketFileDescriptor<SD>, event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, _file_descriptor: &StreamingSocketFileDescriptor<SD>, event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
 	{
 		use self::ReactEdgeTriggeredStatus::*;
 
-		if event_flags.intersects(EPollEventFlags::InputPriority | EPollEventFlags::OutOfBandDataCanBeRead | EPollEventFlags::Error | EPollEventFlags::Error | EPollEventFlags::OtherErrorOrNoBuffersQueued)
+		if event_flags.intersects(EPollEventFlags::CloseWithError)
 		{
 			match self.started_coroutine.resume(ClosedWithError)
 			{
@@ -86,7 +82,7 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 				Right(_complete) => Ok(true),
 			}
 		}
-		else if event_flags.intersects(EPollEventFlags::ReadShutdown | EPollEventFlags::HangUp)
+		else if event_flags.intersects(EPollEventFlags::RemotePeerClosedCleanly)
 		{
 			match self.started_coroutine.resume(RemotePeerClosedCleanly)
 			{

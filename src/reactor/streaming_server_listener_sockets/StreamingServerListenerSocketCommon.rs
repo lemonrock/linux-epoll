@@ -14,9 +14,7 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLSR: StreamingServerListenerSocketReactor<SD, AC, AS, A>, AS: Arenas, A: Arena<SSLSR, AS>>(event_poll: &EventPoll<AS>, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
 	{
-		const AddFlags: EPollAddFlags = EPollAddFlags::EdgeTriggeredInput | EPollAddFlags::Exclusive;
-
-		event_poll.register::<SSLSR, A, _>(streaming_server_listener_socket_file_descriptor, AddFlags, |uninitialized_reactor|
+		event_poll.register::<SSLSR, A, _>(streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor|
 		{
 			uninitialized_reactor.initialize
 			(
@@ -31,7 +29,7 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 	}
 
 	#[inline(always)]
-	fn react(&mut self, event_poll: &EventPoll<impl Arenas>, file_descriptor: &StreamingServerListenerSocketFileDescriptor<SD>, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, file_descriptor: &StreamingServerListenerSocketFileDescriptor<SD>, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 	{
 		debug_assert_eq!(event_flags, EPollEventFlags::Input, "flags contained a flag other than `Input`");
 

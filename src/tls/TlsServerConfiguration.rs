@@ -125,7 +125,7 @@ impl TlsServerConfiguration
 
 		if let Some(file_path) = file_path.as_ref()
 		{
-			let file = File::open(file_path).map_err(open_error)?;
+			let mut file = File::open(file_path).map_err(open_error)?;
 			file.read_to_end(&mut data).map_err(read_error)?;
 		}
 

@@ -9,31 +9,17 @@ pub trait TransferExt: Sized
 	fn new<TD: TransferableData, S: Sized + Deref<Target=Stack>>(stack: S, context_function: ContextFn, initial_data_to_transfer: TD) -> (S, Self);
 
 	/// Get data.
-	#[inline(always)]
-	fn transferred_data<TD: TransferableData>(&self) -> TD
-	{
-		TD::from_usize(self.data())
-	}
+	fn transferred_data<TD: TransferableData>(&self) -> TD;
 
 	/// Resume.
-	#[inline(always)]
-	fn resume<TD: TransferableData>(self, data_to_transfer: TD) -> Transfer
-	{
-		unsafe { self.context().resume(data_to_transfer.into_usize()) }
-	}
+	fn resume<TD: TransferableData>(&mut self, data_to_transfer: TD);
 
 	/// Resume on top.
+	fn resume_on_top<TD: TransferableData>(&mut self, data_to_transfer: TD, resume_on_top_function: ResumeOnTopFunction);
+
+	#[doc(hidden)]
 	#[inline(always)]
-	fn resume_on_top<TD: TransferableData>(self, data_to_transfer: TD, resume_on_top_function: ResumeOnTopFunction) -> Transfer
-	{
-		unsafe { self.context().resume_ontop(data_to_transfer.into_usize(), resume_on_top_function) }
-	}
-
-	#[doc(hidden)]
-	fn data(&self) -> usize;
-
-	#[doc(hidden)]
-	fn context(self) -> Context;
+	unsafe fn context(&mut self) -> Context;
 }
 
 impl TransferExt for Transfer
@@ -46,14 +32,35 @@ impl TransferExt for Transfer
 	}
 
 	#[inline(always)]
-	fn data(&self) -> usize
+	fn transferred_data<TD: TransferableData>(&self) -> TD
 	{
-		self.data
+		TD::from_usize(self.data)
 	}
 
+	/// Resume.
 	#[inline(always)]
-	fn context(self) -> Context
+	fn resume<TD: TransferableData>(&mut self, data_to_transfer: TD)
 	{
-		self.context
+		*self = unsafe { self.context().resume(data_to_transfer.into_usize()) };
+	}
+
+	/// Resume on top.
+	#[inline(always)]
+	fn resume_on_top<TD: TransferableData>(&mut self, data_to_transfer: TD, resume_on_top_function: ResumeOnTopFunction)
+	{
+		*self = unsafe { self.context().resume_ontop(data_to_transfer.into_usize(), resume_on_top_function) };
+	}
+
+	#[doc(hidden)]
+	#[inline(always)]
+	unsafe fn context(&mut self) -> Context
+	{
+		// This is horrible, but:-
+		//
+		// * `Context` is nether Clone nor Copy;
+		// * `Context.resume()` and `Context.resume_ontop()` take Context by value, not by reference, and we can't move it or derefence it as we only have a mutable reference to it.
+		//
+		// However, we happen to know the contents of Context are just `&'static c_void`.
+		read(&mut self.context)
 	}
 }

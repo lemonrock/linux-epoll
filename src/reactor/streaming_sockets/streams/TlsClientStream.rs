@@ -40,7 +40,7 @@ impl<'a, SD: SocketData> Stream<'a> for TlsClientStream<'a, SD>
 	}
 
 	#[inline(always)]
-	fn finish(mut self) -> Result<(), CompleteError>
+	fn finish(self) -> Result<(), CompleteError>
 	{
 		self.tls_generic_stream.finish()
 	}
@@ -52,7 +52,7 @@ impl<'a, SD: SocketData> TlsClientStream<'a, SD>
 	pub(crate) fn new(generic_stream: GenericStream<'a, SD>, tls_configuration: &Arc<ClientConfig>, session_buffer_limit: usize, ascii_host_name: &str) -> Result<Self, CompleteError>
 	{
 		let hostname = DNSNameRef::try_from_ascii_str(ascii_host_name).expect("Invalid ASCII host name");
-		let mut tls_session = ClientSession::new(tls_configuration, hostname);
+		let tls_session = ClientSession::new(tls_configuration, hostname);
 
 		Ok
 		(

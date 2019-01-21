@@ -42,6 +42,8 @@ impl error::Error for TlsServerConfigurationError
 		{
 			&ClientCertificateAuthority(ref error) => Some(error),
 
+			&CertificateChainAndPrivateKeyError(ref error) => Some(error),
+
 			&CouldNotOpenOnlineCertificateStatusProtocolFile(ref error) => Some(error),
 
 			&CouldNotReadOnlineCertificateStatusProtocolFile(ref error) => Some(error),
