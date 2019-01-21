@@ -13,7 +13,7 @@ pub(crate) struct GenericStream<'a, SD: SocketData>
 impl<'a, SD: SocketData> GenericStream<'a, SD>
 {
 	#[inline(always)]
-	pub(crate) fn tls_handshake(&mut self, tls_session: &mut impl SessionExt) -> Result<(), CompleteError>
+	fn tls_handshake(&mut self, tls_session: &mut impl SessionExt) -> Result<(), CompleteError>
 	{
 		tls_session.complete_handshaking::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
 	}

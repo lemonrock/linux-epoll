@@ -2,13 +2,19 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+/// An error in TLS handling.
+///
+/// All are irrecoverable.
 #[derive(Debug)]
-pub(crate) enum TlsInputOutputError
+pub enum TlsInputOutputError
 {
+	/// Error occurred whilst processing newly received TLS packets (messages).
 	ProcessNewPackets(TLSError),
 
+	/// End-of-file occurred whilst handshaking.
 	EndOfFileWhilstHandshaking,
 
+	/// When reading from a socket, a CloseNotify fatal alart was received.
 	BufferReadCloseNotifyAlertReceived,
 }
 
