@@ -6,17 +6,23 @@
 #[derive(Debug)]
 pub enum CertificateChainAndPrivateKeyError
 {
+	/// Could not open the certificate file.
 	CouldNotOpenCertificateFile(io::Error),
 
+	/// Could not read the certificate file.
 	CouldNotReadClientCertificateFile,
 
+	/// Could not open the file containing one or more private keys.
 	CouldNotOpenPrivateKeysFile(io::Error),
 
+	/// Could not read a PKCS8 format private key.
 	CouldNotReadPkcs8PrivateKey,
 
+	/// Could not read a RSA format private key.
 	CouldNotReadRsaPrivateKey,
 
-	ThereIsNeitherAPkcs8OrRsaClientPrivateKey,
+	/// The private keys file does not contain either a PKCS8 or a RSA private key.
+	ThereIsNeitherAPkcs8OrRsaPrivateKey,
 }
 
 impl Display for CertificateChainAndPrivateKeyError
@@ -47,11 +53,7 @@ impl error::Error for CertificateChainAndPrivateKeyError
 
 			&CouldNotReadRsaPrivateKey => None,
 
-			&ThereIsNeitherAPkcs8OrRsaClientPrivateKey => None,
+			&ThereIsNeitherAPkcs8OrRsaPrivateKey => None,
 		}
 	}
-}
-
-impl CertificateChainAndPrivateKeyError
-{
 }

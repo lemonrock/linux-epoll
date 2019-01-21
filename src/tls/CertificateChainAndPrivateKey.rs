@@ -54,7 +54,7 @@ impl CertificateChainAndPrivateKey
 		{
 			if rsa_private_keys.is_empty()
 			{
-				Err(ThereIsNeitherAPkcs8OrRsaClientPrivateKey)
+				Err(ThereIsNeitherAPkcs8OrRsaPrivateKey)
 			}
 			else
 			{

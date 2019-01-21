@@ -52,13 +52,13 @@ impl<'yielder, SD: SocketData> TlsClientStream<'yielder, SD>
 	#[inline(always)]
 	pub(crate) fn new(generic_stream: GenericStream<'yielder, SD>, tls_configuration: &Arc<ClientConfig>, session_buffer_limit: usize, ascii_host_name: Rc<DNSName>) -> Result<Self, CompleteError>
 	{
-		let tls_session = ClientSession::new(tls_configuration, ascii_host_name.as_ref());
+		let tls_session = ClientSession::new(tls_configuration, ascii_host_name.deref().as_ref());
 
 		Ok
 		(
 			Self
 			{
-				tls_generic_stream: TlsGenericStream::configure(generic_stream, tls_session, session_buffer_limit)?,
+				tls_generic_stream: TlsGenericStream::configure_and_handshake(generic_stream, tls_session, session_buffer_limit)?,
 			}
 		)
 	}

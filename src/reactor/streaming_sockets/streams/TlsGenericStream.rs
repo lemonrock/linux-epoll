@@ -39,9 +39,10 @@ impl<'yielder, SD: SocketData, S: SessionExt> TlsGenericStream<'yielder, SD, S>
 	#[inline(always)]
 	fn common_tls_post_handshake_information(&self) -> CommonTlsPostHandshakeInformation<'static>
 	{
-		let tls_session_static_unsafe_hack: &'static S = unsafe { &* (&self.tls_session as *const S) };
+		let value = CommonTlsPostHandshakeInformation::from_tls_session(&self.tls_session);
 
-		CommonTlsPostHandshakeInformation::from_tls_session(tls_session_static_unsafe_hack)
+		// Grotesque hack which extends lifetime from 'yielder to 'static.
+		unsafe { transmute(value) }
 	}
 
 	#[inline(always)]

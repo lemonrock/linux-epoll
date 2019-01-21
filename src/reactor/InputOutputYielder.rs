@@ -17,7 +17,7 @@ impl<'yielder> InputOutputYielder<'yielder>
 
 	/// Yields to allow for further input or output data to become available.
 	#[inline(always)]
-	pub fn await_further_input_or_output_to_become_available(&self) -> Result<ReactEdgeTriggeredStatus, CompleteError>
+	pub fn await_further_input_or_output_to_become_available(&mut self) -> Result<ReactEdgeTriggeredStatus, CompleteError>
 	{
 		self.0.yields((), CompleteError::Killed)
 	}

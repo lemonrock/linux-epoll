@@ -19,7 +19,10 @@ impl<'yielder, SD: SocketData> Stream for TlsServerStream<'yielder, SD>
 	#[inline(always)]
 	fn post_handshake_information(&self) -> Self::PostHandshakeInformation
 	{
-		(self.tls_generic_stream.common_tls_post_handshake_information(), self.tls_generic_stream.server_name_indication_handshake_information())
+		let server_name_indication_handshake_information = self.tls_generic_stream.server_name_indication_handshake_information();
+		let server_name_indication_handshake_information: ServerNameIndication<'static> = unsafe { transmute(server_name_indication_handshake_information) };
+
+		(self.tls_generic_stream.common_tls_post_handshake_information(), server_name_indication_handshake_information)
 	}
 
 	#[inline(always)]

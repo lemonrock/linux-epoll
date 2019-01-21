@@ -16,7 +16,7 @@ pub struct UnencryptedStream<'yielder, SD: SocketData>(GenericStream<'yielder, S
 
 stream_read_write!(UnencryptedStream);
 
-impl<'yielder, SD: SocketData> Stream<'yielder> for UnencryptedStream<'yielder, SD>
+impl<'yielder, SD: SocketData> Stream for UnencryptedStream<'yielder, SD>
 {
 	type PostHandshakeInformation = ();
 
@@ -76,8 +76,8 @@ impl<'yielder, SD: SocketData> Stream<'yielder> for UnencryptedStream<'yielder, 
 impl<'yielder, SD: SocketData> UnencryptedStream<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'yielder, SD>) -> Result<Self, CompleteError>
+	pub(crate) fn new(generic_stream: GenericStream<'yielder, SD>) -> Self
 	{
-		Ok(Self(generic_stream))
+		Self(generic_stream)
 	}
 }

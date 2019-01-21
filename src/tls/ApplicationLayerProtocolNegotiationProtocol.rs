@@ -71,6 +71,7 @@ pub enum ApplicationLayerProtocolNegotiationProtocol
 
 impl ApplicationLayerProtocolNegotiationProtocol
 {
+	/// Converts to a string.
 	#[inline(always)]
 	pub fn to_string(&self) -> String
 	{

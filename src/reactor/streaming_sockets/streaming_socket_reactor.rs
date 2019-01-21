@@ -19,7 +19,7 @@ macro_rules! streaming_socket_reactor
 
 			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$title_case;
 
-			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, &SF, SF::AdditionalArguments, Rc<SU>);
+			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, Rc<SF>, SF::AdditionalArguments, Rc<SU>);
 
 			#[inline(always)]
 			fn our_arena(arenas: &AS) -> &A

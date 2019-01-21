@@ -54,9 +54,9 @@ impl TlsClientConfiguration
 		}
 	}
 
-	// ct logs come from the `ct-logs` crate.
+	/// Create client configuration.
 	#[inline(always)]
-	pub(crate) fn client_configuration(&self) -> Result<Arc<ClientConfig>, TlsClientConfigurationError>
+	pub fn client_configuration(&self) -> Result<Arc<ClientConfig>, TlsClientConfigurationError>
 	{
 		let mut client_configuration = ClientConfig::new();
 

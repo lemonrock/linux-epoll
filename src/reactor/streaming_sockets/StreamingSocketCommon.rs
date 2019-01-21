@@ -18,7 +18,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Debug for Str
 
 impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for StreamingSocketCommon<SF, SU, SD>
 {
-	type StartArguments = (ManuallyDrop<StreamingSocketFileDescriptor<SD>>, NonNull<SF>, NonNull<SF::AdditionalArguments>, Rc<SU>);
+	type StartArguments = (ManuallyDrop<StreamingSocketFileDescriptor<SD>>, Rc<SF>, SF::AdditionalArguments, Rc<SU>);
 
 	type ResumeArguments = ReactEdgeTriggeredStatus;
 
@@ -29,9 +29,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for
 	#[inline(always)]
 	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
 	{
-		let (streaming_socket_file_descriptor, server_stream_factory_non_null, additional_arguments, stream_user) = start_arguments;
-
-		let server_stream_factory = unsafe { server_stream_factory_non_null.as_ref() };
+		let (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user) = start_arguments;
 
 		let stream = server_stream_factory.new_stream_and_handshake(streaming_socket_file_descriptor, yielder, additional_arguments)?;
 
@@ -42,27 +40,17 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for
 impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSocketCommon<SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &SF, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, Rc<SF>, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
 	{
-		// TODO: Sort out types...
+		let start_arguments =
+		(
+			ManuallyDrop::new(unsafe { transmute_copy(&streaming_socket_file_descriptor) }),
+			server_stream_factory,
+			additional_arguments,
+			stream_user,
+		);
 
-
-		// TODO: We have to hold references to server_stream_factory, additional_arguments, stream_user otherwise they can go out of scope (after start()).
-
-
-		XXXXXX
-
-
-		let start_arguments = unsafe
-		{
-			(
-				NonNull::new_unchecked(&streaming_socket_file_descriptor as *const _ as *mut _),
-				NonNull::new_unchecked(server_stream_factory as *const _ as *mut _),
-
-			)
-		};
-
-		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start((&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user))
+		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_arguments)
 		{
 			Right(completed) => return { completed?; Ok(()) },
 

@@ -27,9 +27,13 @@ impl<SD: SocketData> StreamFactory<SD> for TlsServerStreamFactory
 	type AdditionalArguments = ();
 
 	#[inline(always)]
-	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
+	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, _additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
 	{
 		let generic_stream = GenericStream::wrap(streaming_socket_file_descriptor, yielder);
-		TlsServerStream::new(generic_stream, &self.tls_configuration, self.session_buffer_limit)
+		let stream = TlsServerStream::new(generic_stream, &self.tls_configuration, self.session_buffer_limit)?;
+
+		// Grotesque hack which extends lifetime from 'yielder to 'static.
+		let stream: Self::S = unsafe { transmute(stream) };
+		Ok(stream)
 	}
 }

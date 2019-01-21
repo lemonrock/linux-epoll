@@ -100,6 +100,7 @@ use ::std::mem::forget;
 use ::std::mem::ManuallyDrop;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
+use ::std::mem::transmute_copy;
 use ::std::mem::uninitialized;
 use ::std::net::Ipv4Addr;
 use ::std::net::Ipv6Addr;

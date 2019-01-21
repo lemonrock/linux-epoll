@@ -50,8 +50,9 @@ impl TlsServerConfiguration
 		}
 	}
 
+	/// Create server configuration.
 	#[inline(always)]
-	pub(crate) fn server_configuration(&self) -> Result<Arc<ServerConfig>, TlsServerConfigurationError>
+	pub fn server_configuration(&self) -> Result<Arc<ServerConfig>, TlsServerConfigurationError>
 	{
 		let mut server_configuration = ServerConfig::new(self.client_authentication_configuration.client_certificate_verifier()?);
 

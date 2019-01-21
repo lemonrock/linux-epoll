@@ -1,0 +1,31 @@
+TODO
+	- clone() for file descriptors (using dup)
+	- drop token logic for epoll file descriptor
+	- FileDescriptorCOnsumer
+	- Arenas for coroutine stacks
+	- how to client and server streaming sockets (perhaps 2 kinds of reactors therefore more arenas)
+
+	- how to manage multiple file descriptors where all are epoll'd to achive a task
+		- eg http server that uses a pipe fd (eg as a cache for tee'd data as a zero copy buffer)
+
+	- how to get a result back by spawning, say, an outbound DNS connection
+		- we could yield, but how do we get control back on to the coroutine, as no EdgeTriggered Input or Output will be raised?
+
+	- how do use long-lived, multiple request connections such as a database connection or a LDAP connection? And share them amongst many internal coroutines? (with or without a connection pool)
+
+	- new Linux zero copy features
+
+	- new Linux TCP_ULP with sendfile and ?splice - only supported by OpenSSL.
+
+- Outbound things we care about right now:-
+	- LDAP
+	- DNS over TLS over TCP/QUIC
+	- HTTPS REST APIs
+	- receiving local UDP syslog
+	- sending encrypted syslog over TLS over TCP/QUIC
+		- syslog unstructured or structured protocols
+		- long-lived HTTP over TLS connection
+	- TCP proxies using TLS, eg to support conversion to / from QUIC (require 2 FDs and a magic ring buffer that is thread safe but just producer / consumer)
+
+- In essence, we need the ability to 'wake up' anything currently being handled by epoll.
+

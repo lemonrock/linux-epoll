@@ -28,12 +28,14 @@ pub trait Coroutine
 	{
 		let mut type_safe_transfer = TypeSafeTransfer::<ParentInstructingChild<Self::ResumeArguments>, ChildOutcome<Self::Yields, Self::Complete>>::wrap(transfer);
 		let start_child_arguments: Self::StartArguments = type_safe_transfer.start_child_arguments();
-		let yielder = Yielder::new(&mut type_safe_transfer);
 
-		let result = catch_unwind(AssertUnwindSafe(|| Self::coroutine(start_child_arguments, yielder)));
-		let child_outcome = ChildOutcome::Complete(result);
+		let result =
+		{
+			let yielder = Yielder::new(&mut type_safe_transfer);
+			catch_unwind(AssertUnwindSafe(|| Self::coroutine(start_child_arguments, yielder)))
+		};
 
-		type_safe_transfer.resume_drop_safe(child_outcome);
+		type_safe_transfer.resume_drop_safe(ChildOutcome::Complete(result));
 		unreachable!("Closure has completed")
 	}
 }

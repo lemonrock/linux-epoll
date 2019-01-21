@@ -3,7 +3,7 @@
 
 
 #[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ByteCounter
+pub(crate) struct ByteCounter
 {
 	total_bytes_written: usize,
 	total_bytes_read: usize,
@@ -12,13 +12,13 @@ pub struct ByteCounter
 impl ByteCounter
 {
 	#[inline(always)]
-	pub fn bytes_written(&mut self, bytes_written: usize)
+	pub(crate) fn bytes_written(&mut self, bytes_written: usize)
 	{
 		self.total_bytes_written += bytes_written;
 	}
 
 	#[inline(always)]
-	pub fn bytes_read(&mut self, bytes_read: usize)
+	pub(crate) fn bytes_read(&mut self, bytes_read: usize)
 	{
 		self.total_bytes_read += bytes_read;
 	}

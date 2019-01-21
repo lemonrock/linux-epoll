@@ -33,6 +33,10 @@ impl<SD: SocketData> StreamFactory<SD> for TlsClientStreamFactory
 		let ascii_host_name = additional_arguments;
 
 		let generic_stream = GenericStream::wrap(streaming_socket_file_descriptor, yielder);
-		TlsClientStream::new(generic_stream, &self.tls_configuration, self.session_buffer_limit, ascii_host_name)
+		let stream = TlsClientStream::new(generic_stream, &self.tls_configuration, self.session_buffer_limit, ascii_host_name)?;
+
+		// Grotesque hack which extends lifetime from 'yielder to 'static.
+		let stream: Self::S = unsafe { transmute(stream) };
+		Ok(stream)
 	}
 }

@@ -20,7 +20,7 @@ impl<AS: Arenas> Drop for EventPoll<AS>
 		// One way out of this problem would be to use `libc::dup()`, but that requires a syscall.
 		unsafe
 		{
-			ManuallyDrop(&mut self.arenas)
+			ManuallyDrop::drop(&mut self.arenas)
 		}
 
 		if let Ok((_header, epoll_information_items)) = self.epoll_file_descriptor.information()
@@ -58,7 +58,7 @@ impl<AS: Arenas> Drop for EventPoll<AS>
 
 		unsafe
 		{
-			ManuallyDrop(&mut self.epoll_file_descriptor)
+			ManuallyDrop::drop(&mut self.epoll_file_descriptor)
 		}
 	}
 }
