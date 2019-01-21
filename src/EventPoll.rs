@@ -15,7 +15,8 @@ impl<AS: Arenas> Drop for EventPoll<AS>
 	#[inline(always)]
 	fn drop(&mut self)
 	{
-		if let Ok((_header, epoll_information_items)) = self.epoll_file_descriptor.information()
+		#[inline(always)]
+		fn inner_drop<AS: Arenas>(event_poll: &EventPoll<AS>, epoll_information_items: impl Iterator<Item=EPollInformationItem>)
 		{
 			for epoll_information_item in epoll_information_items
 			{
@@ -23,14 +24,19 @@ impl<AS: Arenas> Drop for EventPoll<AS>
 				let raw_file_descriptor = epoll_information_item.target_file_descriptor;
 
 				#[inline(always)]
-				fn dispatch<AS: Arenas, R: Reactor<AS, A>, A: Arena<R, AS>>(event_poll: &mut EventPoll<AS>, arena: &A, arena_index: ArenaIndex, _reactor: &mut R, file_descriptor: R::FileDescriptor)
+				fn dispatch<AS: Arenas, R: Reactor<AS, A>, A: Arena<R, AS>>(event_poll: &EventPoll<AS>, arena: &A, arena_index: ArenaIndex, _reactor: &mut R, file_descriptor: R::FileDescriptor)
 				{
 					arena.reclaim(arena_index);
 					event_poll.deregister_and_close(file_descriptor)
 				}
 
-				file_descriptor_kind_dispatch!(&self.arenas, event_poll_token, raw_file_descriptor, dispatch, self);
+				file_descriptor_kind_dispatch!(&event_poll.arenas, event_poll_token, raw_file_descriptor, dispatch, event_poll);
 			}
+		}
+
+		if let Ok((_header, epoll_information_items)) = self.epoll_file_descriptor.information()
+		{
+			inner_drop(self, epoll_information_items)
 		}
 
 		unsafe
