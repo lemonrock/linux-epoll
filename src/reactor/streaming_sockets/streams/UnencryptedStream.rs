@@ -12,16 +12,16 @@
 ///
 /// Likewise, sendfile is not directly supported, although if (ever) Rustls gets support the Linux's kernel implementation of a TLS-encrypted sendfile, we may add support for it.
 #[derive(Debug)]
-pub struct UnencryptedStream<'a, SD: SocketData>(GenericStream<'a, SD>);
+pub struct UnencryptedStream<'yielder, SD: SocketData>(GenericStream<'yielder, SD>);
 
 stream_read_write!(UnencryptedStream);
 
-impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
+impl<'yielder, SD: SocketData> Stream<'yielder> for UnencryptedStream<'yielder, SD>
 {
 	type PostHandshakeInformation = ();
 
 	#[inline(always)]
-	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation
+	fn post_handshake_information(&self) -> Self::PostHandshakeInformation
 	{
 		()
 	}
@@ -73,10 +73,10 @@ impl<'a, SD: SocketData> Stream<'a> for UnencryptedStream<'a, SD>
 	}
 }
 
-impl<'a, SD: SocketData> UnencryptedStream<'a, SD>
+impl<'yielder, SD: SocketData> UnencryptedStream<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a, SD>) -> Result<Self, CompleteError>
+	pub(crate) fn new(generic_stream: GenericStream<'yielder, SD>) -> Result<Self, CompleteError>
 	{
 		Ok(Self(generic_stream))
 	}

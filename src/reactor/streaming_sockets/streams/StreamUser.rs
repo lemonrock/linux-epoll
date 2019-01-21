@@ -3,7 +3,7 @@
 
 
 /// Use a stream.
-pub trait StreamUser<'a, S: Stream<'a>>
+pub trait StreamUser<S: Stream>
 {
 	/// Use stream as if it was blocking.
 	fn use_stream(&self, stream: S) -> Result<(), CompleteError>;

@@ -126,7 +126,7 @@ use ::std::sync::atomic::AtomicBool;
 use ::std::sync::atomic::Ordering::Relaxed;
 use ::std::thread;
 use ::treebitmap::IpLookupTable;
-use ::webpki::DNSNameRef;
+use ::webpki::DNSName;
 
 
 /// Implementations of the `Arena` trait.

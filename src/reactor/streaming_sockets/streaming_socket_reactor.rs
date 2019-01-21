@@ -8,18 +8,18 @@ macro_rules! streaming_socket_reactor
 	{
 		/// This object wraps streaming sockets.
 		#[derive(Debug)]
-		struct $reactor_name<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>>
+		struct $reactor_name<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>>
 		{
-			common: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>,
+			common: StreamingSocketCommon<SF, SU, $sockaddr_type>,
 		}
 
-		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> Reactor<AS, A> for $reactor_name<'a, SF, SU>
+		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> Reactor<AS, A> for $reactor_name<SF, SU>
 		{
 			type FileDescriptor = $file_descriptor_name;
 
 			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$title_case;
 
-			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, &'a SF, SF::AdditionalArguments, &'a SU);
+			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, &SF, SF::AdditionalArguments, Rc<SU>);
 
 			#[inline(always)]
 			fn our_arena(arenas: &AS) -> &A
@@ -40,15 +40,13 @@ macro_rules! streaming_socket_reactor
 			}
 		}
 
-		impl<'a, SF: 'a + StreamFactory<'a, $sockaddr_type>, SU: 'a + StreamUser<'a, SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> StreamingSocketReactor<'a, SF, SU, $sockaddr_type, AS, A> for $reactor_name<'a, SF, SU>
+		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> StreamingSocketReactor<SF, SU, $sockaddr_type, AS, A> for $reactor_name<SF, SU>
 		{
 			#[inline(always)]
-			fn initialize(&mut self, common: StreamingSocketCommon<'a, SF, SU, $sockaddr_type>)
+			fn initialize(&mut self, common: StreamingSocketCommon<SF, SU, $sockaddr_type>)
 			{
 				unsafe { write(&mut self.common, common) }
 			}
 		}
 	}
 }
-
-

@@ -6,7 +6,7 @@ macro_rules! stream_read_write
 {
 	($name: ident) =>
 	{
-		impl<'a, SD: SocketData> Read for $name<'a, SD>
+		impl<'yielder, SD: SocketData> Read for $name<'yielder, SD>
 		{
 			/// Will ***never*** return `ErrorKind::Interupted` or `ErrorKind::WouldBlock`.
 			///
@@ -28,7 +28,7 @@ macro_rules! stream_read_write
 			}
 		}
 
-		impl<'a, SD: SocketData> Write for $name<'a, SD>
+		impl<'yielder, SD: SocketData> Write for $name<'yielder, SD>
 		{
 			/// Will ***never*** return `ErrorKind::Interupted` or `ErrorKind::WouldBlock`.
 			///

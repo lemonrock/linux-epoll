@@ -4,11 +4,11 @@
 
 /// A simple arena.
 ///
-/// Dropping this arena will free all memory for all elements `Hold`, irrespective if they are still being referenced.
+/// Dropping this arena will free all memory for all elements `Holds`, irrespective if they are still being referenced.
 /// Ordinarily, since an arena lasts at least as long as an `EPollFileDescriptor`, this is not an issue.
 ///
-/// If `Hold` implements `Drop`, it will be honoured on drop of this arena.
-/// It will also be honoured when `reclaim()` is called; do not call `reclaim()` after `allocate()` without initializing `Hold` to a known, valid state.
+/// If `Holds` implements `Drop`, it will be honoured on drop of this arena.
+/// It will also be honoured when `reclaim()` is called; do not call `reclaim()` after `allocate()` without initializing `Holds` to a known, valid state.
 ///
 /// Default creates an empty arena.
 #[derive(Debug)]

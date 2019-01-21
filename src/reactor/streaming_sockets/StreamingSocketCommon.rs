@@ -2,12 +2,12 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-struct StreamingSocketCommon<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData>
+struct StreamingSocketCommon<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData>
 {
-	started_coroutine: StartedStackAndTypeSafeTransfer<'a, SimpleStack, Self>,
+	started_coroutine: StartedStackAndTypeSafeTransfer<SimpleStack, Self>,
 }
 
-impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> Debug for StreamingSocketCommon<'a, SF, SU, SD>
+impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Debug for StreamingSocketCommon<SF, SU, SD>
 {
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
@@ -16,9 +16,9 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 	}
 }
 
-impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> Coroutine<'a> for StreamingSocketCommon<'a, SF, SU, SD>
+impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for StreamingSocketCommon<SF, SU, SD>
 {
-	type StartArguments = (&'a StreamingSocketFileDescriptor<SD>, &'a SF, SF::AdditionalArguments, &'a SU);
+	type StartArguments = (ManuallyDrop<StreamingSocketFileDescriptor<SD>>, NonNull<SF>, NonNull<SF::AdditionalArguments>, Rc<SU>);
 
 	type ResumeArguments = ReactEdgeTriggeredStatus;
 
@@ -27,9 +27,11 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 	type Complete = Result<(), CompleteError>;
 
 	#[inline(always)]
-	fn coroutine<'yielder: 'a>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
+	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete
 	{
-		let (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user) = start_arguments;
+		let (streaming_socket_file_descriptor, server_stream_factory_non_null, additional_arguments, stream_user) = start_arguments;
+
+		let server_stream_factory = unsafe { server_stream_factory_non_null.as_ref() };
 
 		let stream = server_stream_factory.new_stream_and_handshake(streaming_socket_file_descriptor, yielder, additional_arguments)?;
 
@@ -37,11 +39,29 @@ impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a 
 	}
 }
 
-impl<'a, SF: 'a + StreamFactory<'a, SD>, SU: 'a + StreamUser<'a, SF::S>, SD: 'a + SocketData> StreamingSocketCommon<'a, SF, SU, SD>
+impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSocketCommon<SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<'a, SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &'a SF, SF::AdditionalArguments, &'a SU)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, &SF, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
 	{
+		// TODO: Sort out types...
+
+
+		// TODO: We have to hold references to server_stream_factory, additional_arguments, stream_user otherwise they can go out of scope (after start()).
+
+
+		XXXXXX
+
+
+		let start_arguments = unsafe
+		{
+			(
+				NonNull::new_unchecked(&streaming_socket_file_descriptor as *const _ as *mut _),
+				NonNull::new_unchecked(server_stream_factory as *const _ as *mut _),
+
+			)
+		};
+
 		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start((&streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user))
 		{
 			Right(completed) => return { completed?; Ok(()) },

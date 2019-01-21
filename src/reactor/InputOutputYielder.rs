@@ -4,13 +4,13 @@
 
 /// A simple structure that wraps up what is required to yield from a coroutine that depends on further input or output data becoming available in order to make progress.
 #[derive(Debug)]
-pub struct InputOutputYielder<'a>(Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>);
+pub struct InputOutputYielder<'yielder>(Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>);
 
-impl<'a> InputOutputYielder<'a>
+impl<'yielder> InputOutputYielder<'yielder>
 {
 	/// Yields to allow for further input or output data to become available.
 	#[inline(always)]
-	pub fn new(yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
+	pub fn new(yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
 	{
 		Self(yielder)
 	}

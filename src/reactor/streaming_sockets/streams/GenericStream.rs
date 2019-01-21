@@ -3,56 +3,56 @@
 
 
 #[derive(Debug)]
-pub(crate) struct GenericStream<'a, SD: SocketData>
+pub(crate) struct GenericStream<'yielder, SD: SocketData>
 {
-	streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>,
-	input_output_yielder: InputOutputYielder<'a>,
+	streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>,
+	input_output_yielder: InputOutputYielder<'yielder>,
 	byte_counter: ByteCounter,
 }
 
-impl<'a, SD: SocketData> GenericStream<'a, SD>
+impl<'yielder, SD: SocketData> GenericStream<'yielder, SD>
 {
 	#[inline(always)]
 	fn tls_handshake(&mut self, tls_session: &mut impl SessionExt) -> Result<(), CompleteError>
 	{
-		tls_session.complete_handshaking::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
+		tls_session.complete_handshaking::<SD>(&self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
 	}
 
 	#[inline(always)]
 	fn tls_read(&mut self, tls_session: &mut impl SessionExt, read_into_buffer: &mut [u8]) -> Result<usize, CompleteError>
 	{
-		tls_session.stream_read::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, read_into_buffer)
+		tls_session.stream_read::<SD>(&self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, read_into_buffer)
 	}
 
 	#[inline(always)]
 	fn tls_write(&mut self, tls_session: &mut impl SessionExt, write_from_buffer: &[u8]) -> Result<usize, CompleteError>
 	{
-		tls_session.stream_write::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, write_from_buffer)
+		tls_session.stream_write::<SD>(&self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter, write_from_buffer)
 	}
 
 	#[inline(always)]
 	fn tls_flush_written_data(&mut self, tls_session: &mut impl SessionExt) -> Result<(), CompleteError>
 	{
-		tls_session.stream_flush::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
+		tls_session.stream_flush::<SD>(&self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
 	}
 
 	#[inline(always)]
 	fn tls_finish(&mut self, tls_session: &mut impl SessionExt) -> Result<(), CompleteError>
 	{
-		tls_session.stream_close::<SD>(self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
+		tls_session.stream_close::<SD>(&self.streaming_socket_file_descriptor, &mut self.input_output_yielder, &mut self.byte_counter)
 	}
 }
 
-impl<'a, SD: SocketData> GenericStream<'a, SD>
+impl<'yielder, SD: SocketData> GenericStream<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn wrap(streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>, yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
+	pub(crate) fn wrap(streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
 	{
 		Self::new(streaming_socket_file_descriptor, InputOutputYielder::new(yielder), ByteCounter::default())
 	}
 
 	#[inline(always)]
-	fn new(streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>, input_output_yielder: InputOutputYielder<'a>, byte_counter: ByteCounter) -> Self
+	fn new(streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, input_output_yielder: InputOutputYielder<'yielder>, byte_counter: ByteCounter) -> Self
 	{
 		Self
 		{

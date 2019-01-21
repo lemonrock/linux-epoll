@@ -4,15 +4,15 @@
 
 /// Holds a stack and a type-safe transfer; suitable for the ultimate owner of a coroutine.
 ///
-/// On drop the the closure is killed and the stack is then relinquished.
-pub struct StackAndTypeSafeTransfer<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>>
+/// On drop the the closure is killed (if it is active) and the stack is then relinquished.
+pub struct StackAndTypeSafeTransfer<S: Sized + Deref<Target=Stack>, C: Coroutine>
 {
 	stack: S,
 	type_safe_transfer: TypeSafeTransfer<ChildOutcome<C::Yields, C::Complete>, ParentInstructingChild<C::ResumeArguments>>,
 	child_coroutine_is_active: bool,
 }
 
-impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> Debug for StackAndTypeSafeTransfer<'a, S, C>
+impl<S: Sized + Deref<Target=Stack>, C: Coroutine> Debug for StackAndTypeSafeTransfer<S, C>
 where S: Debug, C::ResumeArguments: Debug, C::Yields: Debug, C::Complete: Debug
 {
 	#[inline(always)]
@@ -22,7 +22,7 @@ where S: Debug, C::ResumeArguments: Debug, C::Yields: Debug, C::Complete: Debug
 	}
 }
 
-impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> Drop for StackAndTypeSafeTransfer<'a, S, C>
+impl<S: Sized + Deref<Target=Stack>, C: Coroutine> Drop for StackAndTypeSafeTransfer<S, C>
 {
 	#[inline(always)]
 	fn drop(&mut self)
@@ -43,7 +43,7 @@ impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> Drop for StackAndType
 	}
 }
 
-impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> StackAndTypeSafeTransfer<'a, S, C>
+impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C>
 {
 	/// Creates a new instance.
 	#[inline(always)]
@@ -67,7 +67,7 @@ impl<'a, S: Sized + Deref<Target=Stack>, C: Coroutine<'a>> StackAndTypeSafeTrans
 	///
 	/// If the coroutine panicked, this panics.
 	#[inline(always)]
-	pub fn start(mut self, start_arguments: C::StartArguments) -> Either<(C::Yields, StartedStackAndTypeSafeTransfer<'a, S, C>), C::Complete>
+	pub fn start(mut self, start_arguments: C::StartArguments) -> Either<(C::Yields, StartedStackAndTypeSafeTransfer<S, C>), C::Complete>
 	{
 		let child_outcome = self.type_safe_transfer.resume_drop_safe_unsafe_typing(start_arguments);
 

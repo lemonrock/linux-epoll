@@ -3,25 +3,25 @@
 
 
 #[derive(Debug)]
-struct TlsGenericStream<'a, SD: SocketData, S: SessionExt>
+struct TlsGenericStream<'yielder, SD: SocketData, S: SessionExt>
 {
-	generic_stream: GenericStream<'a, SD>,
+	generic_stream: GenericStream<'yielder, SD>,
 	tls_session: S,
 }
 
-impl<'a, SD: SocketData> TlsGenericStream<'a, SD, ServerSession>
+impl<'yielder, SD: SocketData> TlsGenericStream<'yielder, SD, ServerSession>
 {
 	#[inline(always)]
-	fn server_name_indication_handshake_information(&'a self) -> Option<&'a str>
+	fn server_name_indication_handshake_information(&self) -> Option<&str>
 	{
 		self.tls_session.get_sni_hostname()
 	}
 }
 
-impl<'a, SD: SocketData, S: SessionExt> TlsGenericStream<'a, SD, S>
+impl<'yielder, SD: SocketData, S: SessionExt> TlsGenericStream<'yielder, SD, S>
 {
 	#[inline(always)]
-	fn configure_and_handshake(mut generic_stream: GenericStream<'a, SD>, mut tls_session: S, session_buffer_limit: usize) -> Result<Self, CompleteError>
+	fn configure_and_handshake(mut generic_stream: GenericStream<'yielder, SD>, mut tls_session: S, session_buffer_limit: usize) -> Result<Self, CompleteError>
 	{
 		tls_session.set_buffer_limit(session_buffer_limit);
 		generic_stream.tls_handshake(&mut tls_session)?;
@@ -35,10 +35,13 @@ impl<'a, SD: SocketData, S: SessionExt> TlsGenericStream<'a, SD, S>
 		)
 	}
 
+	/// This is a lie (ie the lifetime is ***NOT*** `'static`); the actual lifetime is ***LESS THAN*** `'yielder` and is the same as the lifetime of the underlying TLS `S: SessionExt`.
 	#[inline(always)]
-	fn common_tls_post_handshake_information(&'a self) -> CommonTlsPostHandshakeInformation
+	fn common_tls_post_handshake_information(&self) -> CommonTlsPostHandshakeInformation<'static>
 	{
-		CommonTlsPostHandshakeInformation::from_tls_session(&self.tls_session)
+		let tls_session_static_unsafe_hack: &'static S = unsafe { &* (&self.tls_session as *const S) };
+
+		CommonTlsPostHandshakeInformation::from_tls_session(tls_session_static_unsafe_hack)
 	}
 
 	#[inline(always)]

@@ -18,14 +18,16 @@ impl Debug for TlsServerStreamFactory
 	}
 }
 
-impl<'a, SD: 'a + SocketData> StreamFactory<'a, SD> for TlsServerStreamFactory
+impl<SD: SocketData> StreamFactory<SD> for TlsServerStreamFactory
 {
-	type S = TlsServerStream<'a, SD>;
+	/// This is a lie; the lifetime is ***NOT*** `'static` but actually `'yielder` in `new_stream_and_handshake()`.
+	/// Rust's lack of associated type constructors makes this impossible to express; `yielder` is ***NOT*** a parameter to put on `TlsServerStreamFactory` (eg `TlsServerStreamFactory<'yielder>`) because the lifetime has nothing to do with the lifetime of the factory (indeed, factories live far longer than the coroutines they are invovled in instantiating).
+	type S = TlsServerStream<'static, SD>;
 
 	type AdditionalArguments = ();
 
 	#[inline(always)]
-	fn new_stream_and_handshake(&self, streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>, yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, _additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
+	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
 	{
 		let generic_stream = GenericStream::wrap(streaming_socket_file_descriptor, yielder);
 		TlsServerStream::new(generic_stream, &self.tls_configuration, self.session_buffer_limit)

@@ -4,7 +4,7 @@
 
 /// TLS information available after successful handshaking that is common to both clients and servers.
 #[derive(Debug)]
-pub struct CommonTlsPostHandshakeInformation<'a>
+pub struct CommonTlsPostHandshakeInformation<'tls_session>
 {
 	/// Negotiated protocol version.
 	pub negotiated_protocol_version: ProtocolVersion,
@@ -15,16 +15,16 @@ pub struct CommonTlsPostHandshakeInformation<'a>
 	/// Agreed application layer protocol negotation (ALPN) protocol.
 	///
 	/// None if no protocol was agreed or no protocol was supplied.
-	pub agreed_application_layer_protocol_negotiation_protocol: Option<&'a str>,
+	pub agreed_application_layer_protocol_negotiation_protocol: Option<&'tls_session str>,
 
 	/// Peer certificates.
 	pub peer_certificates: Vec<Certificate>,
 }
 
-impl<'a> CommonTlsPostHandshakeInformation<'a>
+impl<'tls_session> CommonTlsPostHandshakeInformation<'tls_session>
 {
 	#[inline(always)]
-	pub(crate) fn from_tls_session(tls_session: &'a impl Session) -> Self
+	pub(crate) fn from_tls_session(tls_session: &'tls_session impl Session) -> Self
 	{
 		Self
 		{

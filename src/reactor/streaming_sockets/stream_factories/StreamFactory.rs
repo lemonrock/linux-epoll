@@ -3,18 +3,20 @@
 
 
 /// A factory to abstract the creation of `Stream` instances.
-pub trait StreamFactory<'a, SD: 'a + SocketData>
+pub trait StreamFactory<SD: SocketData>
 {
 	/// The type of the `Stream` being created.
-	type S: Stream<'a>;
+	type S: Stream;
 
 	/// Any additional data needed to instantiate a new stream.
 	///
 	/// For example, for TLS client sessions, one has to know the DNS host name of the destination server.
+	///
+	/// These are passed as a pointer.
 	type AdditionalArguments;
 
 	/// Creates a new stream, initiates handshaking on it if required, then returns it or an error.
 	///
 	/// Always called within a coroutine.
-	fn new_stream_and_handshake(&self, streaming_socket_file_descriptor: &'a StreamingSocketFileDescriptor<SD>, yielder: Yielder<'a, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>;
+	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>;
 }

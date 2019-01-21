@@ -3,24 +3,24 @@
 
 
 /// A trait that stackful coroutines should implement.
-pub trait Coroutine<'a>
+pub trait Coroutine
 {
 	/// Type of the arguments the coroutine is initially called with, eg `(usize, String)`.
-	type StartArguments: 'a + Sized;
+	type StartArguments: Sized;
 
 	/// Type of the arguments the coroutine is resumed with, eg `(u8, Vec<f64>)`.
-	type ResumeArguments: 'a + Sized;
+	type ResumeArguments: Sized;
 
 	/// Type of the result from a yield of the coroutine.
-	type Yields: 'a + Sized;
+	type Yields: Sized;
 
 	/// Type of the final result from the coroutine.
-	type Complete: 'a + Sized;
+	type Complete: Sized;
 
 	/// Implement this for the coroutine's behaviour.
 	///
 	/// Panics inside the coroutine are transferred to the calling thread and raised.
-	fn coroutine<'yielder: 'a>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete;
+	fn coroutine<'yielder>(start_arguments: Self::StartArguments, yielder: Yielder<'yielder, Self::ResumeArguments, Self::Yields, Self::Complete>) -> Self::Complete;
 
 	#[doc(hidden)]
 	#[inline(never)]

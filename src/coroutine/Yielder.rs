@@ -4,15 +4,15 @@
 
 /// A simple structure to make it easy to 'yield' from a coroutine.
 #[derive(Debug)]
-pub struct Yielder<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a>
+pub struct Yielder<'yielder, ResumeArguments: 'yielder, Yields: 'yielder, Complete: 'yielder>
 {
-	type_safe_transfer: &'a mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>
+	type_safe_transfer: &'yielder mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>
 }
 
-impl<'a, ResumeArguments: 'a, Yields: 'a, Complete: 'a> Yielder<'a, ResumeArguments, Yields, Complete>
+impl<'yielder, ResumeArguments: 'yielder, Yields: 'yielder, Complete: 'yielder> Yielder<'yielder, ResumeArguments, Yields, Complete>
 {
 	#[inline(always)]
-	fn new(type_safe_transfer: &'a mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>) -> Self
+	fn new(type_safe_transfer: &'yielder mut TypeSafeTransfer<ParentInstructingChild<ResumeArguments>, ChildOutcome<Yields, Complete>>) -> Self
 	{
 		Self
 		{

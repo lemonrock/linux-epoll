@@ -6,8 +6,8 @@
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EventPoll<AS: Arenas>
 {
-	epoll_file_descriptor: EPollFileDescriptor,
-	arenas: AS,
+	arenas: ManuallyDrop<AS>,
+	epoll_file_descriptor: ManuallyDrop<EPollFileDescriptor>,
 }
 
 impl<AS: Arenas> Drop for EventPoll<AS>
@@ -15,10 +15,23 @@ impl<AS: Arenas> Drop for EventPoll<AS>
 	#[inline(always)]
 	fn drop(&mut self)
 	{
+		// Arenas may hold Reactors which may hold Coroutines (eg StreamingSocketCommon::coroutine()) which themselves hold references or copies of file descriptors that are also held implicitly as tokens registered with the `epoll_file_descriptor`.
+		//
+		// One way out of this problem would be to use `libc::dup()`, but that requires a syscall.
+		unsafe
+		{
+			ManuallyDrop(&mut self.arenas)
+		}
+
 		if let Ok((_header, epoll_information_items)) = self.epoll_file_descriptor.information()
 		{
 			for epoll_information_item in epoll_information_items
 			{
+				let raw_file_descriptor = epoll_information_item.target_file_descriptor;
+
+				/// We can not easily find the true wrapping new type of this file descriptor.
+				///
+				/// (The actual process would be to parse `EPollInformationItem.token`).
 				struct GenericFileDescriptor(RawFd);
 
 				impl Drop for GenericFileDescriptor
@@ -42,6 +55,11 @@ impl<AS: Arenas> Drop for EventPoll<AS>
 				self.deregister_and_close(GenericFileDescriptor(epoll_information_item.target_file_descriptor));
 			}
 		}
+
+		unsafe
+		{
+			ManuallyDrop(&mut self.epoll_file_descriptor)
+		}
 	}
 }
 
@@ -57,8 +75,8 @@ impl<AS: Arenas> EventPoll<AS>
 		(
 			Self
 			{
-				epoll_file_descriptor: EPollFileDescriptor::new()?,
-				arenas,
+				arenas: ManuallyDrop::new(arenas),
+				epoll_file_descriptor: ManuallyDrop::new(EPollFileDescriptor::new()?),
 			}
 		)
 	}

@@ -4,19 +4,20 @@
 
 /// A TLS server stream.
 #[derive(Debug)]
-pub struct TlsServerStream<'a, SD: SocketData>
+pub struct TlsServerStream<'yielder, SD: SocketData>
 {
-	tls_generic_stream: TlsGenericStream<'a, SD, ServerSession>,
+	tls_generic_stream: TlsGenericStream<'yielder, SD, ServerSession>,
 }
 
 stream_read_write!(TlsServerStream);
 
-impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
+impl<'yielder, SD: SocketData> Stream for TlsServerStream<'yielder, SD>
 {
-	type PostHandshakeInformation = (CommonTlsPostHandshakeInformation<'a>, ServerNameIndication<'a>);
+	/// This is a lie (ie the lifetime is ***NOT*** `'static`); the actual lifetime is ***LESS THAN*** `'yielder` and is the same as the lifetime of the underlying TLS `ServerSession`, ie the lifetime of an instance of this struct.
+	type PostHandshakeInformation = (CommonTlsPostHandshakeInformation<'static>, ServerNameIndication<'static>);
 
 	#[inline(always)]
-	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation
+	fn post_handshake_information(&self) -> Self::PostHandshakeInformation
 	{
 		(self.tls_generic_stream.common_tls_post_handshake_information(), self.tls_generic_stream.server_name_indication_handshake_information())
 	}
@@ -46,10 +47,10 @@ impl<'a, SD: SocketData> Stream<'a> for TlsServerStream<'a, SD>
 	}
 }
 
-impl<'a, SD: SocketData> TlsServerStream<'a, SD>
+impl<'yielder, SD: SocketData> TlsServerStream<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a, SD>, tls_configuration: &Arc<ServerConfig>, session_buffer_limit: usize) -> Result<Self, CompleteError>
+	pub(crate) fn new(generic_stream: GenericStream<'yielder, SD>, tls_configuration: &Arc<ServerConfig>, session_buffer_limit: usize) -> Result<Self, CompleteError>
 	{
 		let tls_session = ServerSession::new(tls_configuration);
 

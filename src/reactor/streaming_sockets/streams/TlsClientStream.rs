@@ -4,19 +4,20 @@
 
 /// A TLS client stream.
 #[derive(Debug)]
-pub struct TlsClientStream<'a, SD: SocketData>
+pub struct TlsClientStream<'yielder, SD: SocketData>
 {
-	tls_generic_stream: TlsGenericStream<'a, SD, ClientSession>,
+	tls_generic_stream: TlsGenericStream<'yielder, SD, ClientSession>,
 }
 
 stream_read_write!(TlsClientStream);
 
-impl<'a, SD: SocketData> Stream<'a> for TlsClientStream<'a, SD>
+impl<'yielder, SD: SocketData> Stream for TlsClientStream<'yielder, SD>
 {
-	type PostHandshakeInformation = CommonTlsPostHandshakeInformation<'a>;
+	/// This is a lie (ie the lifetime is ***NOT*** `'static`); the actual lifetime is ***LESS THAN*** `'yielder` and is the same as the lifetime of the underlying TLS `ClientSession`, ie the lifetime of an instance of this struct.
+	type PostHandshakeInformation = CommonTlsPostHandshakeInformation<'static>;
 
 	#[inline(always)]
-	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation
+	fn post_handshake_information(&self) -> Self::PostHandshakeInformation
 	{
 		self.tls_generic_stream.common_tls_post_handshake_information()
 	}
@@ -46,19 +47,18 @@ impl<'a, SD: SocketData> Stream<'a> for TlsClientStream<'a, SD>
 	}
 }
 
-impl<'a, SD: SocketData> TlsClientStream<'a, SD>
+impl<'yielder, SD: SocketData> TlsClientStream<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn new(generic_stream: GenericStream<'a, SD>, tls_configuration: &Arc<ClientConfig>, session_buffer_limit: usize, ascii_host_name: &str) -> Result<Self, CompleteError>
+	pub(crate) fn new(generic_stream: GenericStream<'yielder, SD>, tls_configuration: &Arc<ClientConfig>, session_buffer_limit: usize, ascii_host_name: Rc<DNSName>) -> Result<Self, CompleteError>
 	{
-		let hostname = DNSNameRef::try_from_ascii_str(ascii_host_name).expect("Invalid ASCII host name");
-		let tls_session = ClientSession::new(tls_configuration, hostname);
+		let tls_session = ClientSession::new(tls_configuration, ascii_host_name.as_ref());
 
 		Ok
 		(
 			Self
 			{
-				tls_generic_stream: TlsGenericStream::configure_and_handshake(generic_stream, tls_session, session_buffer_limit)?,
+				tls_generic_stream: TlsGenericStream::configure(generic_stream, tls_session, session_buffer_limit)?,
 			}
 		)
 	}

@@ -5,7 +5,7 @@
 /// A trait to make common the differences between TLS server streams, TLS client streams and unencrypted streams.
 ///
 /// Also offers wrapper implementations of `io::Read` and `io::Write`, but it advisable to use `read_data()` and `write_data()` in preference.
-pub trait Stream<'a>: Read + Write
+pub trait Stream: Read + Write
 {
 	/// Type of the information available to the stream after handshaking has completed.
 	type PostHandshakeInformation: Sized;
@@ -18,7 +18,7 @@ pub trait Stream<'a>: Read + Write
 	///
 	/// For a unencrypted stream, nothing useful is available as no handshaking occurs, although if support for `STARTTLS` in LDAP, SMTP, POP3 and IMAP is added it may be slightly useful.
 	#[inline(always)]
-	fn post_handshake_information(&'a self) -> Self::PostHandshakeInformation;
+	fn post_handshake_information(&self) -> Self::PostHandshakeInformation;
 
 	/// Read data.
 	///
