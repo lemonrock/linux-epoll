@@ -55,7 +55,7 @@ impl AccessControl<sockaddr_in> for RemotePeerAddressBasedAccessControl
 	#[inline(always)]
 	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_in, _streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_in>) -> bool
 	{
-		let remote_peer_address: Ipv4Addr = unsafe { transmute(remote_peer_address) };
+		let remote_peer_address: Ipv4Addr = unsafe { transmute(remote_peer_address.sin_addr) };
 
 		if unlikely!(self.denied_protocol_version_4_subnets.is_match(remote_peer_address))
 		{
@@ -75,7 +75,7 @@ impl AccessControl<sockaddr_in6> for RemotePeerAddressBasedAccessControl
 	#[inline(always)]
 	fn is_remote_peer_allowed(&self, remote_peer_address: sockaddr_in6, _streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<sockaddr_in6>) -> bool
 	{
-		let remote_peer_address: Ipv6Addr = unsafe { transmute(remote_peer_address) };
+		let remote_peer_address: Ipv6Addr = unsafe { transmute(remote_peer_address.sin6_addr) };
 
 		if unlikely!(self.denied_protocol_version_6_subnets.is_match(remote_peer_address))
 		{
