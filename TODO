@@ -4,6 +4,11 @@ TODO
 	- FileDescriptorCOnsumer
 	- Arenas for coroutine stacks
 
+	// TODO: some sort of error log... capture dropped file descriptors and other nasty errors.
+	    - in distribute();
+	    - in accept();
+	    - in do_initial_input_and_output_and_register_with_epoll_if_necesssary();
+
 	- how to client and server streaming sockets (perhaps 2 kinds of reactors therefore more arenas)
 
 	- how to manage multiple file descriptors where all are epoll'd to achive a task

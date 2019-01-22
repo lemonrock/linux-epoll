@@ -109,6 +109,8 @@ use ::std::net::SocketAddrV6;
 use ::std::ops::BitAnd;
 use ::std::ops::Deref;
 use ::std::ops::DerefMut;
+use ::std::ops::Index;
+use ::std::ops::IndexMut;
 use ::std::os::unix::io::AsRawFd;
 use ::std::os::unix::io::FromRawFd;
 use ::std::os::unix::io::RawFd;

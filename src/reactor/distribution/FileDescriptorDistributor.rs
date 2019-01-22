@@ -6,38 +6,48 @@
 #[derive(Debug)]
 pub struct FileDescriptorDistributor<SD: SocketData>
 {
-	producers: PerLogicalCoreData<(RingBufferProducer<StreamingSocketFileDescriptor<SD>>, Vec<StreamingSocketFileDescriptor<SD>>)>,
+	distribute_to: PerLogicalCoreData<(RingBufferProducer<StreamingSocketFileDescriptor<SD>>, Vec<StreamingSocketFileDescriptor<SD>>)>,
 }
 
 impl<SD: SocketData> FileDescriptorDistributor<SD>
 {
-	/// Creates thread data needed for all cores.
-	pub fn new_for_all_cores(ring_buffer_capacity: usize, maximum_number_of_file_descriptors_pending_distribution_per_logical_core: usize, logical_cores: &LogicalCores) -> Vec<(Self, FileDescriptorConsumer<SD>)>
+	/// Creates the data structures needed to assign to logical core threads.
+	///
+	/// `factory` takes a `logical_core_index` and returns a new instance of a `StreamFactory` and a `StreamUser`.
+	/// It is invoked on the *current thread* - be aware if relying on thread-local structure initialization that this won't work properly.
+	pub fn new_for_all_cores<SSR: StreamingSocketReactor<SF, SU, SD, AS, A>, SF: StreamFactory<SD>, SU: StreamUser<SF::S>, AS: Arenas, A: Arena<SSR, AS>>(ring_buffer_capacity: usize, maximum_number_of_file_descriptors_pending_distribution_per_logical_core: usize, logical_cores: &LogicalCores, mut factory: impl FnMut(u16) -> (SF, SU)) -> PerLogicalCoreData<(FileDescriptorConsumer<SSR, SF, SU, SD, AS, A>, Self)>
 	{
 		debug_assert_ne!(ring_buffer_capacity, 0, "ring_buffer_capacity must not be zero");
 
-		let number_of_threads = logical_cores.len();
+		let number_of_logical_cores = logical_cores.len();
 
-		let mut per_thread_data = Vec::with_capacity(number_of_threads);
-		for _ in logical_cores.iter()
-		{
-			let (consumer, producers) = RingBuffer::new(ring_buffer_capacity, number_of_threads);
-			let file_descriptor_distributor = Self::new(maximum_number_of_file_descriptors_pending_distribution_per_logical_core, logical_cores, producers);
-			per_thread_data.push((file_descriptor_distributor, FileDescriptorConsumer::new(consumer)))
-		};
-		per_thread_data
-	}
+		let mut consumers = PerLogicalCoreData::empty(logical_cores);
+		let mut producers_for_a_consumer = PerLogicalCoreData::empty(logical_cores);
 
-	#[inline(always)]
-	fn new(maximum_number_of_file_descriptors_pending_distribution_per_logical_core: usize, logical_cores: &LogicalCores, mut producers: Vec<RingBufferProducer<StreamingSocketFileDescriptor<SD>>>) -> Self
-	{
-		Self
+		for logical_core_identifier_reference in logical_cores.iter()
 		{
-			producers: PerLogicalCoreData::new(logical_cores, |_logical_core_identifier|
-			{
-				(producers.pop().unwrap(), Vec::with_capacity(maximum_number_of_file_descriptors_pending_distribution_per_logical_core))
-			})
+			let logical_core_identifier = (*logical_core_identifier_reference) as u16;
+
+			let (consumer, producers) = RingBuffer::new(ring_buffer_capacity, number_of_logical_cores);
+			consumers.set(logical_core_identifier, consumer);
+			producers_for_a_consumer.set(logical_core_identifier, producers);
 		}
+
+		consumers.map(|logical_core_index, consumer|
+		{
+			(
+				FileDescriptorConsumer::new(consumer, factory(logical_core_index)),
+				Self
+				{
+					distribute_to: PerLogicalCoreData::new(logical_cores, |logical_core_identifier|
+					{
+						let producer = producers_for_a_consumer.get_mut(logical_core_identifier).unwrap().pop().unwrap();
+						let pre_allocated_block_of_file_descriptor_messages = Vec::with_capacity(maximum_number_of_file_descriptors_pending_distribution_per_logical_core);
+						(producer, pre_allocated_block_of_file_descriptor_messages)
+					})
+				}
+			)
+		})
 	}
 
 	/// Assigns.
@@ -47,7 +57,7 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 		let logical_core_identifier = streaming_socket_file_descriptor.logical_core_identifier();
 
 		// The the `logical_core_identifier` might not have associated data because it was obtained using the `SO_INCOMING_CPU` socket option which can return an index for a CPU not assigned to this process.
-		let (producer, ref mut file_descriptors) = self.producers.get_mut_or(logical_core_identifier, || current_logical_cpu());
+		let (producer, ref mut file_descriptors) = self.distribute_to.get_mut_or(logical_core_identifier, || current_logical_cpu());
 
 		while unlikely!(file_descriptors.len() == file_descriptors.capacity())
 		{
@@ -63,7 +73,7 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 	#[inline(always)]
 	pub fn distribute(&mut self)
 	{
-		for data in self.producers.iter_mut()
+		for data in self.distribute_to.iter_mut()
 		{
 			if let Some((producer, ref mut file_descriptors)) = data
 			{
