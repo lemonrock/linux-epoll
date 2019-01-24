@@ -19,3 +19,4 @@ version = "0.1.0"
 
 [dependencies]
 arrayvec = "^0.4"
+terminate = { path = "../terminate", version = "*" }

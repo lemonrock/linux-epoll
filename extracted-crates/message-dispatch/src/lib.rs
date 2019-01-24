@@ -20,15 +20,23 @@
 
 
 extern crate arrayvec;
+extern crate terminate;
 
 
+use self::erased_boxed_functions::*;
 use ::arrayvec::ArrayVec;
 use ::std::collections::HashMap;
 use ::std::any::TypeId;
+use ::std::fmt;
+use ::std::fmt::Debug;
+use ::std::fmt::Formatter;
+use ::std::mem::align_of;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
 use ::std::ptr::NonNull;
 use ::std::ptr::null_mut;
+use ::std::ptr::write;
+use ::terminate::Terminate;
 
 
 /// Erased, boxed functions can be used as generic message dispatchers.
@@ -41,4 +49,6 @@ pub mod erased_boxed_functions;
 pub mod virtual_method_tables;
 
 
+include!("Message.rs");
+include!("MessageHeader.rs");
 include!("VariablySized.rs");
