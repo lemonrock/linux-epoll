@@ -67,6 +67,8 @@ impl Message
 	/// Otherwise returns the number of bytes consumed.
 	pub fn process_messages_in_buffer<E>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<Result<(), E>>, terminate: &impl Terminate) -> Result<usize, E>
 	{
+		let original_length = buffer.len();
+		
 		let mut remaining_buffer = buffer;
 		while remaining_buffer.len() >= MessageHeader::Size && terminate.should_continue()
 		{
@@ -81,7 +83,7 @@ impl Message
 			}
 		}
 
-		let consumed = buffer.len() - remaining_buffer.len();
+		let consumed = original_length - remaining_buffer.len();
 		Ok(consumed)
 	}
 
