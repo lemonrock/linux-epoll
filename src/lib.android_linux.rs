@@ -46,6 +46,7 @@ use ::libc::sched_getcpu;
 use ::libc::uid_t;
 use ::lock_free_multi_producer_single_consumer_ring_buffer::*;
 use ::rustls_extra::*;
+pub use ::rustls_extra::supported_cipher_suites;
 use ::std::any::TypeId;
 use ::std::cell::Cell;
 use ::std::cell::UnsafeCell;
