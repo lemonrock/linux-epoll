@@ -107,9 +107,10 @@ impl Message
 			return None
 		}
 
+		let compressed_type_identifier = message_header.compressed_type_identifier;
 		let arguments = message_header.message_contents();
 
-		let outcome = message_handlers.call(message_header.compressed_type_identifier, arguments);
+		let outcome = message_handlers.call(compressed_type_identifier, arguments);
 		Some((outcome, total_message_size_including_message_header))
 	}
 }
