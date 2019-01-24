@@ -8,6 +8,3 @@ use super::*;
 include!("DistributedFileDescriptorMessage.rs");
 include!("DistributedFileDescriptorMessageContents.rs");
 include!("DistributedFileDescriptorMessageContentsVirtualMethodTablesPointerCompression.rs");
-include!("TaggedVirtualMethodTablePointer.rs");
-include!("VirtualMethodTablePointer.rs");
-include!("VariablySized.rs");

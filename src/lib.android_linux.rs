@@ -2,16 +2,16 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-extern crate context;
+extern crate coroutine;
 extern crate cpu_affinity;
 extern crate ct_logs;
-extern crate either;
 extern crate file_descriptors;
 extern crate indexmap;
 extern crate libc;
 #[macro_use] extern crate likely;
 extern crate lock_free_multi_producer_single_consumer_ring_buffer;
 extern crate rustls;
+extern crate terminate;
 extern crate treebitmap;
 extern crate webpki;
 
@@ -27,11 +27,8 @@ use self::reactor::streaming_sockets::stream_factories::*;
 use self::reactor::streaming_server_listener_sockets::access_control::*;
 use self::terminate::*;
 use self::tls::*;
-use ::context::context::*;
-use ::context::stack::*;
 use ::cpu_affinity::*;
 use ::ct_logs::LOGS as GooglesKnownListOfCertificateTransparencyLogs;
-use ::either::*;
 use ::file_descriptors::*;
 use ::file_descriptors::character_device::CharacterDeviceFileDescriptor;
 use ::file_descriptors::epoll::*;
@@ -78,6 +75,7 @@ use ::rustls::Ticketer;
 use ::rustls::TLSError;
 use ::rustls::WriteV;
 use ::rustls::internal::pemfile::*;
+use ::std::any::TypeId;
 use ::std::cell::Cell;
 use ::std::cell::UnsafeCell;
 use ::std::collections::HashMap;
@@ -138,12 +136,12 @@ use ::webpki::DNSName;
 pub mod arena;
 
 
-/// Structures to ease use of coroutines (continuations) used for handling sockets and the like.
-pub mod coroutine;
-
-
 /// Implementations of the `Arenas` trait.
 pub mod arenas;
+
+
+/// Structures to produce, consume and handle dynamically typed messages passed between threads using a ring buffer.
+pub mod message_dispatch;
 
 
 /// Implementations of the `Ractor` trait.

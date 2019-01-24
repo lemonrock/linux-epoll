@@ -7,3 +7,10 @@ use super::*;
 
 include!("BoxedFunctionPointer.rs");
 include!("CallArguments.rs");
+include!("VariablySized.rs");
+include!("ImmutableTypeErasedBoxedFunction.rs");
+include!("ImmutableTypeErasedBoxedFunctionMap.rs");
+
+// TODO: Probably not needed but still very interesting.
+include!("TaggedVirtualMethodTablePointer.rs");
+include!("VirtualMethodTablePointer.rs");
