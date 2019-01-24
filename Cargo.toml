@@ -23,7 +23,7 @@ assume-file-descriptors-are-never-duplicated = []
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 context-coroutine = { path = "extracted-crates/context-coroutine", version = "^0.1.0" }
-cpu-affinity = "^0.1.2"
+cpu-affinity = "^0.2.0"
 file-descriptors = "^0.8.5"
 libc = "^0.2.44"
 likely = "^0.1"

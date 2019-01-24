@@ -9,7 +9,5 @@ use super::*;
 pub mod distributed_file_descriptor_messages;
 
 
-include!("current_logical_cpu.rs");
 include!("FileDescriptorConsumer.rs");
 include!("FileDescriptorDistributor.rs");
-include!("PerLogicalCoreData.rs");

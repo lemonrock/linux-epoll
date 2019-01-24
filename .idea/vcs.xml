@@ -2,5 +2,9 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extracted-crates/context-coroutine/.cargo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extracted-crates/message-dispatch/.cargo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extracted-crates/rustls-extra/.cargo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/extracted-crates/terminate/.cargo" vcs="Git" />
   </component>
 </project>

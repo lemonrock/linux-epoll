@@ -18,6 +18,7 @@ pub mod streaming_server_listener_sockets;
 
 
 include!("AllSignalsReactor.rs");
+include!("CompleteError.rs");
 include!("InputOutputYielder.rs");
 include!("ReactEdgeTriggeredStatus.rs");
 include!("Reactor.rs");

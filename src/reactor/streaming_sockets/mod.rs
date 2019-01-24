@@ -17,7 +17,6 @@ include!("streaming_socket_reactor.rs");
 
 
 include!("ByteCounter.rs");
-include!("CompleteError.rs");
 include!("StreamingSocketCommon.rs");
 include!("StreamingSocketInternetProtocolVersion4Reactor.rs");
 include!("StreamingSocketInternetProtocolVersion6Reactor.rs");

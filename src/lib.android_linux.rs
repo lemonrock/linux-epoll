@@ -42,7 +42,6 @@ use ::file_descriptors::signalfd::syscall::signalfd_siginfo;
 use ::file_descriptors::timerfd::TimerFileDescriptor;
 use ::file_descriptors::terminal::TerminalFileDescriptor;
 use ::libc::gid_t;
-use ::libc::sched_getcpu;
 use ::libc::uid_t;
 use ::lock_free_multi_producer_single_consumer_ring_buffer::*;
 use ::rustls_extra::*;
