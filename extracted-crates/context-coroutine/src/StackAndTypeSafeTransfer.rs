@@ -63,11 +63,11 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C
 	///
 	/// Ownership of `start_arguments` will also transfer.
 	///
-	/// Returns the data transferred to us after the resume and a guard object to resume the coroutine again (`Left`) or the final result (`Right`).
+	/// Returns the data transferred to us after the resume and a guard object to resume the coroutine again or the final result.
 	///
 	/// If the coroutine panicked, this panics.
 	#[inline(always)]
-	pub fn start(mut self, start_arguments: C::StartArguments) -> Either<(C::Yields, StartedStackAndTypeSafeTransfer<S, C>), C::Complete>
+	pub fn start(mut self, start_arguments: C::StartArguments) -> StartOutcome<S, C>
 	{
 		let child_outcome = self.type_safe_transfer.resume_drop_safe_unsafe_typing(start_arguments);
 
@@ -75,11 +75,11 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StackAndTypeSafeTransfer<S, C
 
 		match child_outcome
 		{
-			WouldLikeToResume(yields) => Left((yields, StartedStackAndTypeSafeTransfer::own(self))),
+			WouldLikeToResume(yields) => StartOutcome::WouldLikeToResume(yields, StartedStackAndTypeSafeTransfer::own(self)),
 
 			Complete(Err(panic_information)) => resume_unwind(panic_information),
 
-			Complete(Ok(complete)) => Right(complete),
+			Complete(Ok(complete)) => StartOutcome::Complete(complete),
 		}
 	}
 }

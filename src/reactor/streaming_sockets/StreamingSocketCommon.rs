@@ -54,11 +54,13 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 			stream_user,
 		);
 
+		use self::StartOutcome::*;
+
 		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_arguments)
 		{
-			Right(completed) => return { completed?; Ok(()) },
+			WouldLikeToResume(completed) => return { completed?; Ok(()) },
 
-			Left(((), started_coroutine)) => started_coroutine,
+			Complete(((), started_coroutine)) => started_coroutine,
 		};
 
 		event_poll.register::<SSR, A, _>(streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor|
@@ -79,11 +81,13 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 	{
 		use self::ReactEdgeTriggeredStatus::*;
 
+		use self::ResumeOutcome::*;
+
 		if event_flags.intersects(EPollEventFlags::CloseWithError)
 		{
 			match self.started_coroutine.resume(ClosedWithError)
 			{
-				Left(_yields @ ()) => if cfg!(debug_assertions)
+				WouldLikeToResume(_yields @ ()) => if cfg!(debug_assertions)
 				{
 					panic!("Should have terminated")
 				}
@@ -91,14 +95,15 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 				{
 					unreachable!()
 				},
-				Right(_complete) => Ok(true),
+				
+				Complete(_complete) => Ok(true),
 			}
 		}
 		else if event_flags.intersects(EPollEventFlags::RemotePeerClosedCleanly)
 		{
 			match self.started_coroutine.resume(RemotePeerClosedCleanly)
 			{
-				Left(_yields @ ()) => if cfg!(debug_assertions)
+				WouldLikeToResume(_yields @ ()) => if cfg!(debug_assertions)
 				{
 					panic!("Should have terminated")
 				}
@@ -106,7 +111,8 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 				{
 					unreachable!()
 				},
-				Right(_complete) => Ok(true),
+
+				Complete(_complete) => Ok(true),
 			}
 		}
 		else
@@ -117,8 +123,9 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 
 			match self.started_coroutine.resume(InputOrOutputNowAvailable { read_now_ready, write_now_ready })
 			{
-				Left(_yields @ ()) => Ok(false),
-				Right(complete) => Ok(complete.is_err()),
+				WouldLikeToResume(_yields @ ()) => Ok(false),
+
+				Complete(complete) => Ok(complete.is_err()),
 			}
 		}
 	}

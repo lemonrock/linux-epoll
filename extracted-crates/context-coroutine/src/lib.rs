@@ -19,12 +19,10 @@
 
 
 extern crate context;
-extern crate either;
 
 
 use ::context::context::*;
 use ::context::stack::*;
-use ::either::*;
 use ::std::fmt;
 use ::std::fmt::Debug;
 use ::std::fmt::Formatter;
@@ -40,9 +38,11 @@ include!("ChildOutcome.rs");
 include!("Coroutine.rs");
 include!("ParentInstructingChild.rs");
 include!("ResumeOnTopFunction.rs");
+include!("ResumeOutcome.rs");
 include!("SimpleStack.rs");
 include!("StackAndTypeSafeTransfer.rs");
 include!("StartedStackAndTypeSafeTransfer.rs");
+include!("StartOutcome.rs");
 include!("TransferableData.rs");
 include!("TransferExt.rs");
 include!("TypeSafeTransfer.rs");

@@ -39,7 +39,7 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StartedStackAndTypeSafeTransf
 	///
 	/// If the coroutine panicked, this panics.
 	#[inline(always)]
-	pub fn resume(&mut self, arguments: C::ResumeArguments) -> Either<C::Yields, C::Complete>
+	pub fn resume(&mut self, arguments: C::ResumeArguments) -> ResumeOutcome<C>
 	{
 		let child_outcome = self.owns.type_safe_transfer.resume_drop_safe(ParentInstructingChild::Resume(arguments));
 		self.process_child_outcome(child_outcome)
@@ -51,20 +51,20 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StartedStackAndTypeSafeTransf
 	///
 	/// If the coroutine panicked, this panics.
 	#[inline(always)]
-	pub fn resume_on_top_drop_safe(&mut self, arguments: C::ResumeArguments, resume_on_top_function: ResumeOnTopFunction) -> Either<C::Yields, C::Complete>
+	pub fn resume_on_top_drop_safe(&mut self, arguments: C::ResumeArguments, resume_on_top_function: ResumeOnTopFunction) -> ResumeOutcome<C>
 	{
 		let child_outcome = self.owns.type_safe_transfer.resume_on_top_drop_safe(ParentInstructingChild::Resume(arguments), resume_on_top_function);
 		self.process_child_outcome(child_outcome)
 	}
 
 	#[inline(always)]
-	fn process_child_outcome(&mut self, child_outcome: ChildOutcome<C::Yields, C::Complete>) -> Either<C::Yields, C::Complete>
+	fn process_child_outcome(&mut self, child_outcome: ChildOutcome<C::Yields, C::Complete>) -> ResumeOutcome<C>
 	{
 		use self::ChildOutcome::*;
 
 		match child_outcome
 		{
-			WouldLikeToResume(yields) => Left(yields),
+			WouldLikeToResume(yields) => ResumeOutcome::WouldLikeToResume(yields),
 
 			Complete(thread_result) =>
 			{
@@ -72,7 +72,7 @@ impl<S: Sized + Deref<Target=Stack>, C: Coroutine> StartedStackAndTypeSafeTransf
 
 				match thread_result
 				{
-					Ok(complete) => Right(complete),
+					Ok(complete) => ResumeOutcome::Complete(complete),
 
 					Err(panic_information) => resume_unwind(panic_information),
 				}
