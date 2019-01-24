@@ -58,9 +58,9 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 
 		let started_coroutine = match StackAndTypeSafeTransfer::new(SimpleStack).start(start_arguments)
 		{
-			WouldLikeToResume(completed) => return { completed?; Ok(()) },
+			Complete(completed) => return { completed?; Ok(()) },
 
-			Complete(((), started_coroutine)) => started_coroutine,
+			WouldLikeToResume((), started_coroutine) => started_coroutine,
 		};
 
 		event_poll.register::<SSR, A, _>(streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor|
@@ -95,7 +95,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 				{
 					unreachable!()
 				},
-				
+
 				Complete(_complete) => Ok(true),
 			}
 		}
