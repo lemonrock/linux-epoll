@@ -22,6 +22,7 @@ extern crate rustls;
 pub extern crate webpki;
 
 
+use self::supported_cipher_suites::*;
 pub use ::ct_logs::LOGS as GooglesKnownListOfCertificateTransparencyLogs;
 pub use ::indexmap::IndexSet;
 use ::rustls::ALL_CIPHERSUITES;

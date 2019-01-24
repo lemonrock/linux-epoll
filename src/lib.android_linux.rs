@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-extern crate coroutine;
+extern crate context_coroutine;
 extern crate cpu_affinity;
 extern crate file_descriptors;
 extern crate libc;
@@ -21,7 +21,7 @@ use self::reactor::streaming_sockets::*;
 use self::reactor::streaming_sockets::streams::*;
 use self::reactor::streaming_sockets::stream_factories::*;
 use self::reactor::streaming_server_listener_sockets::access_control::*;
-use ::coroutine::*;
+use ::context_coroutine::*;
 use ::cpu_affinity::*;
 use ::file_descriptors::*;
 use ::file_descriptors::character_device::CharacterDeviceFileDescriptor;
@@ -46,7 +46,6 @@ use ::libc::uid_t;
 use ::lock_free_multi_producer_single_consumer_ring_buffer::*;
 use ::rustls_extra::*;
 pub use ::rustls_extra::supported_cipher_suites;
-use ::std::any::TypeId;
 use ::std::cell::Cell;
 use ::std::cell::UnsafeCell;
 use ::std::collections::HashMap;
@@ -56,10 +55,8 @@ use ::std::fmt;
 use ::std::fmt::Debug;
 use ::std::fmt::Display;
 use ::std::fmt::Formatter;
-use ::std::fs::File;
 use ::std::hash::Hash;
 use ::std::io;
-use ::std::io::BufReader;
 use ::std::io::ErrorKind;
 use ::std::io::Initializer;
 use ::std::io::Read;
@@ -78,22 +75,13 @@ use ::std::net::SocketAddrV6;
 use ::std::ops::BitAnd;
 use ::std::ops::Deref;
 use ::std::ops::DerefMut;
-use ::std::ops::Index;
-use ::std::ops::IndexMut;
 use ::std::os::unix::io::AsRawFd;
 use ::std::os::unix::io::FromRawFd;
 use ::std::os::unix::io::RawFd;
-use ::std::panic::AssertUnwindSafe;
-use ::std::panic::catch_unwind;
-use ::std::panic::PanicInfo;
-use ::std::panic::resume_unwind;
 use ::std::path::PathBuf;
 use ::std::ptr::drop_in_place;
 use ::std::ptr::NonNull;
-use ::std::ptr::null_mut;
-use ::std::ptr::read;
 use ::std::ptr::write;
-use ::std::raw::TraitObject;
 use ::std::rc::Rc;
 use ::std::sync::Arc;
 use ::terminate::*;
@@ -108,16 +96,8 @@ pub mod arena;
 pub mod arenas;
 
 
-/// Structures to produce, consume and handle dynamically typed messages passed between threads using a ring buffer.
-pub mod message_dispatch;
-
-
 /// Implementations of the `Ractor` trait.
 #[macro_use] pub mod reactor;
-
-
-/// Implementations of the `Terminate` trait.
-pub mod terminate;
 
 
 include!("file_descriptor_kind_dispatch.rs");

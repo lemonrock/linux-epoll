@@ -2,6 +2,9 @@
 // Copyright © 2019 The developers of rustls-extra. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/rustls-extra/master/COPYRIGHT.
 
 
+use super::*;
+
+
 /// Horrible hack to make public a static from rustls.
 pub static TLS13_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[0];
 

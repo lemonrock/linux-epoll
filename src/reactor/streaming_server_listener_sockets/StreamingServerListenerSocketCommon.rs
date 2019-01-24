@@ -91,7 +91,7 @@ impl<AC: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockadd
 			settings.linger_in_FIN_WAIT2_seconds,
 			settings.maximum_SYN_transmits,
 			settings.back_log,
-			current_logical_cpu(),
+			current_logical_core(),
 		)
 	}
 }
@@ -113,7 +113,7 @@ impl<AC: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockad
 			settings.linger_in_FIN_WAIT2_seconds,
 			settings.maximum_SYN_transmits,
 			settings.back_log,
-			current_logical_cpu(),
+			current_logical_core(),
 		)
 	}
 }
@@ -128,7 +128,7 @@ impl<AC: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockadd
 			&socket_address.0,
 			settings.send_buffer_size_in_bytes,
 			settings.back_log,
-			current_logical_cpu(),
+			current_logical_core(),
 		)
 	}
 }

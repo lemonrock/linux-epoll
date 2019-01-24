@@ -57,7 +57,7 @@ impl<SD: SocketData> FileDescriptorDistributor<SD>
 		let logical_core_identifier = streaming_socket_file_descriptor.logical_core_identifier();
 
 		// The the `logical_core_identifier` might not have associated data because it was obtained using the `SO_INCOMING_CPU` socket option which can return an index for a CPU not assigned to this process.
-		let (producer, ref mut file_descriptors) = self.distribute_to.get_mut_or(logical_core_identifier, || current_logical_cpu());
+		let (producer, ref mut file_descriptors) = self.distribute_to.get_mut_or(logical_core_identifier, || current_logical_core());
 
 		while unlikely!(file_descriptors.len() == file_descriptors.capacity())
 		{
