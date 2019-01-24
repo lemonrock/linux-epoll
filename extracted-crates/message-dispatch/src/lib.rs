@@ -19,8 +19,13 @@
 //! It could even be used to send messages across POSIX message queues if so desired.
 
 
+extern crate arrayvec;
+
+
+use ::arrayvec::ArrayVec;
 use ::std::collections::HashMap;
 use ::std::any::TypeId;
+use ::std::mem::size_of;
 use ::std::mem::transmute;
 use ::std::ptr::NonNull;
 use ::std::ptr::null_mut;
@@ -28,9 +33,14 @@ use ::std::ptr::null_mut;
 
 include!("BoxedFunctionPointer.rs");
 include!("CallArguments.rs");
+include!("CompressedTypeIdentifier.rs");
 include!("VariablySized.rs");
 include!("ImmutableTypeErasedBoxedFunction.rs");
+include!("ImmutableTypeErasedBoxedFunctionCompressedMap.rs");
 include!("ImmutableTypeErasedBoxedFunctionMap.rs");
+include!("MutableTypeErasedBoxedFunction.rs");
+include!("MutableTypeErasedBoxedFunctionCompressedMap.rs");
+include!("MutableTypeErasedBoxedFunctionMap.rs");
 
 // TODO: Probably not needed but still very interesting.
 include!("TaggedVirtualMethodTablePointer.rs");

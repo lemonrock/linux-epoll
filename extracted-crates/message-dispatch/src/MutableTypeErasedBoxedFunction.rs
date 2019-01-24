@@ -2,9 +2,9 @@
 // Copyright © 2019 The developers of message-dispatch. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/message-dispatch/master/COPYRIGHT.
 
 
-/// A wrapper to hold a `Fn(Arguments) -> R` closure which erases the type of `Arguments` so that multiple instances can be created and used as, say, handlers of different messages in maps.
+/// A wrapper to hold a `FnMut(Arguments) -> R` closure which erases the type of `Arguments` so that multiple instances can be created and used as, say, handlers of different messages in maps.
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub(crate) struct ImmutableTypeErasedBoxedFunction<R>
+pub(crate) struct MutableTypeErasedBoxedFunction<R>
 {
 	boxed_function_pointer: NonNull<BoxedFunctionPointer>,
 	call_boxed_function_pointer: fn(NonNull<BoxedFunctionPointer>, NonNull<CallArguments>) -> R,
@@ -12,7 +12,7 @@ pub(crate) struct ImmutableTypeErasedBoxedFunction<R>
 	#[cfg(debug_assertions)] arguments_type_identifier: TypeId,
 }
 
-impl<R> Drop for ImmutableTypeErasedBoxedFunction<R>
+impl<R> Drop for MutableTypeErasedBoxedFunction<R>
 {
 	#[inline(always)]
 	fn drop(&mut self)
@@ -21,30 +21,30 @@ impl<R> Drop for ImmutableTypeErasedBoxedFunction<R>
 	}
 }
 
-impl<R> ImmutableTypeErasedBoxedFunction<R>
+impl<R> MutableTypeErasedBoxedFunction<R>
 {
 	/// Creates a new instance, wrapping `function`.
 	///
 	/// `function` will be moved from the stack to the heap.
 	#[inline(always)]
-	pub(crate) fn new<Function: Fn(&mut Arguments) -> R, Arguments: 'static + ?Sized>(function: Function) -> Self
+	pub(crate) fn new<Function: FnMut(&mut Arguments) -> R, Arguments: 'static + ?Sized>(function: Function) -> Self
 	{
 		#[inline(always)]
-		fn call_boxed_function_pointer<Function: Fn(&mut Arguments) -> R, Arguments: 'static + ?Sized, R>(function: &Function, arguments: &mut Arguments) -> R
+		fn call_boxed_function_pointer<Function: FnMut(&mut Arguments) -> R, Arguments: 'static + ?Sized, R>(function: &mut Function, arguments: &mut Arguments) -> R
 		{
 			function(arguments)
 		}
 
 		#[inline(always)]
-		fn drop_boxed_function_pointer<Function: Fn(&mut Arguments) -> R, Arguments: 'static + ?Sized, R>(boxed_function_pointer: NonNull<Function>)
+		fn drop_boxed_function_pointer<Function: FnMut(&mut Arguments) -> R, Arguments: 'static + ?Sized, R>(boxed_function_pointer: NonNull<Function>)
 		{
 			drop(unsafe { Box::from_raw(boxed_function_pointer.as_ptr()) });
 		}
 
-		let call_boxed_function_pointer: for<'r, 's> fn(&'r Function, &'s mut Arguments) -> R = call_boxed_function_pointer::<Function, Arguments, R>;
+		let call_boxed_function_pointer: for<'r, 's> fn(&'r mut Function, &'s mut Arguments) -> R = call_boxed_function_pointer::<Function, Arguments, R>;
 		let drop_boxed_function_pointer: fn(NonNull<Function>) = drop_boxed_function_pointer::<Function, Arguments, R>;
 
-		ImmutableTypeErasedBoxedFunction
+		MutableTypeErasedBoxedFunction
 		{
 			boxed_function_pointer: unsafe { NonNull::new_unchecked(Box::into_raw(Box::new(function)) as *mut BoxedFunctionPointer) },
 			call_boxed_function_pointer: unsafe { transmute(call_boxed_function_pointer) },
@@ -59,7 +59,7 @@ impl<R> ImmutableTypeErasedBoxedFunction<R>
 	///
 	/// When debug assertions are enabled, a runtime type check is made and will panic if it fails.
 	#[inline(always)]
-	pub(crate) fn call<'this: 'arguments, 'arguments, Arguments: 'static + ?Sized>(&'this self, arguments: &'arguments mut Arguments) -> R
+	pub(crate) fn call<'this: 'arguments, 'arguments, Arguments: 'static + ?Sized>(&'this mut self, arguments: &'arguments mut Arguments) -> R
 	{
 		#[cfg(debug_assertions)]
 		{

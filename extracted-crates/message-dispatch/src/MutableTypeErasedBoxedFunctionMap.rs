@@ -6,9 +6,9 @@
 ///
 /// `R` is the result type of calling these functions.
 #[derive(Default, Debug, Eq, PartialEq)]
-pub struct ImmutableTypeErasedBoxedFunctionMap<R>(HashMap<TypeId, ImmutableTypeErasedBoxedFunction<R>>);
+pub struct MutableTypeErasedBoxedFunctionMap<R>(HashMap<TypeId, MutableTypeErasedBoxedFunction<R>>);
 
-impl<R> ImmutableTypeErasedBoxedFunctionMap<R>
+impl<R> MutableTypeErasedBoxedFunctionMap<R>
 {
 	/// Creates a new instance.
 	#[inline(always)]
@@ -21,22 +21,22 @@ impl<R> ImmutableTypeErasedBoxedFunctionMap<R>
 	///
 	/// `function` will be moved from the stack to the heap.
 	#[inline(always)]
-	pub fn register<Function: Fn(&mut Arguments) -> R + 'static, Arguments: 'static + ?Sized>(&mut self, function: Function)
+	pub fn register<Function: FnMut(&mut Arguments) -> R + 'static, Arguments: 'static + ?Sized>(&mut self, function: Function)
 	{
 		let key = TypeId::of::<Arguments>();
 
-		let previous = self.0.insert(key, ImmutableTypeErasedBoxedFunction::new(function));
+		let previous = self.0.insert(key, MutableTypeErasedBoxedFunction::new(function));
 		debug_assert!(previous.is_none(), "Registered a function more than once")
 	}
 
 	/// Calls the handler with the given arguments.
 	///
 	/// Returns `Err` if the given type of `Arguments` is not present.
-	pub fn call<'map: 'arguments, 'arguments, Arguments: 'static + ?Sized>(&'map self, arguments: &'arguments mut Arguments) -> Result<R, ()>
+	pub fn call<'map: 'arguments, 'arguments, Arguments: 'static + ?Sized>(&'map mut self, arguments: &'arguments mut Arguments) -> Result<R, ()>
 	{
 		let key = TypeId::of::<Arguments>();
 
-		match self.0.get(&key)
+		match self.0.get_mut(&key)
 		{
 			None => Err(()),
 			Some(function) => Ok(function.call::<Arguments>(arguments)),
