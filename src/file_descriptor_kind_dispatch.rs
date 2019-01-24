@@ -7,11 +7,11 @@ macro_rules! file_descriptor_kind_dispatch
 	(@ $arenas: expr, $event_poll_token: ident, $raw_file_descriptor: ident, $dispatch: ident, $dispatch_arguments: expr, $($title_case: ident => $lower_case: ident,)*) =>
 	{
 		{
-			let arena_index = FileDescriptorKind::arena_index($event_poll_token);
+			let arena_index = $event_poll_token.arena_index();
 
 			use self::FileDescriptorKind::*;
 
-			match FileDescriptorKind::file_descriptor_kind($event_poll_token)
+			match $event_poll_token.file_descriptor_kind()
 			{
 				$(
 					$title_case =>

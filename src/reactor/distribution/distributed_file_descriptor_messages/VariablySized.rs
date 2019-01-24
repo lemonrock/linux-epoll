@@ -2,14 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-
-
-/// Horrible, horrible hackery to overcome some current limitations in Rust as of January 2019.
-pub mod distributed_file_descriptor_messages;
-
-
-include!("current_logical_cpu.rs");
-include!("FileDescriptorConsumer.rs");
-include!("FileDescriptorDistributor.rs");
-include!("PerLogicalCoreData.rs");
+extern
+{
+	type VariablySized;
+}

@@ -5,11 +5,9 @@
 use super::*;
 
 
-/// Horrible, horrible hackery to overcome some current limitations in Rust as of January 2019.
-pub mod distributed_file_descriptor_messages;
-
-
-include!("current_logical_cpu.rs");
-include!("FileDescriptorConsumer.rs");
-include!("FileDescriptorDistributor.rs");
-include!("PerLogicalCoreData.rs");
+include!("DistributedFileDescriptorMessage.rs");
+include!("DistributedFileDescriptorMessageContents.rs");
+include!("DistributedFileDescriptorMessageContentsVirtualMethodTablesPointerCompression.rs");
+include!("TaggedVirtualMethodTablePointer.rs");
+include!("VirtualMethodTablePointer.rs");
+include!("VariablySized.rs");

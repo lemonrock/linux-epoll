@@ -78,7 +78,7 @@ impl<AS: Arenas> EventPoll<AS>
 		let arena = R::our_arena(&self.arenas);
 
 		let (mut non_null, arena_index) = arena.allocate()?;
-		let event_poll_token = R::FileDescriptorKind.new_event_poll_token(&file_descriptor, arena_index);
+		let event_poll_token = EventPollToken::new(R::FileDescriptorKind, &file_descriptor, arena_index);
 
 		match self.epoll_file_descriptor.add(file_descriptor.as_raw_fd(), add_flags, event_poll_token.0)
 		{

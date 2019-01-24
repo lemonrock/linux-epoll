@@ -1,8 +1,14 @@
 TODO
-	- drop token logic for epoll file descriptor
 	- Instantiate each logical-core with a thread.
-	- FileDescriptorCOnsumer
 	- Arenas for coroutine stacks
+	- FileDescriptorCOnsumer
+        - Fix the problem with additional_data - where does it get passed?
+        - We don't want lots and lots of consumer instances; iteration will be crippling.
+        - We need to be able to pass other stream-user relevant data, potentially
+            - Many possible permuations of StreamingSocketReactor are possible, and they all need to got in an arena and be addressed.
+                - Arena of arenas is needed for ListeningSockets and StreamSockets
+                - Need to take some sort of key that can be encoded in the arena index
+                    - We could pass an event-poll-token-like u64 instead of a RawFd
 
 	// TODO: some sort of error log... capture dropped file descriptors and other nasty errors.
 	    - in distribute();
@@ -35,3 +41,88 @@ TODO
 
 - In essence, we need the ability to 'wake up' anything currently being handled by epoll.
 
+
+
+- We can have far too many producers if we do one per type; it's unsuitably large and the walking would be very painful.
+
+- We need a small integer key to match on in the consumer - and potentially in a subdivided arena
+    - if we do the latter we can probably implement most of the socket data 'noise' from FileDescriptor.
+
+- The small integer key is effectively like a TypeId or similar; it can be converted back into a real enum like:-
+
+This is going to require some serious magic. Enum and Union are KNOWN layouts.
+Rust's way is to use (Boxed) trait objects (dyn SomeTraitX)
+
+
+pub trait EnumeratedDatum: Sized
+{
+    // Hail-Mary hope this lines up...
+    const Index: u8;
+}
+
+pub type ArenasEnum<Type0, Type2, ...> = EnumeratedData<SimpleArena<Type0>, SimpleArena<Type1>, ...>
+
+pub enum EnumeratedData
+<
+    Type0: EnumeratedDatum,
+    Type1: EnumeratedDatum,
+>
+{
+    Type0(Type0),
+
+    Type1(Type1),
+
+    ...
+}
+
+impl EnumeratedData
+<
+    Type0: EnumeratedDatum,
+    Type1: EnumeratedDatum,
+>
+{
+    #[inline(always)]
+    pub fn dispatch_move<R>(self, dispatch0: impl FnOnce(Type0) -> R, dispatch1: impl FnOnce(Type1), ...) -> R
+    {
+        use self::EnumeratedData::*;
+
+        match self
+        {
+            Type0(enumerated_datum) => dispatch0(enumerated_datum, arguments),
+
+            Type1(enumerated_datum) => dispatch1(enumerated_datum, arguments),
+
+            ...
+        }
+    }
+
+    #[inline(always)]
+    pub fn dispatch_reference<R>(&self, dispatch0: impl Fn(&Type0) -> R, dispatch1: impl Fn(&Type1), ...) -> R
+    {
+        use self::EnumeratedData::*;
+
+        match *self
+        {
+            Type0(ref enumerated_datum) => dispatch0(enumerated_datum, arguments),
+
+            Type1(ref enumerated_datum) => dispatch1(enumerated_datum, arguments),
+
+            ...
+        }
+    }
+
+    #[inline(always)]
+    pub fn dispatch_mutable<R>(&mut self, dispatch0: impl Fn(&mut Type0) -> R, dispatch1: impl Fn(&mut Type1), ...) -> R
+    {
+        use self::EnumeratedData::*;
+
+        match *self
+        {
+            Type0(ref mut enumerated_datum) => dispatch0(enumerated_datum, arguments),
+
+            Type1(ref mut enumerated_datum) => dispatch1(enumerated_datum, arguments),
+
+            ...
+        }
+    }
+}

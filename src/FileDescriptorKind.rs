@@ -63,69 +63,6 @@ pub enum FileDescriptorKind
 
 impl FileDescriptorKind
 {
-	const EventPollTokenSize: u64 = Self::size_in_bits::<u64>();
-
-	const FileDescriptorKindSize: u64 = 5;
-
-	const FileDescriptorKindShift: u64 = Self::EventPollTokenSize - Self::FileDescriptorKindSize;
-
-	const FileDescriptorKindMask: u64 = Self::bitmask(Self::FileDescriptorKindSize, Self::FileDescriptorKindShift);
-
-	const RawFileDescriptorSize: u64 = Self::size_in_bits::<RawFd>();
-
-	const RawFileDescriptorShift: u64 = Self::FileDescriptorKindShift - Self::RawFileDescriptorSize;
-
-	const RawFileDescriptorMask: u64 = Self::bitmask(Self::RawFileDescriptorSize, Self::RawFileDescriptorShift);
-
-	const ArenaIndexMask: u64 = !(Self::FileDescriptorKindMask | Self::RawFileDescriptorMask);
-
-	#[inline(always)]
-	const fn size_in_bits<T: Sized>() -> u64
-	{
-		(size_of::<T>() as u64) * 8
-	}
-
-	#[inline(always)]
-	const fn bitmask(number_of_bits: u64, shift: u64) -> u64
-	{
-		#[inline(always)]
-		const fn set_bits(number_of_bits: u64) -> u64
-		{
-			(1 << number_of_bits) - 1
-		}
-
-		set_bits(number_of_bits) << shift
-	}
-
-	/// Extracts the file descriptor kind from an event poll token.
-	#[inline(always)]
-	pub(crate) fn file_descriptor_kind(event_poll_token: EventPollToken) -> Self
-	{
-		let value = ((event_poll_token & Self::FileDescriptorKindMask) >> Self::FileDescriptorKindShift) as u8;
-		unsafe { transmute(value) }
-	}
-
-	/// Extracts the file descriptor kind from an event poll token.
-	#[inline(always)]
-	pub(crate) fn raw_file_descriptor(event_poll_token: EventPollToken) -> RawFd
-	{
-		((event_poll_token & Self::RawFileDescriptorMask) >> Self::RawFileDescriptorShift) as RawFd
-	}
-
-	/// Extracts the arena index from an event poll token.
-	#[inline(always)]
-	pub(crate) fn arena_index(event_poll_token: EventPollToken) -> ArenaIndex
-	{
-		(event_poll_token & Self::ArenaIndexMask) as ArenaIndex
-	}
-
-	/// Extracts the file descriptor kind from an event poll token.
-	#[inline(always)]
-	pub(crate) fn new_event_poll_token(self, raw_file_descriptor: &impl AsRawFd, arena_index: ArenaIndex) -> EventPollToken
-	{
-		EventPollToken(((self as u8 as u64) << Self::FileDescriptorKindShift) | ((raw_file_descriptor.as_raw_fd() as u64) << Self::RawFileDescriptorShift) | (arena_index as u64))
-	}
-
 	/// Result is an error if the associated file descriptor has already been closed; this can happen due to spurious epoll events (eg receiving read and write as separate events).
 	#[inline(always)]
 	pub fn react<AS: Arenas>(event_poll: &EventPoll<AS>, event_poll_token: EventPollToken, spurious_event_suppression_of_already_closed_file_descriptors: &mut HashSet<RawFd>, arenas: &AS, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<(), String>
@@ -155,7 +92,7 @@ impl FileDescriptorKind
 			}
 		}
 
-		let raw_file_descriptor = Self::raw_file_descriptor(event_poll_token);
+		let raw_file_descriptor = event_poll_token.raw_file_descriptor();
 
 		file_descriptor_kind_dispatch!(arenas, event_poll_token, raw_file_descriptor, dispatch, (event_poll, spurious_event_suppression_of_already_closed_file_descriptors, event_flags, terminate))
 	}
