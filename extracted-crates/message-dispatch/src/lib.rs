@@ -31,19 +31,14 @@ use ::std::ptr::NonNull;
 use ::std::ptr::null_mut;
 
 
-include!("BoxedFunctionPointer.rs");
-include!("CallArguments.rs");
-include!("CompressedTypeIdentifier.rs");
+/// Erased, boxed functions can be used as generic message dispatchers.
+pub mod erased_boxed_functions;
+
+
+/// Various wrappers around virtual method tables (vtables) which allow for them to be tagged.
+///
+/// A tagged pointer to a vtable allows one to mix multiple `dyn Trait` (fat pointers), using the tag to differentiated the trait type.
+pub mod virtual_method_tables;
+
+
 include!("VariablySized.rs");
-include!("ImmutableTypeErasedBoxedFunction.rs");
-include!("ImmutableTypeErasedBoxedFunctionCompressedMap.rs");
-include!("ImmutableTypeErasedBoxedFunctionMap.rs");
-include!("MutableTypeErasedBoxedFunction.rs");
-include!("MutableTypeErasedBoxedFunctionCompressedMap.rs");
-include!("MutableTypeErasedBoxedFunctionMap.rs");
-
-// TODO: Probably not needed but still very interesting.
-include!("TaggedVirtualMethodTablePointer.rs");
-include!("VirtualMethodTablePointer.rs");
-
-
