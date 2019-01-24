@@ -4,31 +4,25 @@
 
 extern crate coroutine;
 extern crate cpu_affinity;
-extern crate ct_logs;
 extern crate file_descriptors;
-extern crate indexmap;
 extern crate libc;
 #[macro_use] extern crate likely;
 extern crate lock_free_multi_producer_single_consumer_ring_buffer;
-extern crate rustls;
+extern crate rustls_extra;
 extern crate terminate;
 extern crate treebitmap;
-extern crate webpki;
 
 
 use self::arena::*;
 use self::arenas::*;
-use self::coroutine::*;
 use self::reactor::*;
 use self::reactor::distribution::*;
 use self::reactor::streaming_sockets::*;
 use self::reactor::streaming_sockets::streams::*;
 use self::reactor::streaming_sockets::stream_factories::*;
 use self::reactor::streaming_server_listener_sockets::access_control::*;
-use self::terminate::*;
-use self::tls::*;
+use ::coroutine::*;
 use ::cpu_affinity::*;
-use ::ct_logs::LOGS as GooglesKnownListOfCertificateTransparencyLogs;
 use ::file_descriptors::*;
 use ::file_descriptors::character_device::CharacterDeviceFileDescriptor;
 use ::file_descriptors::epoll::*;
@@ -47,34 +41,11 @@ use ::file_descriptors::signalfd::*;
 use ::file_descriptors::signalfd::syscall::signalfd_siginfo;
 use ::file_descriptors::timerfd::TimerFileDescriptor;
 use ::file_descriptors::terminal::TerminalFileDescriptor;
-use ::indexmap::IndexSet;
 use ::libc::gid_t;
 use ::libc::sched_getcpu;
 use ::libc::uid_t;
 use ::lock_free_multi_producer_single_consumer_ring_buffer::*;
-use ::rustls::ALL_CIPHERSUITES;
-use ::rustls::AllowAnyAnonymousOrAuthenticatedClient;
-use ::rustls::AllowAnyAuthenticatedClient;
-use ::rustls::Certificate;
-use ::rustls::ClientCertVerifier;
-use ::rustls::ClientConfig;
-use ::rustls::ClientSession;
-use ::rustls::ClientSessionMemoryCache;
-use ::rustls::NoClientAuth;
-use ::rustls::NoClientSessionStorage;
-use ::rustls::NoServerSessionStorage;
-use ::rustls::PrivateKey;
-use ::rustls::ProtocolVersion;
-use ::rustls::RootCertStore;
-use ::rustls::ServerConfig;
-use ::rustls::ServerSession;
-use ::rustls::ServerSessionMemoryCache;
-use ::rustls::Session;
-use ::rustls::SupportedCipherSuite;
-use ::rustls::Ticketer;
-use ::rustls::TLSError;
-use ::rustls::WriteV;
-use ::rustls::internal::pemfile::*;
+use ::rustls_extra::*;
 use ::std::any::TypeId;
 use ::std::cell::Cell;
 use ::std::cell::UnsafeCell;
@@ -125,11 +96,8 @@ use ::std::ptr::write;
 use ::std::raw::TraitObject;
 use ::std::rc::Rc;
 use ::std::sync::Arc;
-use ::std::sync::atomic::AtomicBool;
-use ::std::sync::atomic::Ordering::Relaxed;
-use ::std::thread;
+use ::terminate::*;
 use ::treebitmap::IpLookupTable;
-use ::webpki::DNSName;
 
 
 /// Implementations of the `Arena` trait.
@@ -150,38 +118,6 @@ pub mod message_dispatch;
 
 /// Implementations of the `Terminate` trait.
 pub mod terminate;
-
-
-/// Supporting logic for TLS.
-pub mod tls;
-
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS13_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[0];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS13_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[1];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS13_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[2];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[3];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[4];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[5];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[6];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[7];
-
-/// Horrible hack to make public a static from rustls.
-pub static TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: &'static SupportedCipherSuite = &ALL_CIPHERSUITES[8];
 
 
 include!("file_descriptor_kind_dispatch.rs");
