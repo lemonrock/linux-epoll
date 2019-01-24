@@ -68,7 +68,7 @@ impl Message
 	pub fn process_messages_in_buffer<E>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<Result<(), E>>, terminate: &impl Terminate) -> Result<usize, E>
 	{
 		let original_length = buffer.len();
-		
+
 		let mut remaining_buffer = buffer;
 		while remaining_buffer.len() >= MessageHeader::Size && terminate.should_continue()
 		{
@@ -78,6 +78,8 @@ impl Message
 
 				Some((outcome, total_message_size_including_message_header)) =>
 				{
+					outcome?;
+
 					remaining_buffer = &mut remaining_buffer[total_message_size_including_message_header .. ];
 				}
 			}
