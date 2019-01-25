@@ -2,8 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+/// Represents a message to be enqueued to a buffer.
 #[repr(C)]
-struct Message
+pub struct Message
 {
 	message_header: MessageHeader,
 	padding_to_align_message_contents_and_message_contents_and_padding_to_align_next_message_header: VariablySized,
@@ -68,11 +69,11 @@ impl Message
 	pub fn process_messages_in_buffer<E>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<Result<(), E>>, terminate: &impl Terminate) -> Result<usize, E>
 	{
 		let original_length = buffer.len();
+		let (mut remaining_buffer_pointer, mut remaining_buffer_length) = (buffer.as_mut_ptr(), original_length);
 
-		let mut remaining_buffer = buffer;
-		while remaining_buffer.len() >= MessageHeader::Size && terminate.should_continue()
+		while remaining_buffer_length >= MessageHeader::Size && terminate.should_continue()
 		{
-			match Self::process_next_message_in_buffer::<Result<(), E>>(remaining_buffer, message_handlers)
+			match Self::process_next_message_in_buffer::<Result<(), E>>(remaining_buffer_pointer, remaining_buffer_length, message_handlers)
 			{
 				None => break,
 
@@ -80,12 +81,13 @@ impl Message
 				{
 					outcome?;
 
-					remaining_buffer = &mut remaining_buffer[total_message_size_including_message_header .. ];
+					remaining_buffer_pointer = unsafe { remaining_buffer_pointer.add(total_message_size_including_message_header) };
+					remaining_buffer_length -= total_message_size_including_message_header;
 				}
 			}
 		}
 
-		let consumed = original_length - remaining_buffer.len();
+		let consumed = original_length - remaining_buffer_length;
 		Ok(consumed)
 	}
 
@@ -94,15 +96,13 @@ impl Message
 	/// Returns an outcome `R` and a `message_size` if successful.
 	/// Returns `None` if the buffer is too small.
 	#[inline(always)]
-	fn process_next_message_in_buffer<R>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<R>) -> Option<(R, usize)>
+	fn process_next_message_in_buffer<R>(buffer_pointer: *mut u8, buffer_length: usize, message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<R>) -> Option<(R, usize)>
 	{
-		let buffer_length = buffer.len();
-
 		debug_assert!(buffer_length >= MessageHeader::Size, "Check buffer size before calling");
 
-		debug_assert_eq!(buffer.as_ptr() as usize % align_of::<MessageHeader>(), 0, "Buffer is not aligned on a MessageHeader");
+		debug_assert_eq!(buffer_pointer as usize % align_of::<MessageHeader>(), 0, "Buffer is not aligned on a MessageHeader");
 
-		let message_header = unsafe { &mut * (buffer.as_mut_ptr() as *mut MessageHeader) };
+		let message_header = unsafe { &mut * (buffer_pointer as *mut MessageHeader) };
 
 		let total_message_size_including_message_header = message_header.total_message_size_including_message_header();
 
