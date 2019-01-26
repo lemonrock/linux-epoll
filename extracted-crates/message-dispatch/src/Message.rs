@@ -118,9 +118,9 @@ impl Message
 
 	/// The handlers in `message_handlers` are responsible for logically dropping the message; it is recommended that messages and their constituent fields do not implement `Drop`.
 	///
-	/// Returns `(R, next_message_pointer)`.
+	/// Returns `(next_message_pointer, R)`.
 	#[inline(always)]
-	fn process_next_message_in_buffer<R>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<R>) -> (R, usize)
+	fn process_next_message_in_buffer<R>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<R>) -> (usize, R)
 	{
 		const MessageHeaderSize: usize = size_of::<MessageHeader>();
 		const MessageHeaderAlignment: usize = align_of::<MessageHeader>();
@@ -141,6 +141,6 @@ impl Message
 		let arguments = message_header.message_contents();
 
 		let outcome = message_handlers.call(compressed_type_identifier, arguments);
-		(outcome, total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after)
+		(total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after, outcome)
 	}
 }

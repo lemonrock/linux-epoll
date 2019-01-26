@@ -95,7 +95,7 @@ impl MagicRingBuffer
 	{
 		let (_current_unread_offset, current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
 
-		let (outcome, actually_read) = reader(self.read_from_buffer(current_read_offset, unread));
+		let (actually_read, outcome) = reader(self.read_from_buffer(current_read_offset, unread));
 		let actually_read = Size::from(actually_read);
 
 		let updated_read_offset = current_read_offset + actually_read;

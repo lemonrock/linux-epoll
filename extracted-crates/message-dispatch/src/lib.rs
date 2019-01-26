@@ -31,8 +31,9 @@ extern crate terminate;
 
 
 use self::erased_boxed_functions::*;
+use self::magic_ring_buffer::*;
+use self::erased_boxed_functions::*;
 use ::arrayvec::ArrayVec;
-use ::cpu_affinity::*;
 use ::std::collections::HashMap;
 use ::std::any::TypeId;
 use ::std::fmt;
