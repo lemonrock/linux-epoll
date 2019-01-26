@@ -19,4 +19,9 @@ version = "0.1.0"
 
 [dependencies]
 arrayvec = "^0.4"
+cpu-affinity = "^0.2.0"
+errno = "^0.2"
+file-descriptors = "^0.8.6"
+libc = "^0.2.44"
+likely = "^0.1"
 terminate = { path = "../terminate", version = "*" }

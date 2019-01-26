@@ -7,6 +7,9 @@
 #![allow(non_camel_case_types)]
 #![deny(missing_docs)]
 #![deny(unreachable_patterns)]
+#![feature(asm)]
+#![feature(core_intrinsics)]
+#![feature(integer_atomics)]
 #![feature(extern_types)]
 
 
@@ -20,16 +23,23 @@
 
 
 extern crate arrayvec;
+extern crate cpu_affinity;
+extern crate libc;
+extern crate file_descriptors;
+extern crate errno;
+#[macro_use] extern crate likely;
 extern crate terminate;
 
 
 use self::erased_boxed_functions::*;
 use ::arrayvec::ArrayVec;
+use ::cpu_affinity::*;
 use ::std::collections::HashMap;
 use ::std::any::TypeId;
 use ::std::fmt;
 use ::std::fmt::Debug;
 use ::std::fmt::Formatter;
+use ::std::marker::PhantomData;
 use ::std::mem::align_of;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
@@ -37,6 +47,14 @@ use ::std::ptr::NonNull;
 use ::std::ptr::null_mut;
 use ::std::ptr::write;
 use ::terminate::Terminate;
+
+
+///// Atomic D-CAS primitives.
+//pub mod atomics;
+
+
+/// A magic ring buffer suitable for backing a queue.
+pub mod magic_ring_buffer;
 
 
 /// Erased, boxed functions can be used as generic message dispatchers.
@@ -49,6 +67,7 @@ pub mod erased_boxed_functions;
 pub mod virtual_method_tables;
 
 
-include!("Message.rs");
-include!("MessageHeader.rs");
+//include!("Message.rs");
+//include!("MessageHeader.rs");
+//include!("MessagePublisher.rs");
 include!("VariablySized.rs");
