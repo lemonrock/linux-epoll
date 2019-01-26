@@ -7,13 +7,11 @@ struct MessageHeader
 {
 	compressed_type_identifier: CompressedTypeIdentifier,
 	number_of_bytes_padding_to_align_message_contents: u8,
-	message_contents_size: u16,
+	total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after: u16,
 }
 
 impl MessageHeader
 {
-	const Size: usize = size_of::<Self>();
-
 	#[inline(always)]
 	fn message_contents(&mut self) -> &mut VariablySized
 	{
@@ -21,12 +19,9 @@ impl MessageHeader
 	}
 
 	#[inline(always)]
-	fn total_message_size_including_message_header(&self) -> usize
+	fn total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after(&self) -> usize
 	{
-		let end_of_message_contents_pointer = self.message_contents_pointer() + self.message_contents_size as usize;
-		let next_message_pointer = round_up_to_alignment::<Self>(end_of_message_contents_pointer);
-
-		next_message_pointer - self.base_pointer()
+		self.total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after as usize
 	}
 
 	#[inline(always)]

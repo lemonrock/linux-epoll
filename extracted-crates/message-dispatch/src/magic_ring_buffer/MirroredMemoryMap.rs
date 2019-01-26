@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of message-dispatch. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/message-dispatch/master/COPYRIGHT.
 
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct MirroredMemoryMap
 {
 	address: VirtualAddress,

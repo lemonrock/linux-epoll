@@ -88,15 +88,28 @@ impl MagicRingBuffer
 	/// Read data, assuming a single reader is active.
 	///
 	/// This is *NOT* enforced.
+	///
+	/// Returns true if there is more data to read.
 	#[inline(always)]
-	pub fn single_reader_read_some_data(&self, reader: impl FnOnce(&[u8]) -> usize)
+	pub fn single_reader_read_some_data<E>(&self, reader: impl FnOnce(&mut [u8]) -> (usize, Result<(), E>)) -> Result<bool, E>
 	{
 		let (_current_unread_offset, current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
 
-		let actually_read = Size::from(reader(self.read_from_buffer(current_read_offset, unread)));
+		let (outcome, actually_read) = reader(self.read_from_buffer(current_read_offset, unread));
+		let actually_read = Size::from(actually_read);
 
 		let updated_read_offset = current_read_offset + actually_read;
-		self.read_offset.set(updated_read_offset)
+		self.read_offset.set(updated_read_offset);
+
+		match outcome
+		{
+			Err(error) => Err(error),
+			Ok(()) =>
+			{
+				let (_current_unread_offset, _current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
+				Ok(unread != 0)
+			}
+		}
 	}
 
 	// Multiple readers can be implemented using a mutual exclusion lock.
@@ -133,9 +146,9 @@ impl MagicRingBuffer
 	}
 
 	#[inline(always)]
-	fn read_from_buffer(&self, current_read_offset: OnlyEverIncreasesMonotonicallyOffset, unread: Size) -> &[u8]
+	fn read_from_buffer(&self, current_read_offset: OnlyEverIncreasesMonotonicallyOffset, unread: Size) -> &mut [u8]
 	{
-		let read_pointer = self.real_pointer(current_read_offset) as *const u8;
+		let read_pointer = self.real_pointer(current_read_offset);
 		unsafe { from_raw_parts(read_pointer, unread.into()) }
 	}
 }
