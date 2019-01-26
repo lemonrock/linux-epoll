@@ -23,7 +23,6 @@
 
 
 extern crate arrayvec;
-extern crate cpu_affinity;
 extern crate libc;
 extern crate file_descriptors;
 extern crate errno;
@@ -39,7 +38,6 @@ use ::std::any::TypeId;
 use ::std::fmt;
 use ::std::fmt::Debug;
 use ::std::fmt::Formatter;
-use ::std::marker::PhantomData;
 use ::std::mem::align_of;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
