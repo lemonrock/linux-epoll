@@ -47,10 +47,3 @@ impl MessageHeader
 		self.number_of_bytes_padding_to_align_message_contents as usize
 	}
 }
-
-#[inline(always)]
-const fn round_up_to_alignment<AlignTo>(pointer: usize) -> usize
-{
-	let alignment = align_of::<AlignTo>();
-	((pointer + alignment - 1) / alignment) * alignment
-}

@@ -2,9 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[repr(C, align(16))]
-struct PairOfU64
+#[inline(always)]
+const fn round_up_to_alignment<AlignTo>(pointer: usize) -> usize
 {
-	low_bytes: u64,
-	high_bytes: u64,
+	let alignment = align_of::<AlignTo>();
+	((pointer + alignment - 1) / alignment) * alignment
 }

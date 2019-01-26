@@ -49,10 +49,6 @@ use ::std::ptr::write;
 use ::terminate::Terminate;
 
 
-///// Atomic D-CAS primitives.
-//pub mod atomics;
-
-
 /// A magic ring buffer suitable for backing a queue.
 pub mod magic_ring_buffer;
 
@@ -67,7 +63,9 @@ pub mod erased_boxed_functions;
 pub mod virtual_method_tables;
 
 
-//include!("Message.rs");
-//include!("MessageHeader.rs");
+include!("Message.rs");
+include!("MessageHeader.rs");
 //include!("MessagePublisher.rs");
+include!("round_up_to_alignment.rs");
+//include!("Queue.rs");
 include!("VariablySized.rs");

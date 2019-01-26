@@ -40,14 +40,14 @@ impl Message
 		let next_message_pointer = round_up_to_alignment::<MessageHeader>(end_of_message_pointer);
 
 		let total_message_size_including_message_header = next_message_pointer - buffer_pointer;
-		debug_assert!(total_message_size_including_message_header < ::std::u16::MAX as usize, "total_message_size_including_message_header exceeds 65,535 bytes");
+		debug_assert!(total_message_size_including_message_header < ::std::u16::MAX as usize, "total_message_size_including_message_header exceeds 65,535 bytes (MessageHeader users an u16 to store the message size)");
 		if total_message_size_including_message_header > buffer.len()
 		{
 			return Err(total_message_size_including_message_header)
 		}
 
 		let number_of_bytes_padding_to_align_message_contents = message_pointer - first_possible_pointer_to_message_contents;
-		debug_assert!(number_of_bytes_padding_to_align_message_contents < ::std::u8::MAX as usize, "number_of_bytes_padding_to_align_message_contents exceeds 255 bytes");
+		debug_assert!(number_of_bytes_padding_to_align_message_contents < ::std::u8::MAX as usize, "number_of_bytes_padding_to_align_message_contents exceeds 255 bytes (MessageHeader users an u8 to store the alignment padding)");
 
 
 		unsafe
