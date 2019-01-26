@@ -59,7 +59,8 @@ pub mod erased_boxed_functions;
 /// Various wrappers around virtual method tables (vtables) which allow for them to be tagged.
 ///
 /// A tagged pointer to a vtable allows one to mix multiple `dyn Trait` (fat pointers), using the tag to differentiated the trait type.
-pub mod virtual_method_tables;
+#[allow(dead_code)]
+mod virtual_method_tables;
 
 
 include!("Message.rs");
