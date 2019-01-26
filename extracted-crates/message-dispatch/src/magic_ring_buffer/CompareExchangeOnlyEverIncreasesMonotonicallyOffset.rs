@@ -19,7 +19,7 @@ impl Debug for CompareExchangeOnlyEverIncreasesMonotonicallyOffset
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
 	{
-		write!(f, "CompareExchangeOnlyEverIncreasesMonotonicallyOffset({:?})", unsafe { self.get() })
+		write!(f, "CompareExchangeOnlyEverIncreasesMonotonicallyOffset({:?})", self.get())
 	}
 }
 

@@ -14,8 +14,9 @@ pub struct MagicRingBuffer
 
 impl MagicRingBuffer
 {
+	/// Creates a new instance.
 	#[inline(always)]
-	pub(crate) fn allocate_mirrored_and_not_swappable_from_dev_shm(file_extension: &str, buffer_size_not_page_aligned: usize) -> Result<Self, MirroredMemoryMapCreationError>
+	pub fn allocate_mirrored_and_not_swappable_from_dev_shm(file_extension: &str, buffer_size_not_page_aligned: usize) -> Result<Self, MirroredMemoryMapCreationError>
 	{
 		Ok
 		(
@@ -90,7 +91,7 @@ impl MagicRingBuffer
 	#[inline(always)]
 	pub fn single_reader_read_some_data(&self, reader: impl FnOnce(&[u8]) -> usize)
 	{
-		let (current_unread_offset, current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
+		let (_current_unread_offset, current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
 
 		let actually_read = Size::from(reader(self.read_from_buffer(current_read_offset, unread)));
 
@@ -121,7 +122,7 @@ impl MagicRingBuffer
 	#[inline(always)]
 	fn real_pointer(&self, offset: OnlyEverIncreasesMonotonicallyOffset) -> *mut u8
 	{
-		unsafe { self.mirrored_memory_map.pointer(offset) }
+		self.mirrored_memory_map.pointer(offset)
 	}
 
 	#[inline(always)]
