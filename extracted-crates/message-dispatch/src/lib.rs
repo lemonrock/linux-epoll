@@ -66,7 +66,6 @@ pub mod virtual_method_tables;
 
 include!("Message.rs");
 include!("MessageHeader.rs");
-//include!("MessagePublisher.rs");
 include!("round_up_to_alignment.rs");
-//include!("Queue.rs");
+include!("Queue.rs");
 include!("VariablySized.rs");
