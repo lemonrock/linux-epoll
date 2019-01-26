@@ -14,7 +14,7 @@ impl Queue
 	#[inline(always)]
 	pub fn allocate_from_dev_shm(file_extension: &str, queue_size_in_bytes: usize) -> Result<Arc<Self>, MirroredMemoryMapCreationError>
 	{
-		Arc::new(Self(MagicRingBuffer::allocate_mirrored_and_not_swappable_from_dev_shm(file_extension, queue_size_in_bytes)?))
+		Ok(Arc::new(Self(MagicRingBuffer::allocate_mirrored_and_not_swappable_from_dev_shm(file_extension, queue_size_in_bytes)?)))
 	}
 
 	/// Enqueue a message.
@@ -31,7 +31,7 @@ impl Queue
 		let mut more_data_to_read = true;
 		while more_data_to_read && terminate.should_continue()
 		{
-			more_data_to_read = self.0.single_reader_read_some_data::<E>(|buffer| Message::process_next_message_in_buffer::<Result<(), E>>(buffer, message_handlers))?;
+			more_data_to_read = self.0.single_reader_read_some_data::<_, E>(|buffer| Message::process_next_message_in_buffer::<Result<(), E>>(buffer, message_handlers))?;
 		}
 		Ok(())
 	}

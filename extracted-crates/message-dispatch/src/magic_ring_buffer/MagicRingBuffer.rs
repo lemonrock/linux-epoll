@@ -91,7 +91,7 @@ impl MagicRingBuffer
 	///
 	/// Returns true if there is more data to read.
 	#[inline(always)]
-	pub fn single_reader_read_some_data<E>(&self, reader: impl FnOnce(&mut [u8]) -> (usize, Result<(), E>)) -> Result<bool, E>
+	pub fn single_reader_read_some_data<Reader: FnOnce(&mut [u8]) -> (usize, Result<(), E>), E>(&self, reader: Reader) -> Result<bool, E>
 	{
 		let (_current_unread_offset, current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
 
@@ -107,7 +107,7 @@ impl MagicRingBuffer
 			Ok(()) =>
 			{
 				let (_current_unread_offset, _current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
-				Ok(unread != 0)
+				Ok(unread != Size::default())
 			}
 		}
 	}
@@ -149,6 +149,6 @@ impl MagicRingBuffer
 	fn read_from_buffer(&self, current_read_offset: OnlyEverIncreasesMonotonicallyOffset, unread: Size) -> &mut [u8]
 	{
 		let read_pointer = self.real_pointer(current_read_offset);
-		unsafe { from_raw_parts(read_pointer, unread.into()) }
+		unsafe { from_raw_parts_mut(read_pointer, unread.into()) }
 	}
 }

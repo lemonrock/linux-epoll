@@ -30,7 +30,6 @@ extern crate errno;
 extern crate terminate;
 
 
-use self::erased_boxed_functions::*;
 use self::magic_ring_buffer::*;
 use self::erased_boxed_functions::*;
 use ::arrayvec::ArrayVec;

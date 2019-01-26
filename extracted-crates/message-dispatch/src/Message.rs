@@ -28,7 +28,7 @@ impl Message
 
 		magic_ring_buffer.write_some_data(largest_possible_total_message_size_including_message_header, |buffer_sized_as_for_maximum_possible|
 		{
-			Self::enqueue_once_buffer_allocated::<MessageContents>(buffer_sized_as_for_maximum_possible, compressed_type_identifier, message_contents_constructor)
+			Self::enqueue_once_buffer_allocated::<MessageContents, _>(buffer_sized_as_for_maximum_possible, compressed_type_identifier, message_contents_constructor)
 		})
 	}
 
@@ -70,7 +70,7 @@ impl Message
 	///
 	/// Assumes the `buffer_sized_as_for_maximum_possible` is correctly aligned for a `MessageHeader`.
 	#[inline(always)]
-	pub(crate) fn enqueue_once_buffer_allocated<MessageContents>(buffer_sized_as_for_maximum_possible: &mut [u8], compressed_type_identifier: CompressedTypeIdentifier, message_contents_constructor: impl FnOnce(NonNull<MessageContents>))
+	pub(crate) fn enqueue_once_buffer_allocated<MessageContents, MessageContentsConstructor: FnOnce(NonNull<MessageContents>)>(buffer_sized_as_for_maximum_possible: &mut [u8], compressed_type_identifier: CompressedTypeIdentifier, message_contents_constructor: MessageContentsConstructor)
 	{
 		let total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after = buffer_sized_as_for_maximum_possible.len();
 		debug_assert_eq!(Self::largest_possible_total_message_size_including_message_header::<MessageContents>(), total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after, "buffer_sized_as_for_maximum_possible is not");

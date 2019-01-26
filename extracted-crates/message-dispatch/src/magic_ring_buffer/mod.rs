@@ -47,7 +47,6 @@ use ::std::os::unix::io::RawFd;
 use ::std::os::unix::ffi::OsStrExt;
 use ::std::path::Path;
 use ::std::ptr::null_mut;
-use ::std::slice::from_raw_parts;
 use ::std::slice::from_raw_parts_mut;
 use ::std::sync::atomic::AtomicU64;
 use ::std::sync::atomic::Ordering::*;
