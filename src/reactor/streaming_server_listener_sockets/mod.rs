@@ -9,6 +9,7 @@ use super::*;
 pub mod access_control;
 
 
+include!("AcceptedStreamingSocketMessage.rs");
 include!("streaming_server_listener_reactor.rs");
 include!("StreamingServerListenerSocketCommon.rs");
 include!("StreamingServerListenerSocketInternetProtocolVersion4Reactor.rs");

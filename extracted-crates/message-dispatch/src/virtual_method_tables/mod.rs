@@ -6,5 +6,5 @@ use super::*;
 
 
 include!("DropInPlaceFunctionPointer.rs");
-include!("TaggedVirtualMethodTablePointer.rs");
+include!("TaggedNonNullPointer.rs");
 include!("VirtualMethodTablePointer.rs");

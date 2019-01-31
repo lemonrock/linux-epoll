@@ -2,11 +2,21 @@
 // Copyright © 2019 The developers of message-dispatch. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/message-dispatch/master/COPYRIGHT.
 
 
-/// A map that maps types (not instances) to functions that handle those instances.
+/// A map that maps Types (not instances) to function closures that handle instances of those Types.
+///
+/// Holds state that lives longer than each call to a function closure.
 ///
 /// Can not hold more than 256 functions, but this restriction makes it perform quicker.
 ///
-/// `R` is the result type of calling these functions.
+/// What do the various type arguments relate to?
+///
+/// * `Arguments`: This is short-lived data that is passed by move every time to a call to a function closure, `Function`.
+/// `Returns` is the result type of calling a function closure, `Function`. Typically it will be `Result<X, Y>`.
+/// `Function` is the type of a function closure that takes an instance, `Receiver` ('&mut Self') and arguments `Arguments`.
+/// `Receiver` is the instance of a Type.
+///
+/// `Arguments` and `Returns` have to be the same for all registered function closures.
+/// `Function` and `Receiver` are of a different type for each registered function closure.
 ///
 /// A very clever optimization of this structure could produce a jump table at runtime, so reducing indirect calls to direct calls, should this be necessary.
 #[derive(Debug, Eq, PartialEq)]

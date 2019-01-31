@@ -5,23 +5,29 @@
 #[derive(Debug)]
 struct StreamingServerListenerSocketCommon<SD: SocketData, AC: AccessControl<SD>>
 {
+	streaming_server_listener_socket_file_descriptor: StreamingServerListenerSocketFileDescriptor<SD>,
 	access_control: AC,
-	file_descriptor_distributor: FileDescriptorDistributor<SD>,
+	publisher: QueuePerThreadQueuesPublisher<(), String>,
+	accepted_streaming_socket_message_compressed_type_identifier: CompressedTypeIdentifier,
+	streaming_socket_service_identifier: u8,
 }
 
 impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<SD, AC>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLSR: StreamingServerListenerSocketReactor<SD, AC, AS, A>, AS: Arenas, A: Arena<SSLSR, AS>>(event_poll: &EventPoll<AS>, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, file_descriptor_distributor: FileDescriptorDistributor<SD>) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLSR: StreamingServerListenerSocketReactor<SD, AC, A>, A: Arena<SSLSR>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, publisher: QueuePerThreadQueuesPublisher<(), String>, accepted_streaming_socket_message_compressed_type_identifier: CompressedTypeIdentifier, streaming_socket_service_identifier: u8) -> Result<(), EventPollRegistrationError>
 	{
-		event_poll.register::<SSLSR, A, _>(streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor|
+		event_poll.register::<SSLSR, A, _>(arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor, streaming_server_listener_socket_file_descriptor|
 		{
 			uninitialized_reactor.initialize
 			(
 				Self
 				{
+					streaming_server_listener_socket_file_descriptor,
 					access_control,
-					file_descriptor_distributor,
+					publisher,
+					accepted_streaming_socket_message_compressed_type_identifier,
+					streaming_socket_service_identifier,
 				}
 			);
 			Ok(())
@@ -29,7 +35,7 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 	}
 
 	#[inline(always)]
-	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, file_descriptor: &StreamingServerListenerSocketFileDescriptor<SD>, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 	{
 		debug_assert_eq!(event_flags, EPollEventFlags::Input, "flags contained a flag other than `Input`");
 
@@ -41,12 +47,13 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 			{
 				Ok(AcceptedConnection { streaming_socket_file_descriptor, peer_address }) => if likely!(self.is_remote_peer_allowed(peer_address, &streaming_socket_file_descriptor))
 				{
-					self.file_descriptor_distributor.assign(streaming_socket_file_descriptor)
+					let logical_core_identifier = streaming_socket_file_descriptor.logical_core_identifier();
+					self.publisher.publish_message::<AcceptedStreamingSocket<SD>>(logical_core_identifier, self.accepted_streaming_socket_message_compressed_type_identifier, AcceptedStreamingSocketMessage::<SD>::initialize);
 				},
 
 				Err(error) => match error
 				{
-					Again => return self.finish(),
+					Again => break,
 
 					PerProcessLimitOnNumberOfFileDescriptorsWouldBeExceeded | SystemWideLimitOnTotalNumberOfFileDescriptorsWouldBeExceeded | KernelWouldBeOutOfMemory => continue,
 
@@ -57,20 +64,13 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 			}
 		}
 
-		self.finish()
+		Ok(false)
 	}
 
 	#[inline(always)]
 	fn is_remote_peer_allowed(&self, remote_peer_address: SD, streaming_socket_file_descriptor: &StreamingSocketFileDescriptor<SD>) -> bool
 	{
 		self.access_control.is_remote_peer_allowed(remote_peer_address, streaming_socket_file_descriptor)
-	}
-
-	#[inline(always)]
-	fn finish(&mut self) -> Result<bool, String>
-	{
-		self.file_descriptor_distributor.distribute();
-		Ok(false)
 	}
 }
 
@@ -91,7 +91,7 @@ impl<AC: AccessControl<sockaddr_in>> StreamingServerListenerSocketCommon<sockadd
 			settings.linger_in_FIN_WAIT2_seconds,
 			settings.maximum_SYN_transmits,
 			settings.back_log,
-			current_logical_core(),
+			LogicalCores::current_logical_core(),
 		)
 	}
 }
@@ -113,7 +113,7 @@ impl<AC: AccessControl<sockaddr_in6>> StreamingServerListenerSocketCommon<sockad
 			settings.linger_in_FIN_WAIT2_seconds,
 			settings.maximum_SYN_transmits,
 			settings.back_log,
-			current_logical_core(),
+			LogicalCores::current_logical_core(),
 		)
 	}
 }
@@ -128,7 +128,7 @@ impl<AC: AccessControl<sockaddr_un>> StreamingServerListenerSocketCommon<sockadd
 			&socket_address.0,
 			settings.send_buffer_size_in_bytes,
 			settings.back_log,
-			current_logical_core(),
+			LogicalCores::current_logical_core(),
 		)
 	}
 }

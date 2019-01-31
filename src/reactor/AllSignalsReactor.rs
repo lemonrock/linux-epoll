@@ -4,39 +4,38 @@
 
 /// This object forces all signals to be handled using epoll.
 #[derive(Debug)]
-pub struct AllSignalsReactor<SH: SignalHandler>(SH);
+pub struct AllSignalsReactor<SH: SignalHandler>
+{
+	signal_file_descriptor: Self::FileDescriptor,
+	signal_handler: SH,
+}
 
-impl<AS: Arenas<Signal=Self, SignalArena=A>, A: Arena<Self, AS>, SH: SignalHandler> Reactor<AS, A> for AllSignalsReactor<SH>
+impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 {
 	type FileDescriptor = SignalFileDescriptor;
 
-	const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::Signal;
-
 	type RegistrationData = SH;
 
-	#[inline(always)]
-	fn our_arena(arenas: &AS) -> &A
-	{
-		arenas.signal()
-	}
+	// (arena: &A, compressed_type_identifier: CompressedTypeIdentifier) are really things that should belong to the event_poll
 
 	/// Starts blocking signals at this point.
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<AS>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 
-		event_poll.register::<Self, A, _>(signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this|
+		event_poll.register::<A, Self, _>(arena, reactor_compressed_type_identifier, signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this, signal_file_descriptor|
 		{
 			unsafe
 			{
-				((&mut uninitialized_this.0) as *mut SH).write(registration_data)
+				((&mut uninitialized_this.signal_file_descriptor) as *mut Self::FileDescriptor).write(signal_file_descriptor)
+				((&mut uninitialized_this.signal_handler) as *mut SH).write(registration_data)
 			}
 			Ok(())
 		})
 	}
 
-	fn react(&mut self, _event_poll: &EventPoll<AS>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 	{
 		debug_assert_eq!(event_flags, EPollEventFlags::Input, "flags contained a flag other than `Input`");
 
@@ -46,7 +45,7 @@ impl<AS: Arenas<Signal=Self, SignalArena=A>, A: Arena<Self, AS>, SH: SignalHandl
 		{
 			use self::StructReadError::*;
 
-			match file_descriptor.read(&mut signals)
+			match self.signal_file_descriptor.read(&mut signals)
 			{
 				Err(WouldBlock) => break,
 

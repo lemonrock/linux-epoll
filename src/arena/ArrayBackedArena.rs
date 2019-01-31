@@ -15,18 +15,14 @@ macro_rules! array_backed_arena
 		/// It will also be honoured when `reclaim()` is called; do not call `reclaim()` after `allocate()` without initializing `Hold` to a known, valid state.
 		///
 		/// Default creates an empty arena.
-		pub struct $name<Holds: Reactor<AS, Self>, AS: Arenas>
-		where Holds::FileDescriptor: FromRawFd
+		pub struct $name<Holds>
 		{
 			next_available_slot_index: Cell<ArenaIndex>,
-
-			marker: PhantomData<AS>,
 
 			allocation: [ArenaElement<Holds>; $size],
 		}
 
-		impl<Holds: Reactor<AS, Self>, AS: Arenas> Debug for $name<Holds, AS>
-		where Holds::FileDescriptor: FromRawFd
+		impl<Holds> Debug for $name<Holds>
 		{
 			#[inline(always)]
 			fn fmt(&self, f: &mut Formatter) -> fmt::Result
@@ -35,8 +31,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: Reactor<AS, Self>, AS: Arenas> Default for $name<Holds, AS>
-		where Holds::FileDescriptor: FromRawFd
+		impl<Holds> Default for $name<Holds>
 		{
 			#[inline(always)]
 			fn default() -> Self
@@ -45,8 +40,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: Reactor<AS, Self>, AS: Arenas> Arena<Holds, AS> for $name<Holds, AS>
-		where Holds::FileDescriptor: FromRawFd
+		impl<Holds> Arena<Holds> for $name<Holds>
 		{
 			#[inline(always)]
 			fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ArenaAllocationError>
@@ -66,14 +60,12 @@ macro_rules! array_backed_arena
 			}
 
 			#[inline(always)]
-			fn get(&self, arena_index: ArenaIndex, raw_file_descriptor: RawFd) -> (&mut Holds, Holds::FileDescriptor)
+			fn get(&self, arena_index: ArenaIndex) -> &mut Holds
 			{
-				let file_descriptor = unsafe { Holds::FileDescriptor::from_raw_fd(raw_file_descriptor) };
-
 				let element = self.element(arena_index);
 				debug_assert!(element.is_occupied(), "arena_index was not for an occupied element");
 
-				(element.get_occupied_mut_ref(), file_descriptor)
+				element.get_occupied_mut_ref()
 			}
 
 			#[inline(always)]
@@ -88,8 +80,7 @@ macro_rules! array_backed_arena
 			}
 		}
 
-		impl<Holds: Reactor<AS, Self>, AS: Arenas> $name<Holds, AS>
-		where Holds::FileDescriptor: FromRawFd
+		impl<Holds> $name<Holds>
 		{
 			const Size: usize = $size;
 
@@ -101,8 +92,6 @@ macro_rules! array_backed_arena
 				Self
 				{
 					next_available_slot_index: Cell::new(ArenaElement::<Holds>::first(maximum_number_of_elements)),
-
-					marker: PhantomData,
 
 					allocation:
 					{

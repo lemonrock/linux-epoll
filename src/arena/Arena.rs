@@ -3,8 +3,32 @@
 
 
 /// An arena.
-pub trait Arena<Holds: Reactor<AS, Self>, AS: Arenas>: Sized
+pub trait Arena<Holds>
 {
+	/// Used to hold this arena instance.
+	///
+	/// The naive implementation is to Box this instance.
+	///
+	/// However, a more efficient strategy, particularly for large allocations, would be to use mmap or an unsized type.
+	///
+	/// If overriding `Self::drop_from_non_null()` make sure this is also overridden or memory leaks (or worse) will occur.
+	#[inline(always)]
+	fn to_non_null(self) -> NonNull<Self>
+	{
+		Box::into_raw(Box::new(self))
+	}
+
+	/// Used to drop an arena instance previously converted to a pointer with `Self::to_non_null()`.
+	///
+	/// The naive implementation is to un-Box this instance.
+	///
+	/// If overriding `Self::to_null_null()` make sure this is also overridden or memory leaks (or worse) will occur.
+	#[inline(always)]
+	fn drop_from_non_null(this: NonNull<Self>)
+	{
+		unsafe { drop(Box::from_non_null(this)) }
+	}
+
 	/// Allocate a `Holds` within this arena.
 	///
 	/// The returned pointer should be considered uninitialized.
@@ -12,11 +36,8 @@ pub trait Arena<Holds: Reactor<AS, Self>, AS: Arenas>: Sized
 	/// None is returned if allocation failed.
 	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ArenaAllocationError>;
 
-	/// Get a `Holds` within this arena and rehydrate its raw file descriptor.
-	///
-	/// The `arena_index` can be tagged if desired to internally access different instances of the arena, eg to optimize memory usage for two internal implementations of `Holds`.
-	/// The `arena_index` can be used by file descriptors that are wrapped in enums.
-	fn get(&self, arena_index: ArenaIndex, raw_file_descriptor: RawFd) -> (&mut Holds, Holds::FileDescriptor);
+	/// Get a `Holds` within this arena.
+	fn get(&self, arena_index: ArenaIndex) -> &mut Holds;
 
 	/// Reclaim (drop, destroy or recycle) `Holds` within this arena.
 	fn reclaim(&self, arena_index: ArenaIndex);

@@ -6,6 +6,24 @@
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CompressedTypeIdentifier(u8);
 
+impl From<u8> for CompressedTypeIdentifier
+{
+	#[inline(always)]
+	fn from(value: u8) -> Self
+	{
+		Self(value)
+	}
+}
+
+impl Into<u8> for CompressedTypeIdentifier
+{
+	#[inline(always)]
+	fn into(self) -> u8
+	{
+		self.0
+	}
+}
+
 impl CompressedTypeIdentifier
 {
 	const Size: usize = size_of::<Self>();

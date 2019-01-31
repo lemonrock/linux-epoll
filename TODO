@@ -46,6 +46,12 @@ TODO
 	    - in accept();
 	    - in do_initial_input_and_output_and_register_with_epoll_if_necesssary();
 
+    // TODO: copy code from libnuma (numactl) to parse /proc/self/? and extract logical cores bound to the process.
+        // Abstract current cpu logical, too.
+
+    // TODO: Write a SOCKS 4a / 5 client Stream impl
+    // TODO: Write a TLSSTART Stream impl for LDAP / SMTP
+
 	- how to client and server streaming sockets (perhaps 2 kinds of reactors therefore more arenas)
 
 	- how to manage multiple file descriptors where all are epoll'd to achive a task

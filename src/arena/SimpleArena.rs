@@ -12,19 +12,15 @@
 ///
 /// Default creates an empty arena.
 #[derive(Debug)]
-pub struct SimpleArena<Holds: Reactor<AS, Self>, AS: Arenas>
-where Holds::FileDescriptor: FromRawFd
+pub struct SimpleArena<Holds>
 {
 	next_available_slot_index: Cell<ArenaIndex>,
-
-	marker: PhantomData<AS>,
 
 	// Sadly this causes pointer-chasing as Rust does not yet permit creation of dynamically sized types.
 	allocation: Box<[ArenaElement<Holds>]>,
 }
 
-impl<Holds: Reactor<AS, Self>, AS: Arenas> Default for SimpleArena<Holds, AS>
-where Holds::FileDescriptor: FromRawFd
+impl<Holds> Default for SimpleArena<Holds>
 {
 	#[inline(always)]
 	fn default() -> Self
@@ -33,8 +29,7 @@ where Holds::FileDescriptor: FromRawFd
 	}
 }
 
-impl<Holds: Reactor<AS, Self>, AS: Arenas> Arena<Holds, AS> for SimpleArena<Holds, AS>
-where Holds::FileDescriptor: FromRawFd
+impl<Holds> Arena<Holds> for SimpleArena<Holds>
 {
 	#[inline(always)]
 	fn allocate(&self) -> Result<(NonNull<Holds>, ArenaIndex), ArenaAllocationError>
@@ -54,14 +49,12 @@ where Holds::FileDescriptor: FromRawFd
 	}
 
 	#[inline(always)]
-	fn get(&self, arena_index: ArenaIndex, raw_file_descriptor: RawFd) -> (&mut Holds, Holds::FileDescriptor)
+	fn get(&self, arena_index: ArenaIndex) -> &mut Holds
 	{
-		let file_descriptor = unsafe { Holds::FileDescriptor::from_raw_fd(raw_file_descriptor) };
-
 		let element = self.element(arena_index);
 		debug_assert!(element.is_occupied(), "arena_index was not for an occupied element");
 
-		(element.get_occupied_mut_ref(), file_descriptor)
+		element.get_occupied_mut_ref()
 	}
 
 	#[inline(always)]
@@ -76,8 +69,7 @@ where Holds::FileDescriptor: FromRawFd
 	}
 }
 
-impl<Holds: Reactor<AS, Self>, AS: Arenas> SimpleArena<Holds, AS>
-where Holds::FileDescriptor: FromRawFd
+impl<Holds> SimpleArena<Holds>
 {
 	/// Creates a new instance.
 	///
@@ -87,8 +79,6 @@ where Holds::FileDescriptor: FromRawFd
 		Self
 		{
 			next_available_slot_index: Cell::new(ArenaElement::<Holds>::first(maximum_number_of_elements)),
-
-			marker: PhantomData,
 
 			allocation:
 			{

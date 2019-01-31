@@ -4,81 +4,74 @@
 
 /// Wraps event polling.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EventPoll<AS: Arenas>
+struct EventPoll<T: Terminate>
 {
-	arenas: ManuallyDrop<AS>,
-	epoll_file_descriptor: ManuallyDrop<EPollFileDescriptor>,
+	arenas: Arenas<T>,
+	epoll_file_descriptor: EPollFileDescriptor,
+	time_out: EPollTimeOut,
+	spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell<HashSet<EventPollToken>>,
 }
 
-impl<AS: Arenas> Drop for EventPoll<AS>
+impl<T: Terminate> ArenasRegistrar for EventPoll<T>
 {
 	#[inline(always)]
-	fn drop(&mut self)
+	fn register_arena<A: Arena<R>, R: Reactor>(&mut self, arena: A) -> CompressedTypeIdentifier
 	{
-		#[inline(always)]
-		fn inner_drop<AS: Arenas>(event_poll: &EventPoll<AS>, epoll_information_items: impl Iterator<Item=EPollInformationItem>)
-		{
-			for epoll_information_item in epoll_information_items
-			{
-				let event_poll_token = EventPollToken(epoll_information_item.token);
-				let raw_file_descriptor = epoll_information_item.target_file_descriptor;
-
-				#[inline(always)]
-				fn dispatch<AS: Arenas, R: Reactor<AS, A>, A: Arena<R, AS>>(event_poll: &EventPoll<AS>, arena: &A, arena_index: ArenaIndex, _reactor: &mut R, file_descriptor: R::FileDescriptor)
-				{
-					arena.reclaim(arena_index);
-					event_poll.deregister_and_close(file_descriptor)
-				}
-
-				file_descriptor_kind_dispatch!(&event_poll.arenas, event_poll_token, raw_file_descriptor, dispatch, event_poll);
-			}
-		}
-
-		if let Ok((_header, epoll_information_items)) = self.epoll_file_descriptor.information()
-		{
-			inner_drop(self, epoll_information_items)
-		}
-
-		unsafe
-		{
-			ManuallyDrop::drop(&mut self.arenas);
-			ManuallyDrop::drop(&mut self.epoll_file_descriptor);
-		}
+		self.arenas.register::<A, R>(arena)
 	}
 }
 
-impl<AS: Arenas> EventPoll<AS>
+impl<T: Terminate> EventPoll<T>
 {
+	const MaximumEvents: usize = 1024;
+
 	/// Creates a new instance.
 	///
 	/// Only one instance per thread is normally required.
 	#[inline(always)]
-	pub fn new(arenas: AS) -> Result<Self, CreationError>
+	pub fn new(arenas: Arenas<T>, time_out_milliseconds: u16) -> Result<Self, CreationError>
 	{
 		Ok
 		(
 			Self
 			{
-				arenas: ManuallyDrop::new(arenas),
-				epoll_file_descriptor: ManuallyDrop::new(EPollFileDescriptor::new()?),
+				arenas,
+				epoll_file_descriptor: EPollFileDescriptor::new()?,
+				time_out: EPollTimeOut::in_n_milliseconds(time_out_milliseconds),
+				spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell::new(HashSet::with_capacity(Self::MaximumEvents))
 			}
 		)
 	}
 
-	/// Add a new reactor.
-	pub fn add<R: Reactor<AS, A>, A: Arena<R, AS>>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	/// Adds a new reactor, efficiently.
+	///
+	/// The arena used by the reactor **MUST** have been previously added to the `Arenas` passed on construction of the EventPoll in `EventPoll::new()`.
+	///
+	/// Very unsafe as no checks are made that `reactor_compressed_type_identifier` is actually for `R`.
+	#[inline(always)]
+	pub unsafe fn add_a_new_reactor_efficiently<A: Arena<R>, R: Reactor>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
-		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, registration_data)
+		let arena = self.arenas.get_unsized_arena(reactor_compressed_type_identifier);
+
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
 	}
 
-	/// Register a new file descriptor and allocate space for its management data in an arena.
+	/// Adds a new reactor, slightly slowly.
+	///
+	/// The arena used by the reactor **MUST** have been previously added to the `Arenas` passed on construction of the EventPoll in `EventPoll::new()`.
 	#[inline(always)]
-	pub(crate) fn register<R: Reactor<AS, A>, A: Arena<R, AS>, F: FnOnce(&mut R) -> Result<(), EventPollRegistrationError>>(&self, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: F) -> Result<(), EventPollRegistrationError>
+	pub fn add_a_new_reactor_slightly_slowly<A: Arena<R>, R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
-		let arena = R::our_arena(&self.arenas);
+		let (arena, reactor_compressed_type_identifier) = self.arenas.get_arena_and_reactor_compressed_type_identifier::<A, R>();
 
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
+	}
+
+	#[inline(always)]
+	pub(crate) fn register<A: Arena<R>, R: Reactor, F: FnOnce(&mut R, R::FileDescriptor) -> Result<(), EventPollRegistrationError>>(&self, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: F) -> Result<(), EventPollRegistrationError>
+	{
 		let (mut non_null, arena_index) = arena.allocate()?;
-		let event_poll_token = EventPollToken::new(R::FileDescriptorKind, &file_descriptor, arena_index);
+		let event_poll_token = EventPollToken::new(reactor_compressed_type_identifier, arena_index);
 
 		match self.epoll_file_descriptor.add(file_descriptor.as_raw_fd(), add_flags, event_poll_token.0)
 		{
@@ -90,56 +83,93 @@ impl<AS: Arenas> EventPoll<AS>
 
 			Ok(()) =>
 			{
-				forget(file_descriptor);
-				initializer(unsafe { non_null.as_mut() })
+				let uninitialized_reactor = unsafe { non_null.as_mut() };
+				initializer(uninitialized_reactor, file_descriptor)
 			}
 		}
 	}
 
-	/// Event loop; loops until terminate is set or a serious error occurs.
+	/// One iteration of an event loop.
+	///
+	/// If interrupted by a signal then re-waits on epoll unless terminate has become true.
 	#[inline(always)]
-	pub fn event_loop<'a>(&self, terminate: &impl Terminate, time_out_milliseconds: u16) -> Result<(), String>
+	pub(crate) fn event_loop_iteration(&self) -> Result<(), String>
 	{
-		const MaximumEvents: usize = 1024;
+		let mut events: [epoll_event; Self::MaximumEvents] = unsafe { uninitialized() };
 
-		let time_out = EPollTimeOut::in_n_milliseconds(time_out_milliseconds);
-		let mut events: [epoll_event; MaximumEvents] = unsafe { uninitialized() };
-		let mut spurious_event_suppression_of_already_closed_file_descriptors = HashSet::with_capacity(MaximumEvents);
+		self.spurious_event_suppression_of_already_closed_file_descriptors().clear();
 
-		while terminate.should_continue()
+		let ready_events = loop
 		{
-			let ready_events = match self.epoll_file_descriptor.wait(&mut events, time_out)
+			match self.epoll_file_descriptor.wait(&mut events, self.time_out)
 			{
-				Ok(ready_events) => ready_events,
+				Ok(ready_events) => break ready_events,
 
-				Err(EPollWaitError::Interrupted) => continue,
-			};
-
-			for ready_event in ready_events
-			{
-				let event_poll_token = EventPollToken(ready_event.token());
-				let result = FileDescriptorKind::react(self, event_poll_token, &mut spurious_event_suppression_of_already_closed_file_descriptors, &self.arenas, ready_event.flags(), terminate);
-				if let Err(reason) = result
+				Err(EPollWaitError::Interrupted) => if likely!(self.terminate.should_continue())
 				{
-					terminate.begin_termination();
-					return Err(reason)
+					continue
 				}
+				else
+				{
+					return Ok(())
+				},
+			}
+		};
+
+		for ready_event in ready_events
+		{
+			let event_poll_token = EventPollToken(ready_event.token());
+
+			if unlikely!(self.spurious_event_suppression_of_already_closed_file_descriptors().contains(event_poll_token))
+			{
+				continue
 			}
 
-			spurious_event_suppression_of_already_closed_file_descriptors.clear();
+			let result = self.react(event_poll_token, ready_event.flags());
+			if let Err(reason) = result
+			{
+				self.terminate.begin_termination();
+				return Err(reason)
+			}
 		}
 
 		Ok(())
 	}
 
 	#[inline(always)]
-	pub(crate) fn deregister_and_close(&self, file_descriptor: impl AsRawFd)
+	fn spurious_event_suppression_of_already_closed_file_descriptors(&self) -> &mut HashSet<RawFd>
 	{
-		if cfg!(not(feature = "assume-file-descriptors-are-never-duplicated"))
+		unsafe { &mut * self.spurious_event_suppression_of_already_closed_file_descriptors }
+	}
+
+	#[inline(always)]
+	fn react(&self, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	{
+		let reactor_compressed_type_identifier = event_poll_token.reactor_compressed_type_identifier();
+		let (unsized_arena, react_function_pointer) = self.arenas.get_unsized_arena_and_react_function_pointer(reactor_compressed_type_identifier);
+		react_function_pointer(self, unsized_arena, event_poll_token, event_flags, terminate)
+	}
+
+	#[inline(always)]
+	pub(crate) fn react_callback<A: Arena<R>, R: Reactor>(&self, arena: &A, event_poll_token: EventPollToken, event_flags: EPollEventFlags) -> Result<bool, String>
+	{
+		let reactor = arena.get(event_poll_token.arena_index());
+
+		match reactor.react(event_flags, &self.terminate)
 		{
-			let raw_file_descriptor = file_descriptor.as_raw_fd();
-			self.epoll_file_descriptor.delete(raw_file_descriptor);
+			Err(reason) => Err(reason),
+
+			Ok(dispose) =>
+			{
+				if unlikely!(dispose)
+				{
+					let first_insertion = self.spurious_event_suppression_of_already_closed_file_descriptors().insert(event_poll_token);
+					debug_assert!(first_insertion, "Spurious event somehow not captured and double-close of file descriptor occurred");
+
+					arena.reclaim(arena_index);
+				}
+				Ok(())
+			}
 		}
-		drop(file_descriptor);
 	}
 }

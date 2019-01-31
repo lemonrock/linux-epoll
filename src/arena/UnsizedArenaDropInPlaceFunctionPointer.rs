@@ -2,19 +2,4 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-use super::reactor::Reactor;
-
-
-include!("Arena.rs");
-include!("ArenaAllocationError.rs");
-include!("ArenaElement.rs");
-include!("ArenaIndex.rs");
-include!("Arenas.rs");
-include!("ArenasRegistrar.rs");
-include!("ArenasRegistration.rs");
-include!("ArrayBackedArena.rs");
-include!("SimpleArena.rs");
-include!("UnsizedArena.rs");
-include!("UnsizedArenaDropInPlaceFunctionPointer.rs");
-include!("UnsizedReactFunctionPointer.rs");
+type UnsizedArenaDropInPlaceFunctionPointer = fn(NonNull<UnsizedArena>);

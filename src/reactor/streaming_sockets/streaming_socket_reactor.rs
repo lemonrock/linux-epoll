@@ -13,34 +13,26 @@ macro_rules! streaming_socket_reactor
 			common: StreamingSocketCommon<SF, SU, $sockaddr_type>,
 		}
 
-		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> Reactor<AS, A> for $reactor_name<SF, SU>
+		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>> Reactor for $reactor_name<SF, SU>
 		{
 			type FileDescriptor = $file_descriptor_name;
-
-			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$title_case;
 
 			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, Rc<SF>, SF::AdditionalArguments, Rc<SU>);
 
 			#[inline(always)]
-			fn our_arena(arenas: &AS) -> &A
+			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 			{
-				arenas.$lower_case_kind()
+				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, A>(event_poll, arena, reactor_compressed_type_identifier, registration_data)
 			}
 
 			#[inline(always)]
-			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<AS>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+			fn react(&mut self, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 			{
-				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, AS, A>(event_poll, registration_data)
-			}
-
-			#[inline(always)]
-			fn react(&mut self, event_poll: &EventPoll<AS>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
-			{
-				self.common.react(event_poll, file_descriptor, event_flags, terminate)
+				self.common.react(event_flags, terminate)
 			}
 		}
 
-		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> StreamingSocketReactor<SF, SU, $sockaddr_type, AS, A> for $reactor_name<SF, SU>
+		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>> StreamingSocketReactor<SF, SU, $sockaddr_type> for $reactor_name<SF, SU>
 		{
 			#[inline(always)]
 			fn initialize(&mut self, common: StreamingSocketCommon<SF, SU, $sockaddr_type>)

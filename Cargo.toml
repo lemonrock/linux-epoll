@@ -17,25 +17,13 @@ readme = "README.md"
 publish = false
 version = "0.0.0"
 
-[features]
-default = []
-assume-file-descriptors-are-never-duplicated = []
-
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 context-coroutine = { path = "extracted-crates/context-coroutine", version = "^0.1.0" }
-cpu-affinity = "^0.2.0"
-file-descriptors = "^0.8.5"
+cpu-affinity = "^0.4.2"
+dpdk-unix = "^0.2.4"
+file-descriptors = "^0.8.6"
 libc = "^0.2.44"
 likely = "^0.1"
-lock-free-multi-producer-single-consumer-ring-buffer = "^0.4.0"
 rustls-extra = { path = "extracted-crates/rustls-extra", version = "0.14.0" }
 terminate = { path = "extracted-crates/terminate", version = "^0.1.0" }
 treebitmap = "^0.3"
-
-[profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
-debug-assertions = false
-codegen-units = 1

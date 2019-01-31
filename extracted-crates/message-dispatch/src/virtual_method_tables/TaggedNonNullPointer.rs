@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of message-dispatch. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/message-dispatch/master/COPYRIGHT.
 
 
-/// A virtual table method pointer with a tag value for unused bits in the virtual method pointer.
+/// A pointer with a tag value for unused bits in the raw pointer.
 ///
 /// Always a total of 64-bits in size, even on on 32-bit systems.
 ///
@@ -19,9 +19,9 @@
 /// * On all systems, a virtual method table can never be the null pointer (all zeros).
 /// * However, 52-bit pointers are proposed for ARMv8.2 and 56-bit pointers by Intel for x86-64 (<https://software.intel.com/sites/default/files/managed/2b/80/5-level_paging_white_paper.pdf>), but these features are a way off and will require opt-in by Linux.
 #[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub struct TaggedVirtualMethodTablePointer(u64);
+pub struct TaggedNonNullPointer(u64);
 
-impl TaggedVirtualMethodTablePointer
+impl TaggedNonNullPointer
 {
 	#[cfg(target_pointer_width = "64")] const AlignedPointerShift: u64 = 3;
 	#[cfg(target_pointer_width = "32")] const AlignedPointerShift: u64 = 2;
@@ -35,13 +35,13 @@ impl TaggedVirtualMethodTablePointer
 
 	const TagBitsMask: u64 = Self::MaximumTagBitsValue << Self::TagBitsShift;
 
-	/// This logic assumes the `virtual_method_table_pointer` is aligned to the target architecture's native alignment.
+	/// This logic assumes the `non_null_pointer` is aligned to the target architecture's native alignment.
 	///
 	/// Tag bits must not exceed `2^19 - 1` to be platform-portable.
 	#[inline(always)]
-	pub fn tag(tag_bits: u32, virtual_method_table_pointer: VirtualMethodTablePointer) -> Self
+	pub fn tag(tag_bits: u32, non_null_pointer: NonNull<()>) -> Self
 	{
-		Self::new(tag_bits, virtual_method_table_pointer.into())
+		Self::new(tag_bits, non_null_pointer.into())
 	}
 
 	/// This assumes no virtual method table pointer.
@@ -54,15 +54,15 @@ impl TaggedVirtualMethodTablePointer
 	}
 
 	#[inline(always)]
-	fn new(tag_bits: u32, virtual_method_table_pointer: *mut ()) -> Self
+	fn new(tag_bits: u32, pointer: *mut ()) -> Self
 	{
 		let tag_bits = tag_bits as u64;
 		debug_assert!(tag_bits as u64 <= Self::MaximumTagBitsValue, "tag_bits `{}` is larger than the maximum possible `{}`", tag_bits, Self::MaximumTagBitsValue);
 		let tag_bits_shifted = tag_bits << Self::TagBitsShift;
 
-		let virtual_method_table_pointer_downshifted = (virtual_method_table_pointer as usize as u64) >> Self::AlignedPointerShift;
+		let pointer_downshifted = (pointer as usize as u64) >> Self::AlignedPointerShift;
 
-		Self(tag_bits_shifted | virtual_method_table_pointer_downshifted)
+		Self(tag_bits_shifted | pointer_downshifted)
 	}
 
 	/// Tag bits.
@@ -74,7 +74,7 @@ impl TaggedVirtualMethodTablePointer
 
 	/// Virtual Method Table pointer (or None if special).
 	#[inline(always)]
-	pub fn virtual_method_table_pointer(self) -> Option<VirtualMethodTablePointer>
+	pub fn non_null_pointer<T>(self) -> Option<NonNull<T>>
 	{
 		let raw_pointer = ((self.0 & !Self::TagBitsMask) << Self::AlignedPointerShift) as usize as *mut ();
 		if raw_pointer.is_null()
@@ -83,7 +83,7 @@ impl TaggedVirtualMethodTablePointer
 		}
 		else
 		{
-			Some(VirtualMethodTablePointer(unsafe { NonNull::new_unchecked(raw_pointer) }))
+			Some(unsafe { NonNull::new_unchecked(raw_pointer as *mut T) })
 		}
 	}
 }

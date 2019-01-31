@@ -5,10 +5,6 @@
 use super::*;
 
 
-/// Distribution of file descriptors to the most appropriate thread.
-pub mod distribution;
-
-
 /// Streaming socket reactors and supporting logic.
 #[macro_use] pub mod streaming_sockets;
 
@@ -22,3 +18,5 @@ include!("CompleteError.rs");
 include!("InputOutputYielder.rs");
 include!("ReactEdgeTriggeredStatus.rs");
 include!("Reactor.rs");
+include!("ReactorsRegistrar.rs");
+include!("ReactorsRegistration.rs");

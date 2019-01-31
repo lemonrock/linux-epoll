@@ -5,7 +5,7 @@
 /// Remote peer address-based access control.
 ///
 /// Holds deny and permitted address lists (black lists and white lists) for remote Internet Protocol version 4 and version 6 subnets; the deny list is checked first, and, if the address is not present, the allow list then checked.
-/// This allows for generic white listing rules (eg all of the regular internet) and then for explicit exemptions (eg these networks in this country).
+/// This allows for generic white listing rules (eg all of the regular internet) and then for explicit exemptions (eg these message-dispatchs in this country).
 ///
 /// For unix domain sockets, there is a deny list of user identifiers and a permitted list of (primary) group identifiers.
 /// The deny list is checked first, and, if the user identifier is not present, the allow list is then checked.

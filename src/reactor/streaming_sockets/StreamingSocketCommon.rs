@@ -6,6 +6,7 @@
 pub struct StreamingSocketCommon<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData>
 {
 	started_coroutine: StartedStackAndTypeSafeTransfer<SimpleStack, Self>,
+	streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>,
 }
 
 #[doc(hidden)]
@@ -44,7 +45,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for
 impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSocketCommon<SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<SF, SU, SD, AS, A>, AS: Arenas, A: Arena<SSR, AS>>(event_poll: &EventPoll<AS>, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, Rc<SF>, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<SF, SU, SD, A>, A: Arena<SSR>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, Rc<SF>, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
 	{
 		let start_arguments =
 		(
@@ -63,13 +64,14 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 			WouldLikeToResume((), started_coroutine) => started_coroutine,
 		};
 
-		event_poll.register::<SSR, A, _>(streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor|
+		event_poll.register::<SSR, A, _>(arena, reactor_compressed_type_identifier, streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor, streaming_socket_file_descriptor|
 		{
 			uninitialized_reactor.initialize
 			(
 				Self
 				{
 					started_coroutine,
+					streaming_socket_file_descriptor,
 				}
 			);
 			Ok(())
@@ -77,7 +79,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 	}
 
 	#[inline(always)]
-	fn react(&mut self, _event_poll: &EventPoll<impl Arenas>, _file_descriptor: &StreamingSocketFileDescriptor<SD>, event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&mut self, event_flags: EPollEventFlags, _terminate: &impl Terminate) -> Result<bool, String>
 	{
 		use self::ReactEdgeTriggeredStatus::*;
 
@@ -125,7 +127,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 			{
 				WouldLikeToResume(_yields @ ()) => Ok(false),
 
-				Complete(complete) => Ok(complete.is_err()),
+				Complete(_complete) => Ok(true),
 			}
 		}
 	}

@@ -15,38 +15,30 @@ macro_rules! streaming_server_listener_reactor
 			common: StreamingServerListenerSocketCommon<$sockaddr_type, AC>,
 		}
 
-		impl<AC: AccessControl<$sockaddr_type>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> Reactor<AS, A> for $reactor_name<AC>
+		impl<AC: AccessControl<$sockaddr_type>> Reactor for $reactor_name<AC>
 		{
 			type FileDescriptor = $file_descriptor_name;
 
-			const FileDescriptorKind: FileDescriptorKind = FileDescriptorKind::$title_case;
-
-			type RegistrationData = (Arc<StreamingServerListenerSocketSettings>, $rust_socket_type, AC, FileDescriptorDistributor<$sockaddr_type>);
+			type RegistrationData = (Arc<StreamingServerListenerSocketSettings>, $rust_socket_type, AC, FileDescriptorDistributor<$sockaddr_type>, QueuePerThreadQueuesPublisher<(), String>, CompressedTypeIdentifier, u8);
 
 			#[inline(always)]
-			fn our_arena(arenas: &AS) -> &A
-			{
-				arenas.$lower_case_kind()
-			}
-
-			#[inline(always)]
-			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary(event_poll: &EventPoll<AS>, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 			{
 				let (settings, socket_address, access_control, file_descriptor_distributor) = registration_data;
 
 				let streaming_server_listener_socket_file_descriptor = StreamingServerListenerSocketCommon::<$sockaddr_type, AC>::new_streaming_socket_file_descriptor(&settings, socket_address)?;
 
-				StreamingServerListenerSocketCommon::<$sockaddr_type, AC>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, AS, A>(event_poll, streaming_server_listener_socket_file_descriptor, access_control, file_descriptor_distributor)
+				StreamingServerListenerSocketCommon::<$sockaddr_type, AC>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, A>(event_poll, arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, access_control, file_descriptor_distributor)
 			}
 
 			#[inline(always)]
-			fn react(&mut self, event_poll: &EventPoll<AS>, file_descriptor: &Self::FileDescriptor, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+			fn react(&mut self, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
 			{
-				self.common.react(event_poll, file_descriptor, event_flags, terminate)
+				self.common.react(event_flags, terminate)
 			}
 		}
 
-		impl<AC: AccessControl<$sockaddr_type>, AS: Arenas<$title_case=Self, $title_case_arena=A>, A: Arena<Self, AS>> StreamingServerListenerSocketReactor<$sockaddr_type, AC, AS, A> for $reactor_name<AC>
+		impl<AC: AccessControl<$sockaddr_type>> StreamingServerListenerSocketReactor<$sockaddr_type, AC> for $reactor_name<AC>
 		{
 			#[inline(always)]
 			fn initialize(&mut self, common: StreamingServerListenerSocketCommon<$sockaddr_type, AC>)

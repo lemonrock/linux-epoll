@@ -3,26 +3,68 @@
 
 
 /// Simple implementation of Terminate.
-#[derive(Default, Debug, Clone)]
-pub struct SimpleTerminate(Arc<AtomicBool>);
+#[derive(Default, Debug)]
+pub struct SimpleTerminate
+{
+	terminate: AtomicBool,
+	terminated_due_to_panic_or_irrecoverable_error: AtomicBool,
+}
 
 impl Terminate for SimpleTerminate
 {
 	#[inline(always)]
 	fn begin_termination(&self)
 	{
-		self.0.store(true, Relaxed)
+		self.terminate.store(true, Relaxed)
 	}
 
 	#[inline(always)]
 	fn begin_termination_due_to_panic(&self, _panic_info: &PanicInfo)
 	{
+		self.set_terminated_due_to_panic_or_irrecoverable_error();
+		self.begin_termination()
+	}
+
+	#[inline(always)]
+	fn begin_termination_due_to_irrecoverable_error(&self, _irrecoverable_error: &(dyn Any + Send))
+	{
+		self.set_terminated_due_to_panic_or_irrecoverable_error();
 		self.begin_termination()
 	}
 
 	#[inline(always)]
 	fn should_finish(&self) -> bool
 	{
-		self.0.load(Relaxed)
+		self.terminate.load(Relaxed)
+	}
+
+	#[inline(always)]
+	fn terminated_due_to_panic_or_irrecoverable_error(&self) -> bool
+	{
+		self.terminated_due_to_panic_or_irrecoverable_error.load(Relaxed)
+	}
+}
+
+impl SimpleTerminate
+{
+	/// Creates a new instance.
+	#[inline(always)]
+	pub fn new() -> Arc<Self>
+	{
+		Arc::new
+		(
+			Self
+			{
+				terminate: AtomicBool::new(false),
+				terminated_due_to_panic_or_irrecoverable_error: AtomicBool::new(false),
+			}
+		)
+	}
+
+	/// Status.
+	#[inline(always)]
+	pub fn set_terminated_due_to_panic_or_irrecoverable_error(&self)
+	{
+		self.terminated_due_to_panic_or_irrecoverable_error.store(true, Relaxed);
 	}
 }
