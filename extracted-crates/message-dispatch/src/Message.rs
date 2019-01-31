@@ -4,7 +4,7 @@
 
 /// Represents a message to be enqueued to a buffer.
 #[repr(C)]
-pub struct Message
+struct Message
 {
 	message_header: MessageHeader,
 	padding_to_align_message_contents_and_message_contents_and_padding_to_align_next_message_header: VariablySized,
@@ -116,11 +116,9 @@ impl Message
 		message_contents_constructor(unsafe { NonNull::new_unchecked(message_contents_pointer as *mut MessageContents) })
 	}
 
-	/// The handlers in `message_handlers` are responsible for logically dropping the message; it is recommended that messages and their constituent fields do not implement `Drop`.
-	///
 	/// Returns `(next_message_pointer, R)`.
 	#[inline(always)]
-	fn process_next_message_in_buffer<R>(buffer: &mut [u8], message_handlers: &mut MutableTypeErasedBoxedFunctionCompressedMap<R>) -> (usize, R)
+	fn process_next_message_in_buffer<R, F: FnMut(CompressedTypeIdentifier, &mut VariablySized) -> R>(buffer: &mut [u8], mut message_handler: F) -> (usize, R)
 	{
 		const MessageHeaderSize: usize = size_of::<MessageHeader>();
 		const MessageHeaderAlignment: usize = align_of::<MessageHeader>();
@@ -140,7 +138,7 @@ impl Message
 		let compressed_type_identifier = message_header.compressed_type_identifier;
 		let arguments = message_header.message_contents();
 
-		let outcome = message_handlers.call(compressed_type_identifier, arguments);
+		let outcome = message_handler(compressed_type_identifier, arguments);
 		(total_message_size_including_message_header_padding_to_align_before_message_contents_and_padding_to_align_after, outcome)
 	}
 }

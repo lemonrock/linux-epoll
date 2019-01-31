@@ -2,8 +2,10 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-
-
-include!("Arenas.rs");
-include!("SimpleArenas.rs");
+/// Access to the dequeue operations of a queue.
+pub trait Dequeue<E>
+{
+	/// Dequeues messages.
+	#[inline(always)]
+	fn dequeue(&self, terminate: &impl Terminate) -> Result<(), E>;
+}

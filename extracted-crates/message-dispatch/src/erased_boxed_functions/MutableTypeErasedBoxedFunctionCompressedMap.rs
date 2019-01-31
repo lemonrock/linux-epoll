@@ -12,7 +12,7 @@
 #[derive(Debug, Eq, PartialEq)]
 pub struct MutableTypeErasedBoxedFunctionCompressedMap<R>
 {
-	compressed_type_identifier_to_function: ArrayVec<[MutableTypeErasedBoxedFunction<R>; CompressedTypeIdentifier::Size]>,
+	compressed_type_identifier_to_function: ArrayVec<[(MutableTypeErasedBoxedFunction<R>, DropInPlaceFunctionPointer); CompressedTypeIdentifier::Size]>,
 	type_identifier_to_compressed_type_identifier: HashMap<TypeId, CompressedTypeIdentifier>,
 }
 
@@ -28,17 +28,15 @@ impl<R> Default for MutableTypeErasedBoxedFunctionCompressedMap<R>
 	}
 }
 
-impl<R> MutableTypeErasedBoxedFunctionCompressedMap<R>
+impl<R> Register<R> for MutableTypeErasedBoxedFunctionCompressedMap<R>
 {
-	/// Registers a handler and returns a `CompressedTypeIdentifier` to refer to it.
-	///
-	/// Panics if the handler has already been registered (only if `debug_assertions` are configured).
-	///
-	/// Panics if there is not space for more handlers (only 256 handlers are allowed) (only if `debug_assertions` are configured).
 	#[inline(always)]
-	pub fn register<Function: FnMut(&mut Arguments) -> R + 'static, Arguments: 'static + ?Sized>(&mut self, function: Function) -> CompressedTypeIdentifier
+	fn enter_into_the_register<Function: FnMut(&mut Receiver) -> R + 'static, Receiver: 'static>(&mut self, function: Function) -> CompressedTypeIdentifier
 	{
-		let type_identifier = TypeId::of::<Arguments>();
+		let virtual_method_table_pointer = VirtualMethodTablePointer::from_any::<Receiver>();
+		let drop_in_place_function_pointer = virtual_method_table_pointer.drop_in_place_function_pointer();
+
+		let type_identifier = TypeId::of::<Receiver>();
 
 		let length = self.compressed_type_identifier_to_function.len();
 		debug_assert_ne!(length, CompressedTypeIdentifier::Size, "No more space available");
@@ -47,37 +45,62 @@ impl<R> MutableTypeErasedBoxedFunctionCompressedMap<R>
 		let previous = self.type_identifier_to_compressed_type_identifier.insert(type_identifier, next_type_identifier);
 		debug_assert!(previous.is_none(), "Duplicate registration");
 
-		self.compressed_type_identifier_to_function.push(MutableTypeErasedBoxedFunction::new(function));
+		self.compressed_type_identifier_to_function.push((MutableTypeErasedBoxedFunction::new(function), drop_in_place_function_pointer));
 
 		next_type_identifier
+	}
+}
+
+impl<R> MutableTypeErasedBoxedFunctionCompressedMap<R>
+{
+
+	/// Calls the function registered for this compressed type identifier.
+	///
+	/// Panics if no function is registered (only if `debug_assertions` are configured).
+	#[inline(always)]
+	pub fn call_and_drop_in_place<'map: 'receiver, 'receiver, Receiver: 'static + ?Sized>(&'map mut self, compressed_type_identifier: CompressedTypeIdentifier, receiver: &'receiver mut Receiver) -> R
+	{
+		let (function, drop_in_place_function_pointer) = self.entry(compressed_type_identifier);
+		let result = function.call::<Receiver>(receiver);
+		drop_in_place_function_pointer(unsafe { NonNull::new_unchecked(receiver as *mut Receiver as *mut ()) });
+		result
+	}
+
+	/// Calls the drop in place function registered for this compressed type identifier.
+	///
+	/// Panics if no function is registered (only if `debug_assertions` are configured).
+	#[inline(always)]
+	pub fn drop_in_place<'map: 'receiver, 'receiver, Receiver: 'static + ?Sized>(&'map mut self, compressed_type_identifier: CompressedTypeIdentifier, receiver: &'receiver mut Receiver)
+	{
+		let (_function, drop_in_place_function_pointer) = self.entry(compressed_type_identifier);
+		drop_in_place_function_pointer(unsafe { NonNull::new_unchecked(receiver as *mut Receiver as *mut ()) })
 	}
 
 	/// Calls the function registered for this compressed type identifier.
 	///
 	/// Panics if no function is registered (only if `debug_assertions` are configured).
 	#[inline(always)]
-	pub fn call<'map: 'arguments, 'arguments, Arguments: 'static + ?Sized>(&mut self, compressed_type_identifier: CompressedTypeIdentifier, arguments: &'arguments mut Arguments) -> R
+	fn entry(&mut self, compressed_type_identifier: CompressedTypeIdentifier) -> &mut (MutableTypeErasedBoxedFunction<R>, DropInPlaceFunctionPointer)
 	{
 		let index = compressed_type_identifier.index();
 
-		let function = if cfg!(debug_assertions)
+		if cfg!(debug_assertions)
 		{
 			self.compressed_type_identifier_to_function.get_mut(index).unwrap()
 		}
 		else
 		{
 			unsafe { self.compressed_type_identifier_to_function.get_unchecked_mut(index) }
-		};
-		function.call::<Arguments>(arguments)
+		}
 	}
 
 	/// Finds a compressed type identifier for a given type.
 	///
 	/// Slow as it uses a HashMap look up; do not do this on the critical path.
 	#[inline(always)]
-	pub fn find_compressed_type_identifier<Arguments: 'static + ?Sized>(&self) -> Option<CompressedTypeIdentifier>
+	pub fn find_compressed_type_identifier<Receiver: 'static>(&self) -> Option<CompressedTypeIdentifier>
 	{
-		let type_identifier = TypeId::of::<Arguments>();
+		let type_identifier = TypeId::of::<Receiver>();
 		self.find_compressed_type_identifier_from_type_identifier(type_identifier)
 	}
 

@@ -91,7 +91,7 @@ impl MagicRingBuffer
 	///
 	/// Returns true if there is more data to read.
 	#[inline(always)]
-	pub fn single_reader_read_some_data<Reader: FnOnce(&mut [u8]) -> (usize, Result<(), E>), E>(&self, reader: Reader) -> Result<bool, E>
+	pub fn single_reader_read_some_data<E, Reader: FnOnce(&mut [u8]) -> (usize, Result<(), E>)>(&self, reader: Reader) -> Result<bool, E>
 	{
 		let (_current_unread_offset, current_read_offset, unread) = self.current_unread_offset_and_current_read_offset_and_unread();
 

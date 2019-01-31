@@ -3,6 +3,7 @@
 
 
 #[derive(Debug)]
+#[repr(C)]
 struct MessageHeader
 {
 	compressed_type_identifier: CompressedTypeIdentifier,

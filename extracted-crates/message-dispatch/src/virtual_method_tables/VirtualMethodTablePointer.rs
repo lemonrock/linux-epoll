@@ -17,9 +17,28 @@ impl Into<*mut ()> for VirtualMethodTablePointer
 
 impl VirtualMethodTablePointer
 {
+	/// Obtains a virtual method table (vtable) from anything.
+	#[inline(always)]
+	pub fn from_any<T: 'static>() -> Self
+	{
+		let mut fake: T = unsafe { uninitialized() };
+
+		let this =
+		{
+			let fat_pointer: &mut dyn Any = &mut fake;
+
+			let trait_object: TraitObject = unsafe { transmute(fat_pointer) };
+			Self(unsafe { NonNull::new_unchecked(trait_object.vtable) })
+		};
+
+		forget(fake);
+
+		this
+	}
+
 	/// The function pointer to drop an instance in place.
 	#[inline(always)]
-	pub fn drop_in_place_function_pointer<T>(self) -> fn(*mut T)
+	pub fn drop_in_place_function_pointer(self) -> DropInPlaceFunctionPointer
 	{
 		let raw_pointer = unsafe { *(self.0.as_ptr() as *const () as *const usize)};
 		unsafe { transmute(raw_pointer) }

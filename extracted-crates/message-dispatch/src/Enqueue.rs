@@ -2,8 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-
-
-//include!("DistributedFileDescriptorMessage.rs");
-//include!("DistributedFileDescriptorMessageContents.rs");
-//include!("DistributedFileDescriptorMessageContentsVirtualMethodTablesPointerCompression.rs");
+/// Access to the enqueue operations of a queue.
+pub trait Enqueue
+{
+	/// Enqueue a message.
+	fn enqueue<MessageContents>(&self, compressed_type_identifier: CompressedTypeIdentifier, message_contents_constructor: impl FnOnce(NonNull<MessageContents>));
+}

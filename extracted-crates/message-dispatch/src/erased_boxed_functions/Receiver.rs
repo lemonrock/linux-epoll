@@ -4,5 +4,14 @@
 
 extern
 {
-	type CallArguments;
+	type Receiver;
+}
+
+impl Debug for Receiver
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "Receiver")
+	}
 }

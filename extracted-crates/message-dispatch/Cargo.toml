@@ -19,6 +19,7 @@ version = "0.1.0"
 
 [dependencies]
 arrayvec = "^0.4"
+cpu-affinity = "^0.4.2"
 errno = "^0.2"
 file-descriptors = "^0.8.6"
 libc = "^0.2.44"

@@ -6,3 +6,12 @@ extern
 {
 	type BoxedFunctionPointer;
 }
+
+impl Debug for BoxedFunctionPointer
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "BoxedFunctionPointer")
+	}
+}

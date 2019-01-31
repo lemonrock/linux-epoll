@@ -9,8 +9,9 @@
 #![deny(unreachable_patterns)]
 #![feature(asm)]
 #![feature(core_intrinsics)]
-#![feature(integer_atomics)]
 #![feature(extern_types)]
+#![feature(integer_atomics)]
+#![feature(raw)]
 
 
 //! #message-dispatch
@@ -23,6 +24,7 @@
 
 
 extern crate arrayvec;
+extern crate cpu_affinity;
 extern crate libc;
 extern crate file_descriptors;
 extern crate errno;
@@ -32,18 +34,26 @@ extern crate terminate;
 
 use self::magic_ring_buffer::*;
 use self::erased_boxed_functions::*;
+use self::virtual_method_tables::*;
 use ::arrayvec::ArrayVec;
+use ::cpu_affinity::*;
 use ::std::collections::HashMap;
+use ::std::cell::UnsafeCell;
+use ::std::any::Any;
 use ::std::any::TypeId;
 use ::std::fmt;
 use ::std::fmt::Debug;
 use ::std::fmt::Formatter;
 use ::std::mem::align_of;
+use ::std::mem::forget;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
+use ::std::mem::uninitialized;
+use ::std::ops::Deref;
 use ::std::ptr::NonNull;
 use ::std::ptr::null_mut;
 use ::std::ptr::write;
+use ::std::raw::TraitObject;
 use ::std::sync::Arc;
 use ::terminate::Terminate;
 
@@ -63,8 +73,13 @@ pub mod erased_boxed_functions;
 mod virtual_method_tables;
 
 
+include!("Dequeue.rs");
+include!("Enqueue.rs");
 include!("Message.rs");
+include!("MessageHandlersRegistration.rs");
 include!("MessageHeader.rs");
+include!("PerThreadQueueSubscriber.rs");
 include!("round_up_to_alignment.rs");
 include!("Queue.rs");
+include!("QueuePerThreadQueuesPublisher.rs");
 include!("VariablySized.rs");

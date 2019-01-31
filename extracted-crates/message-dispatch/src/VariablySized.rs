@@ -6,3 +6,12 @@ extern
 {
 	type VariablySized;
 }
+
+impl Debug for VariablySized
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		write!(f, "VariablySized")
+	}
+}

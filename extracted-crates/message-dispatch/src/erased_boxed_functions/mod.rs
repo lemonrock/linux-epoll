@@ -6,11 +6,8 @@ use super::*;
 
 
 include!("BoxedFunctionPointer.rs");
-include!("CallArguments.rs");
 include!("CompressedTypeIdentifier.rs");
-include!("ImmutableTypeErasedBoxedFunction.rs");
-include!("ImmutableTypeErasedBoxedFunctionCompressedMap.rs");
-include!("ImmutableTypeErasedBoxedFunctionMap.rs");
 include!("MutableTypeErasedBoxedFunction.rs");
 include!("MutableTypeErasedBoxedFunctionCompressedMap.rs");
-include!("MutableTypeErasedBoxedFunctionMap.rs");
+include!("Receiver.rs");
+include!("Register.rs");
