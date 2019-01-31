@@ -5,13 +5,16 @@
 /// Used to pass a constructor across threads.
 pub trait MessageHandlersRegistration
 {
+	/// Message handler arguments type.
+	type MessageHandlerArguments: Debug + Copy;
+
 	/// Error type.
-	type E;
+	type E: Debug;
 
 	/// Arguments passed when registering.
 	type Arguments;
 
 	/// Register all messages handlers.
 	#[inline(always)]
-	fn register_all_message_handlers(&self, register: &mut impl Register<Result<(), Self::E>>, arguments: &Self::Arguments);
+	fn register_all_message_handlers(&self, register: &mut impl Register<Self::MessageHandlerArguments, Result<(), Self::E>>, arguments: &Self::Arguments);
 }

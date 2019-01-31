@@ -4,15 +4,15 @@
 
 /// A wrapper to hold a `FnMut(Receiver) -> R` closure which erases the type of `Receiver` so that multiple instances can be created and used as, say, handlers of different messages in maps.
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub(crate) struct MutableTypeErasedBoxedFunction<R>
+pub(crate) struct MutableTypeErasedBoxedFunction<Arguments, Returns>
 {
 	boxed_function_pointer: NonNull<BoxedFunctionPointer>,
-	call_boxed_function_pointer: fn(NonNull<BoxedFunctionPointer>, NonNull<Receiver>) -> R,
+	call_boxed_function_pointer: fn(NonNull<BoxedFunctionPointer>, NonNull<Receiver>, Arguments) -> Returns,
 	drop_boxed_function_pointer: fn(NonNull<BoxedFunctionPointer>),
 	#[cfg(debug_assertions)] receiver_type_identifier: TypeId,
 }
 
-impl<R> Drop for MutableTypeErasedBoxedFunction<R>
+impl<Arguments, Returns> Drop for MutableTypeErasedBoxedFunction<Arguments, Returns>
 {
 	#[inline(always)]
 	fn drop(&mut self)
@@ -21,28 +21,28 @@ impl<R> Drop for MutableTypeErasedBoxedFunction<R>
 	}
 }
 
-impl<R> MutableTypeErasedBoxedFunction<R>
+impl<Arguments, Returns> MutableTypeErasedBoxedFunction<Arguments, Returns>
 {
 	/// Creates a new instance, wrapping `function`.
 	///
 	/// `function` will be moved from the stack to the heap.
 	#[inline(always)]
-	pub(crate) fn new<Function: FnMut(&mut Receiver) -> R, Receiver: 'static + ?Sized>(function: Function) -> Self
+	pub(crate) fn new<Function: FnMut(&mut Receiver, Arguments) -> Returns, Receiver: 'static + ?Sized>(function: Function) -> Self
 	{
 		#[inline(always)]
-		fn call_boxed_function_pointer<Function: FnMut(&mut Receiver) -> R, Receiver: 'static + ?Sized, R>(function: &mut Function, receiver: &mut Receiver) -> R
+		fn call_boxed_function_pointer<Function: FnMut(&mut Receiver, Arguments) -> Returns, Receiver: 'static + ?Sized, Arguments, Returns>(function: &mut Function, receiver: &mut Receiver, arguments: Arguments) -> Returns
 		{
-			function(receiver)
+			function(receiver, arguments)
 		}
 
 		#[inline(always)]
-		fn drop_boxed_function_pointer<Function: FnMut(&mut Receiver) -> R, Receiver: 'static + ?Sized, R>(boxed_function_pointer: NonNull<Function>)
+		fn drop_boxed_function_pointer<Function: FnMut(&mut Receiver, Arguments) -> Returns, Receiver: 'static + ?Sized, Arguments, Returns>(boxed_function_pointer: NonNull<Function>)
 		{
 			drop(unsafe { Box::from_raw(boxed_function_pointer.as_ptr()) });
 		}
 
-		let call_boxed_function_pointer: for<'r, 's> fn(&'r mut Function, &'s mut Receiver) -> R = call_boxed_function_pointer::<Function, Receiver, R>;
-		let drop_boxed_function_pointer: fn(NonNull<Function>) = drop_boxed_function_pointer::<Function, Receiver, R>;
+		let call_boxed_function_pointer: for<'r, 's> fn(&'r mut Function, &'s mut Receiver, Arguments) -> Returns = call_boxed_function_pointer::<Function, Receiver, Arguments, Returns>;
+		let drop_boxed_function_pointer: fn(NonNull<Function>) = drop_boxed_function_pointer::<Function, Receiver, Arguments, Returns>;
 
 		MutableTypeErasedBoxedFunction
 		{
@@ -59,15 +59,15 @@ impl<R> MutableTypeErasedBoxedFunction<R>
 	///
 	/// When debug assertions are enabled, a runtime type check is made and will panic if it fails.
 	#[inline(always)]
-	pub(crate) fn call<'this: 'receiver, 'receiver, Receiver: 'static + ?Sized>(&'this mut self, receiver: &'receiver mut Receiver) -> R
+	pub(crate) fn call<'this: 'receiver, 'receiver, Receiver: 'static + ?Sized>(&'this mut self, receiver: &'receiver mut Receiver, arguments: Arguments) -> Returns
 	{
 		#[cfg(debug_assertions)]
 		{
 			debug_assert_eq!(TypeId::of::<Receiver>(), self.receiver_type_identifier, "Receiver type mismatch")
 		}
 
-		let function_pointer: fn(NonNull<BoxedFunctionPointer>, &'receiver mut Receiver) -> R = unsafe { transmute(self.call_boxed_function_pointer) };
+		let function_pointer: fn(NonNull<BoxedFunctionPointer>, &'receiver mut Receiver, Arguments) -> Returns = unsafe { transmute(self.call_boxed_function_pointer) };
 
-		(function_pointer)(self.boxed_function_pointer, receiver)
+		(function_pointer)(self.boxed_function_pointer, receiver, arguments)
 	}
 }

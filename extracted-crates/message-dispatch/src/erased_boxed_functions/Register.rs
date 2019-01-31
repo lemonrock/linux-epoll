@@ -3,7 +3,7 @@
 
 
 /// Allows one to register functions to handle objects.
-pub trait Register<R>
+pub trait Register<Arguments: Debug + Copy, Returns: Debug>
 {
 	/// Registers a message handler and returns a `CompressedTypeIdentifier` to refer to it.
 	///
@@ -16,5 +16,5 @@ pub trait Register<R>
 	/// Panics if the message handler has already been registered (only if `debug_assertions` are configured).
 	///
 	/// Panics if there is not space for more message handlers (only 256 message handlers are allowed) (only if `debug_assertions` are configured).
-	fn enter_into_the_register<Function: FnMut(&mut Receiver) -> R + 'static, Receiver: 'static>(&mut self, function: Function) -> CompressedTypeIdentifier;
+	fn enter_into_the_register<Function: FnMut(&mut Receiver, Arguments) -> Returns + 'static, Receiver: 'static>(&mut self, function: Function) -> CompressedTypeIdentifier;
 }

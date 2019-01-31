@@ -6,20 +6,20 @@
 ///
 /// Assumes a thread-per-logical core model.
 #[derive(Debug, Clone)]
-pub struct QueuePerThreadQueuesPublisher<E: Debug>
+pub struct QueuePerThreadQueuesPublisher<MessageHandlerArguments: Debug + Copy, E: Debug>
 {
-	queues: Arc<PerLogicalCoreData<Arc<Queue<E>>>>,
+	queues: Arc<PerLogicalCoreData<Arc<Queue<MessageHandlerArguments, E>>>>,
 }
 
-unsafe impl<E: Debug> Send for QueuePerThreadQueuesPublisher<E>
-{
-}
-
-unsafe impl<E: Debug> Sync for QueuePerThreadQueuesPublisher<E>
+unsafe impl<MessageHandlerArguments: Debug + Copy, E: Debug> Send for QueuePerThreadQueuesPublisher<MessageHandlerArguments, E>
 {
 }
 
-impl<E: Debug> QueuePerThreadQueuesPublisher<E>
+unsafe impl<MessageHandlerArguments: Debug + Copy, E: Debug> Sync for QueuePerThreadQueuesPublisher<MessageHandlerArguments, E>
+{
+}
+
+impl<MessageHandlerArguments: Debug + Copy, E: Debug> QueuePerThreadQueuesPublisher<MessageHandlerArguments, E>
 {
 	/// Allocate a new instance.
 	#[inline(always)]
@@ -44,7 +44,7 @@ impl<E: Debug> QueuePerThreadQueuesPublisher<E>
 	}
 
 	#[inline(always)]
-	fn get_queue(&self, logical_core_identifier: LogicalCoreIdentifier) -> Arc<Queue<E>>
+	fn get_queue(&self, logical_core_identifier: LogicalCoreIdentifier) -> Arc<Queue<MessageHandlerArguments, E>>
 	{
 		self.queues.get(logical_core_identifier).unwrap().clone()
 	}

@@ -10,13 +10,13 @@
 ///
 /// A very clever optimization of this structure could produce a jump table at runtime, so reducing indirect calls to direct calls, should this be necessary.
 #[derive(Debug, Eq, PartialEq)]
-pub struct MutableTypeErasedBoxedFunctionCompressedMap<R>
+pub struct MutableTypeErasedBoxedFunctionCompressedMap<Arguments: Debug + Copy, Returns: Debug>
 {
-	compressed_type_identifier_to_function: ArrayVec<[(MutableTypeErasedBoxedFunction<R>, DropInPlaceFunctionPointer); CompressedTypeIdentifier::Size]>,
+	compressed_type_identifier_to_function: ArrayVec<[(MutableTypeErasedBoxedFunction<Arguments, Returns>, DropInPlaceFunctionPointer); CompressedTypeIdentifier::Size]>,
 	type_identifier_to_compressed_type_identifier: HashMap<TypeId, CompressedTypeIdentifier>,
 }
 
-impl<R> Default for MutableTypeErasedBoxedFunctionCompressedMap<R>
+impl<Arguments: Debug + Copy, Returns: Debug> Default for MutableTypeErasedBoxedFunctionCompressedMap<Arguments, Returns>
 {
 	fn default() -> Self
 	{
@@ -28,10 +28,10 @@ impl<R> Default for MutableTypeErasedBoxedFunctionCompressedMap<R>
 	}
 }
 
-impl<R> Register<R> for MutableTypeErasedBoxedFunctionCompressedMap<R>
+impl<Arguments: Debug + Copy, Returns: Debug> Register<Arguments, Returns> for MutableTypeErasedBoxedFunctionCompressedMap<Arguments, Returns>
 {
 	#[inline(always)]
-	fn enter_into_the_register<Function: FnMut(&mut Receiver) -> R + 'static, Receiver: 'static>(&mut self, function: Function) -> CompressedTypeIdentifier
+	fn enter_into_the_register<Function: FnMut(&mut Receiver, Arguments) -> Returns + 'static, Receiver: 'static>(&mut self, function: Function) -> CompressedTypeIdentifier
 	{
 		let virtual_method_table_pointer = VirtualMethodTablePointer::from_any::<Receiver>();
 		let drop_in_place_function_pointer = virtual_method_table_pointer.drop_in_place_function_pointer();
@@ -51,17 +51,16 @@ impl<R> Register<R> for MutableTypeErasedBoxedFunctionCompressedMap<R>
 	}
 }
 
-impl<R> MutableTypeErasedBoxedFunctionCompressedMap<R>
+impl<Arguments: Debug + Copy, Returns: Debug> MutableTypeErasedBoxedFunctionCompressedMap<Arguments, Returns>
 {
-
 	/// Calls the function registered for this compressed type identifier.
 	///
 	/// Panics if no function is registered (only if `debug_assertions` are configured).
 	#[inline(always)]
-	pub fn call_and_drop_in_place<'map: 'receiver, 'receiver, Receiver: 'static + ?Sized>(&'map mut self, compressed_type_identifier: CompressedTypeIdentifier, receiver: &'receiver mut Receiver) -> R
+	pub fn call_and_drop_in_place<'map: 'receiver, 'receiver, Receiver: 'static + ?Sized>(&'map mut self, compressed_type_identifier: CompressedTypeIdentifier, receiver: &'receiver mut Receiver, arguments: Arguments) -> Returns
 	{
 		let (function, drop_in_place_function_pointer) = self.entry(compressed_type_identifier);
-		let result = function.call::<Receiver>(receiver);
+		let result = function.call::<Receiver>(receiver, arguments);
 		drop_in_place_function_pointer(unsafe { NonNull::new_unchecked(receiver as *mut Receiver as *mut ()) });
 		result
 	}
@@ -80,7 +79,7 @@ impl<R> MutableTypeErasedBoxedFunctionCompressedMap<R>
 	///
 	/// Panics if no function is registered (only if `debug_assertions` are configured).
 	#[inline(always)]
-	fn entry(&mut self, compressed_type_identifier: CompressedTypeIdentifier) -> &mut (MutableTypeErasedBoxedFunction<R>, DropInPlaceFunctionPointer)
+	fn entry(&mut self, compressed_type_identifier: CompressedTypeIdentifier) -> &mut (MutableTypeErasedBoxedFunction<Arguments, Returns>, DropInPlaceFunctionPointer)
 	{
 		let index = compressed_type_identifier.index();
 

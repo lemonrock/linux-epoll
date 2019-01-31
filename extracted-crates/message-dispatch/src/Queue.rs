@@ -6,13 +6,13 @@
 ///
 /// Ideal for a thread control queue.
 #[derive(Debug)]
-pub struct Queue<E: Debug>
+pub struct Queue<MessageHandlerArguments: Debug + Copy, E: Debug>
 {
 	magic_ring_buffer: MagicRingBuffer,
-	message_handlers: UnsafeCell<MutableTypeErasedBoxedFunctionCompressedMap<Result<(), E>>>,
+	message_handlers: UnsafeCell<MutableTypeErasedBoxedFunctionCompressedMap<MessageHandlerArguments, Result<(), E>>>,
 }
 
-impl<E: Debug> Drop for Queue<E>
+impl<MessageHandlerArguments: Debug + Copy, E: Debug> Drop for Queue<MessageHandlerArguments, E>
 {
 	#[inline(always)]
 	fn drop(&mut self)
@@ -43,7 +43,7 @@ impl<E: Debug> Drop for Queue<E>
 	}
 }
 
-impl<E: Debug> Enqueue for Queue<E>
+impl<MessageHandlerArguments: Debug + Copy, E: Debug> Enqueue for Queue<MessageHandlerArguments, E>
 {
 	#[inline(always)]
 	fn enqueue<MessageContents>(&self, compressed_type_identifier: CompressedTypeIdentifier, message_contents_constructor: impl FnOnce(NonNull<MessageContents>))
@@ -52,11 +52,11 @@ impl<E: Debug> Enqueue for Queue<E>
 	}
 }
 
-impl<E: Debug> Dequeue<E> for Queue<E>
+impl<MessageHandlerArguments: Debug + Copy, E: Debug> Dequeue<MessageHandlerArguments, E> for Queue<MessageHandlerArguments, E>
 {
 	/// Dequeues messages.
 	#[inline(always)]
-	fn dequeue(&self, terminate: &impl Terminate) -> Result<(), E>
+	fn dequeue(&self, terminate: &impl Terminate, message_handler_arguments: MessageHandlerArguments) -> Result<(), E>
 	{
 		let message_handlers = self.message_handlers();
 		while
@@ -70,7 +70,7 @@ impl<E: Debug> Dequeue<E> for Queue<E>
 						buffer,
 						|compressed_type_identifier, receiver|
 						{
-							message_handlers.call_and_drop_in_place(compressed_type_identifier, receiver)
+							message_handlers.call_and_drop_in_place(compressed_type_identifier, receiver, message_handler_arguments)
 						}
 					)
 				}
@@ -85,7 +85,7 @@ impl<E: Debug> Dequeue<E> for Queue<E>
 	}
 }
 
-impl<E: Debug> Queue<E>
+impl<MessageHandlerArguments: Debug + Copy, E: Debug> Queue<MessageHandlerArguments, E>
 {
 	/// Allocates a new `Queue`.
 	#[inline(always)]
@@ -106,7 +106,7 @@ impl<E: Debug> Queue<E>
 
 	/// New set of per-thread queues.
 	#[inline(always)]
-	pub fn queues(logical_cores: &LogicalCores, queue_size_in_bytes: usize) -> Arc<PerLogicalCoreData<Arc<Queue<E>>>>
+	pub fn queues(logical_cores: &LogicalCores, queue_size_in_bytes: usize) -> Arc<PerLogicalCoreData<Arc<Self>>>
 	{
 		Arc::new
 		(
@@ -118,7 +118,7 @@ impl<E: Debug> Queue<E>
 	}
 
 	#[inline(always)]
-	pub(crate) fn message_handlers(&self) -> &mut MutableTypeErasedBoxedFunctionCompressedMap<Result<(), E>>
+	pub(crate) fn message_handlers(&self) -> &mut MutableTypeErasedBoxedFunctionCompressedMap<MessageHandlerArguments, Result<(), E>>
 	{
 		unsafe { &mut * self.message_handlers.get() }
 	}
