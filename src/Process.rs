@@ -32,13 +32,15 @@ impl<T: Terminate, R: Registration> Process<T, R>
 	{
 		let load_kernel_modules = || {};
 
-		let uses_enhanced_intel_speedstep_technology = false;
+		const uses_enhanced_intel_speedstep_technology: bool = false;
+
+		const isolated_cpus_required: bool = false;
 
 		let additional_kernel_command_line_validations = || {};
 
-		let main_loop = |online_shared_hyper_threads, online_isolated_hyper_threads, master_logical_core| self.execute_internal(online_shared_hyper_threads, online_isolated_hyper_threads, master_logical_core);
+		let main_loop = |_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, master_logical_core);
 
-		let execution_result = self.process_configuration.process_common_configuration.execute(load_kernel_modules, uses_enhanced_intel_speedstep_technology, additional_kernel_command_line_validations, main_loop);
+		let execution_result = self.process_configuration.process_common_configuration.execute(load_kernel_modules, uses_enhanced_intel_speedstep_technology, isolated_cpus_required, additional_kernel_command_line_validations, main_loop);
 
 		let exit_code = match execution_result
 		{
@@ -53,17 +55,20 @@ impl<T: Terminate, R: Registration> Process<T, R>
 		exit(exit_code)
 	}
 
-	// TODO: online_shared_hyper_threads and online_isolated_hyper_threads should have any cores subtracted that aren't in LogicalCores::valid_logical_cores_for_the_current_process()
-	// let valid_logical_cores_for_the_current_process = LogicalCores::valid_logical_cores_for_the_current_process();
-
-
 	#[inline(always)]
-	fn execute_internal(&self, online_shared_hyper_threads: BTreeSet<HyperThread>, online_isolated_hyper_threads: BTreeSet<HyperThread>, _master_logical_core: HyperThread) -> Result<Option<SignalNumber>, String>
+	fn execute_internal(&self, online_shared_hyper_threads_for_process: BTreeSet<HyperThread>, online_isolated_hyper_threads_for_process: BTreeSet<HyperThread>) -> Result<Option<SignalNumber>, String>
 	{
 		InterruptRequest::force_all_interrupt_requests_to_just_these_hyper_threads(&online_isolated_hyper_threads, self.process_configuration.process_common_configuration.proc_path()).map_err(|io_result| format!("Failed to force all interrupt requests to cores used for event poll threads because of `{:?}`"))?;
 
-		let this_master_thread_logical_core_affinity = LogicalCores::from(online_shared_hyper_threads);
-		let event_poll_threads_logical_cores = LogicalCores::from(online_isolated_hyper_threads);
+		let this_master_thread_logical_core_affinity = LogicalCores::from(online_shared_hyper_threads_for_process);
+		let event_poll_threads_logical_cores = if online_isolated_hyper_threads_for_process.is_empty()
+		{
+			this_master_thread_logical_core_affinity.clone()
+		}
+		else
+		{
+			LogicalCores::from(online_isolated_hyper_threads_for_process)
+		};
 
 		let join_handles = self.spawn_event_poll_threads(event_poll_threads_logical_cores).map_err(|_| "Could not spawn event poll threads".to_string())?;
 
@@ -226,7 +231,7 @@ impl<T: Terminate, R: Registration> Process<T, R>
 
 		thread_initialization_outcome.map_err(|io_error|
 		{
-			terminate.begin_termination_due_to_irrecoverable_error(&io_error);
+			self.terminate.begin_termination_due_to_irrecoverable_error(&io_error);
 			()
 		})
 	}

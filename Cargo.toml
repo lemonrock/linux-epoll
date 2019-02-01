@@ -20,7 +20,7 @@ version = "0.0.0"
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 context-coroutine = { path = "extracted-crates/context-coroutine", version = "^0.1.0" }
 cpu-affinity = "^0.4.2"
-dpdk-unix = "^0.2.4"
+dpdk-unix = "^0.2.6"
 file-descriptors = "^0.8.6"
 libc = "^0.2.44"
 likely = "^0.1"
