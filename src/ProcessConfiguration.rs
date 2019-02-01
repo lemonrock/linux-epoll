@@ -29,3 +29,13 @@ impl Default for ProcessConfiguration
 		}
 	}
 }
+
+impl ProcessConfiguration
+{
+	/// Is the process running interactively (ie not as a daemon).
+	#[inline(always)]
+	pub fn running_interactively(&self) -> bool
+	{
+		self.process_common_configuration.running_interactively()
+	}
+}

@@ -24,6 +24,7 @@ dpdk-unix = "^0.2.4"
 file-descriptors = "^0.8.6"
 libc = "^0.2.44"
 likely = "^0.1"
+maplit = "^1.0.1"
 rustls-extra = { path = "extracted-crates/rustls-extra", version = "0.14.0" }
 terminate = { path = "extracted-crates/terminate", version = "^0.1.0" }
 treebitmap = "^0.3"
