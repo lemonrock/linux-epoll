@@ -21,6 +21,25 @@ impl<T: Terminate> ArenasRegistrar for EventPoll<T>
 	}
 }
 
+impl<T: Terminate> ReactorsRegistrar for EventPoll<T>
+{
+	#[inline(always)]
+	unsafe fn add_a_new_reactor_efficiently<A: Arena<R>, R: Reactor>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	{
+		let arena = self.arenas.get_unsized_arena(reactor_compressed_type_identifier);
+
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
+	}
+
+	#[inline(always)]
+	fn add_a_new_reactor_slightly_slowly<A: Arena<R>, R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	{
+		let (arena, reactor_compressed_type_identifier) = self.arenas.get_arena_and_reactor_compressed_type_identifier::<A, R>();
+
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
+	}
+}
+
 impl<T: Terminate> EventPoll<T>
 {
 	const MaximumEvents: usize = 1024;
@@ -41,30 +60,6 @@ impl<T: Terminate> EventPoll<T>
 				spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell::new(HashSet::with_capacity(Self::MaximumEvents))
 			}
 		)
-	}
-
-	/// Adds a new reactor, efficiently.
-	///
-	/// The arena used by the reactor **MUST** have been previously added to the `Arenas` passed on construction of the EventPoll in `EventPoll::new()`.
-	///
-	/// Very unsafe as no checks are made that `reactor_compressed_type_identifier` is actually for `R`.
-	#[inline(always)]
-	pub unsafe fn add_a_new_reactor_efficiently<A: Arena<R>, R: Reactor>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
-	{
-		let arena = self.arenas.get_unsized_arena(reactor_compressed_type_identifier);
-
-		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
-	}
-
-	/// Adds a new reactor, slightly slowly.
-	///
-	/// The arena used by the reactor **MUST** have been previously added to the `Arenas` passed on construction of the EventPoll in `EventPoll::new()`.
-	#[inline(always)]
-	pub fn add_a_new_reactor_slightly_slowly<A: Arena<R>, R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
-	{
-		let (arena, reactor_compressed_type_identifier) = self.arenas.get_arena_and_reactor_compressed_type_identifier::<A, R>();
-
-		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
 	}
 
 	#[inline(always)]

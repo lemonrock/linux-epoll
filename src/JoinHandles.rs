@@ -17,7 +17,7 @@ impl<'terminate, T: 'terminate + Terminate> Drop for JoinHandles<'terminate, T>
 		{
 			if let Err(panic_information) = join_handle.join()
 			{
-				self.terminate.begin_termination_due_to_panic(panic_information)
+				self.terminate.begin_termination_due_to_irrecoverable_error(panic_information)
 			}
 		}
 	}
@@ -26,7 +26,7 @@ impl<'terminate, T: 'terminate + Terminate> Drop for JoinHandles<'terminate, T>
 impl<'terminate, T: 'terminate + Terminate> JoinHandles<'terminate, T>
 {
 	#[inline(always)]
-	pub(crate) fn new(&mut self, logical_cores: &LogicalCores, terminate: &'terminate T) -> Self
+	pub(crate) fn new(logical_cores: &LogicalCores, terminate: &'terminate T) -> Self
 	{
 		Self
 		{
@@ -38,6 +38,6 @@ impl<'terminate, T: 'terminate + Terminate> JoinHandles<'terminate, T>
 	#[inline(always)]
 	pub(crate) fn push(&mut self, join_handle: JoinHandle<()>)
 	{
-		self.0.push(join_handle)
+		self.join_handles.push(join_handle)
 	}
 }

@@ -27,6 +27,7 @@ impl EventPollToken
 	#[inline(always)]
 	pub(crate) fn new(reactor_compressed_type_identifier: CompressedTypeIdentifier, arena_index: ArenaIndex) -> Self
 	{
-		Self((reactor_compressed_type_identifier.into() as u64) << 56 | (arena_index as u64))
+		let value: u8 = reactor_compressed_type_identifier.into();
+		Self((value as u64) << 56 | (arena_index as u64))
 	}
 }

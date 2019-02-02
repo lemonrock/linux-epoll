@@ -2,18 +2,6 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/*
-
-
-		// caught_unwind_and_log_it_to_syslog
-		// EX_SOFTWARE: i32 = 70;
-		/// An exit code that is for normal software exits.
-		pub const EXIT_SUCCESS: i32 = 0;
-
-		/// An exit code that is for software failures (eg panics).
-		pub const EX_SOFTWARE: i32 = 70;
-*/
-
 /// Represents a process about to start.
 #[derive(Debug)]
 pub struct Process<T: Terminate, R: Registration<T>>
@@ -171,12 +159,12 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 	fn spawn_event_poll_threads<'terminate>(&'terminate self, event_poll_threads_logical_cores: LogicalCores) -> Result<JoinHandles<'terminate, T>, ()>
 	{
 		let queue_per_threads_publisher = QueuePerThreadQueuesPublisher::allocate(&event_poll_threads_logical_cores);
-		let mut join_handles = JoinHandles::new(&event_poll_threads_logical_cores);
+		let mut join_handles = JoinHandles::new(&event_poll_threads_logical_cores, self.terminate.deref());
 
 		for logical_core_identifier in event_poll_threads_logical_cores.iter()
 		{
 			let logical_core_identifier = *logical_core_identifier;
-			match self.spawn(logical_core_identifier, &queue_per_threads_publisher)
+			match self.spawn_event_poll_thread(logical_core_identifier, &queue_per_threads_publisher)
 			{
 				Err(()) => return Err(()),
 				Ok(join_handle) => join_handles.push(join_handle),
@@ -194,6 +182,7 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 	{
 		let terminate = self.terminate.clone();
 		let scheduler = self.process_configuration.per_thread_scheduler;
+		let event_poll_time_out_milliseconds = self.process_configuration.event_poll_time_out_milliseconds;
 		let queue_per_threads_publisher = queue_per_threads_publisher.clone();
 		let registration = self.registration.clone();
 
@@ -212,20 +201,28 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 
 			if let Err(explanation) = scheduler.set_for_current_thread()
 			{
-				terminate.begin_termination_due_to_irrecoverable_error(format!("Could not set current thread priority: `{}`", explanation));
+				terminate.begin_termination_due_to_irrecoverable_error(&format!("Could not set current thread priority: `{}`", explanation));
 				return
 			}
 
 			ProcessCommonConfiguration::lock_down_thread_nice_value_setting();
 
-			let event_poll = EventPoll::new(Arenas::default());
+			let event_poll = match EventPoll::new(Arenas::default(), time_out_milliseconds)
+			{
+				Err(creation_error) =>
+				{
+					terminate.begin_termination_due_to_irrecoverable_error(&format!("Could not create EventPoll: `{:?}`", creation_error));
+					return
+				}
+				Ok(event_poll) => event_poll,
+			};
 			registration.register_all_arenas(&mut event_poll);
 			registration.register_any_reactors(&event_poll);
-			let per_thread_subscriber = PerThreadQueueSubscriber::new(queue_per_threads_publisher, &terminate, registration, &event_poll);
+			let per_thread_subscriber = PerThreadQueueSubscriber::new(queue_per_threads_publisher, terminate.clone(), &registration, &event_poll);
 
 			while terminate.should_continue()
 			{
-				if let Err(explanation) = event_poll.event_loop(terminate)
+				if let Err(explanation) = event_poll.event_loop_iteration()
 				{
 					terminate.begin_termination_due_to_irrecoverable_error(&explanation);
 					return
