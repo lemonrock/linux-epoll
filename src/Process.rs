@@ -2,6 +2,18 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+/*
+
+
+		// caught_unwind_and_log_it_to_syslog
+		// EX_SOFTWARE: i32 = 70;
+		/// An exit code that is for normal software exits.
+		pub const EXIT_SUCCESS: i32 = 0;
+
+		/// An exit code that is for software failures (eg panics).
+		pub const EX_SOFTWARE: i32 = 70;
+*/
+
 /// Represents a process about to start.
 #[derive(Debug)]
 pub struct Process<T: Terminate, R: Registration>
@@ -26,9 +38,19 @@ impl<T: Terminate, R: Registration> Process<T, R>
 
 	/// Executes from main.
 	///
-	/// Never returns, eventually exits the program with an exit code.
+	/// Returns successfully or an error.
+	///
+	/// An error should do the following:-
+	///
+	/// ```
+	/// const EX_SOFTWARE: i32 = 70;
+	/// eprintln!("Serious Failure: `{:?}`", process_common_configuration_execution_error);
+	///	exit(EX_SOFTWARE);
+	/// ```
+	///
+	/// Be aware that daemonization may have occurred, and so `eprintln!` may not go to standard error but syslog instead.
 	#[inline(always)]
-	pub fn execute(self) -> !
+	pub fn execute(self) -> Result<(), ProcessCommonConfigurationExecutionError>
 	{
 		let load_kernel_modules = || {};
 
@@ -40,19 +62,7 @@ impl<T: Terminate, R: Registration> Process<T, R>
 
 		let main_loop = |_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, master_logical_core);
 
-		let execution_result = self.process_configuration.process_common_configuration.execute(load_kernel_modules, uses_enhanced_intel_speedstep_technology, isolated_cpus_required, additional_kernel_command_line_validations, main_loop);
-
-		let exit_code = match execution_result
-		{
-			Err(process_common_configuration_execution_error) =>
-			{
-				eprintln!("Serious Failure: `{:?}`", process_common_configuration_execution_error);
-				ProcessCommonConfiguration::EX_SOFTWARE
-			}
-			Ok(exit_code) => exit_code,
-		};
-
-		exit(exit_code)
+		self.process_configuration.process_common_configuration.execute(load_kernel_modules, uses_enhanced_intel_speedstep_technology, isolated_cpus_required, additional_kernel_command_line_validations, main_loop)
 	}
 
 	#[inline(always)]
