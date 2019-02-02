@@ -60,7 +60,7 @@ impl<T: Terminate> Arenas<T>
 	{
 		let arena_type_identifier = TypeId::of::<A>();
 		let reactor_type_identifier = TypeId::of::<R>();
-		let reactor_compressed_type_identifier = CompressedTypeIdentifier::from(arenas.len() as u8);
+		let reactor_compressed_type_identifier = CompressedTypeIdentifier::from(self.arenas.len() as u8);
 
 		let previous = self.reactor_compressed_type_lookup_table.insert(reactor_type_identifier, (reactor_compressed_type_identifier, arena_type_identifier));
 		debug_assert!(previous.is_none(), "Reactor type already registered!");
@@ -73,7 +73,7 @@ impl<T: Terminate> Arenas<T>
 		let sized_react_function_pointer: for<'a, 'b> fn(&'a EventPoll<T>, NonNull<A>, EventPollToken, EPollEventFlags, &'b Terminate) -> Result<bool, String> = EventPoll::<T>::react_callback::<A, R>;
 		let unsized_react_function_pointer: UnsizedReactFunctionPointer = unsafe { transmute(sized_react_function_pointer) };
 
-		arenas.push((unsized_arena, unsized_arena_drop_in_place_function_pointer, unsized_react_function_pointer));
+		self.arenas.push((unsized_arena, unsized_arena_drop_in_place_function_pointer, unsized_react_function_pointer));
 
 		reactor_compressed_type_identifier
 	}
@@ -135,7 +135,7 @@ impl<T: Terminate> Arenas<T>
 		else
 		{
 			let (reactor_compressed_type_identifier, arena_type_identifier) = self.reactor_compressed_type_lookup_table.get(reactor_type_identifier).expect("Reactor was never registered");
-			debug_assert!(arena_type_identifier, TypeId::of::<A>(), "Reactor was registered for a different Arena type");
+			debug_assert_eq!(arena_type_identifier, TypeId::of::<A>(), "Reactor was registered for a different Arena type");
 
 			let pair = (self.get_unsized_arena(reactor_compressed_type_identifier), reactor_compressed_type_identifier);
 

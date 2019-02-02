@@ -20,7 +20,7 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 
 	/// Starts blocking signals at this point.
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 

@@ -3,7 +3,8 @@
 
 
 /// Process configuration.
-#[derive(Default, Debug, Deserialization)]
+#[derive(Default, Debug)]
+#[derive(Deserialize)]
 #[serde(default)]
 pub struct ProcessConfiguration
 {

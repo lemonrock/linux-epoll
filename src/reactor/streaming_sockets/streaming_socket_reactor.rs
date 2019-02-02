@@ -20,9 +20,9 @@ macro_rules! streaming_socket_reactor
 			type RegistrationData = (StreamingSocketFileDescriptor<$sockaddr_type>, Rc<SF>, SF::AdditionalArguments, Rc<SU>);
 
 			#[inline(always)]
-			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>>(event_poll: &EventPoll, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 			{
-				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, A>(event_poll, arena, reactor_compressed_type_identifier, registration_data)
+				StreamingSocketCommon::<SF, SU, $sockaddr_type>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, A, T>(event_poll, arena, reactor_compressed_type_identifier, registration_data)
 			}
 
 			#[inline(always)]

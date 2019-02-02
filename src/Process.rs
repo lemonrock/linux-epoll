@@ -68,7 +68,7 @@ impl<T: Terminate, R: Registration> Process<T, R>
 	#[inline(always)]
 	fn execute_internal(&self, online_shared_hyper_threads_for_process: BTreeSet<HyperThread>, online_isolated_hyper_threads_for_process: BTreeSet<HyperThread>) -> Result<Option<SignalNumber>, String>
 	{
-		InterruptRequest::force_all_interrupt_requests_to_just_these_hyper_threads(&online_isolated_hyper_threads, self.process_configuration.process_common_configuration.proc_path()).map_err(|io_result| format!("Failed to force all interrupt requests to cores used for event poll threads because of `{:?}`"))?;
+		InterruptRequest::force_all_interrupt_requests_to_just_these_hyper_threads(&online_isolated_hyper_threads, self.process_configuration.process_common_configuration.proc_path()).map_err(|io_result| format!("Failed to force all interrupt requests to cores used for event poll threads because of `{:?}`", io_result))?;
 
 		let this_master_thread_logical_core_affinity = LogicalCores::from(online_shared_hyper_threads_for_process);
 		let event_poll_threads_logical_cores = if online_isolated_hyper_threads_for_process.is_empty()

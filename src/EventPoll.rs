@@ -153,7 +153,9 @@ impl<T: Terminate> EventPoll<T>
 	#[inline(always)]
 	pub(crate) fn react_callback<A: Arena<R>, R: Reactor>(&self, arena: &A, event_poll_token: EventPollToken, event_flags: EPollEventFlags) -> Result<bool, String>
 	{
-		let reactor = arena.get(event_poll_token.arena_index());
+		let arena_index = event_poll_token.arena_index();
+
+		let reactor = arena.get(arena_index);
 
 		match reactor.react(event_flags, &self.terminate)
 		{
