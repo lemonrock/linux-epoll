@@ -5,6 +5,6 @@
 /// Registration.
 ///
 /// An implementor of this 'wires together' an application that uses event poll.
-pub trait Registration: Sized + ArenasRegistration + ReactorsRegistration + MessageHandlersRegistration<MessageHandlerArguments=(), E=String, Arguments=EventPoll>
+pub trait Registration<T: Terminate>: Sized + ArenasRegistration + ReactorsRegistration + MessageHandlersRegistration<MessageHandlerArguments=(), E=String, Arguments=EventPoll<T>>
 {
 }

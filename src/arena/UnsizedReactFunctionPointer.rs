@@ -2,4 +2,4 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-type UnsizedReactFunctionPointer = for<'a, 'b> fn(&'a EventPoll, NonNull<UnsizedArena>, EventPollToken, EPollEventFlags, &'b Terminate) -> Result<bool, String>;
+type UnsizedReactFunctionPointer<T: Terminate> = for<'a, 'b> fn(&'a EventPoll<T>, NonNull<UnsizedArena>, EventPollToken, EPollEventFlags, &'b T) -> Result<bool, String>;

@@ -6,7 +6,7 @@
 #[derive(Debug)]
 pub struct AllSignalsReactor<SH: SignalHandler>
 {
-	signal_file_descriptor: Self::FileDescriptor,
+	signal_file_descriptor: SignalFileDescriptor,
 	signal_handler: SH,
 }
 

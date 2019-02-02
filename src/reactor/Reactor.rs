@@ -18,5 +18,5 @@ pub trait Reactor: Sized
 	///
 	/// If `Ok(true)` is returned then the file descriptor is de-registered and closed; if `Ok(false)` is returned then it isn't.
 	/// If an `Err` is returned then all activity is cut short; any dequeued events not yet 'reacted' to are discarded.
-	fn react(&mut self, event_poll: &EventPoll, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>;
+	fn react(&mut self, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>;
 }

@@ -4,7 +4,7 @@
 
 pub(crate) struct JoinHandles<'terminate, T: 'terminate + Terminate>
 {
-	join_handles: Vec<JoinHandle>,
+	join_handles: Vec<JoinHandle<()>>,
 	terminate: &'terminate T,
 }
 
@@ -36,7 +36,7 @@ impl<'terminate, T: 'terminate + Terminate> JoinHandles<'terminate, T>
 	}
 
 	#[inline(always)]
-	pub(crate) fn push(&mut self, join_handle: JoinHandle)
+	pub(crate) fn push(&mut self, join_handle: JoinHandle<()>)
 	{
 		self.0.push(join_handle)
 	}

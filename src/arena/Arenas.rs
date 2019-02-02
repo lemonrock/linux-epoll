@@ -9,7 +9,7 @@ pub(crate) struct Arenas<T: Terminate>
 	terminate: PhantomData<T>,
 
 	reactor_compressed_type_lookup_table: HashMap<TypeId, (CompressedTypeIdentifier, TypeId)>,
-	arenas: ArrayVec<[(NonNull<UnsizedArena>, UnsizedArenaDropInPlaceFunctionPointer, UnsizedReactFunctionPointer); CompressedTypeIdentifier::Size]>,
+	arenas: ArrayVec<[(NonNull<UnsizedArena>, UnsizedArenaDropInPlaceFunctionPointer, UnsizedReactFunctionPointer<T>); CompressedTypeIdentifier::Size]>,
 
 	last_reactor_type_identifier_looked_up: Cell<TypeId>,
 	last_unsized_arena_and_reactor_compressed_type_identifier_for_last_reactor_type_identifier_looked_up: Cell<(NonNull<UnsizedArena>, CompressedTypeIdentifier)>,
@@ -71,7 +71,7 @@ impl<T: Terminate> Arenas<T>
 		let unsized_arena_drop_in_place_function_pointer: UnsizedArenaDropInPlaceFunctionPointer = unsafe { transmute(sized_arena_drop_in_place_function_pointer) };
 
 		let sized_react_function_pointer: for<'a, 'b> fn(&'a EventPoll<T>, NonNull<A>, EventPollToken, EPollEventFlags, &'b Terminate) -> Result<bool, String> = EventPoll::<T>::react_callback::<A, R>;
-		let unsized_react_function_pointer: UnsizedReactFunctionPointer = unsafe { transmute(sized_react_function_pointer) };
+		let unsized_react_function_pointer: UnsizedReactFunctionPointer<T> = unsafe { transmute(sized_react_function_pointer) };
 
 		self.arenas.push((unsized_arena, unsized_arena_drop_in_place_function_pointer, unsized_react_function_pointer));
 
@@ -82,14 +82,14 @@ impl<T: Terminate> Arenas<T>
 	///
 	/// Assumes the `reactor_compressed_type_identifier` is correct.
 	#[inline(always)]
-	pub(crate) fn get_arena<A: Arena<R>, R: Reactor<A>>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier) -> &A
+	pub(crate) fn get_arena<A: Arena<R>, R: Reactor>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier) -> &A
 	{
 		let unsized_arena = self.get_unsized_arena(reactor_compressed_type_identifier);
 		unsafe { & * (unsized_arena.as_ptr() as *const _ as *const A)  }
 	}
 
 	#[inline(always)]
-	pub(crate) fn get_unsized_arena_and_react_function_pointer(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier) -> (NonNull<UnsizedArena>, UnsizedReactFunctionPointer)
+	pub(crate) fn get_unsized_arena_and_react_function_pointer(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier) -> (NonNull<UnsizedArena>, UnsizedReactFunctionPointer<T>)
 	{
 		let index = reactor_compressed_type_identifier.into() as usize;
 

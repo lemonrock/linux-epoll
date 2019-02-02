@@ -16,17 +16,17 @@
 
 /// Represents a process about to start.
 #[derive(Debug)]
-pub struct Process<T: Terminate, R: Registration>
+pub struct Process<T: Terminate, R: Registration<T>>
 {
 	process_configuration: ProcessConfiguration,
 	terminate: Arc<T>,
 	registration: Arc<R>,
 }
 
-impl<T: Terminate, R: Registration> Process<T, R>
+impl<T: Terminate, R: Registration<T>> Process<T, R>
 {
 	/// Create a new instance.
-	pub fn new(process_configuration: ProcessConfiguration, registration: impl Registration) -> Self
+	pub fn new(process_configuration: ProcessConfiguration, registration: R) -> Self
 	{
 		Self
 		{
@@ -60,7 +60,7 @@ impl<T: Terminate, R: Registration> Process<T, R>
 
 		let additional_kernel_command_line_validations = || {};
 
-		let main_loop = |_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, master_logical_core);
+		let main_loop = |_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process);
 
 		self.process_configuration.process_common_configuration.execute(load_kernel_modules, uses_enhanced_intel_speedstep_technology, isolated_cpus_required, additional_kernel_command_line_validations, main_loop)
 	}
@@ -68,7 +68,7 @@ impl<T: Terminate, R: Registration> Process<T, R>
 	#[inline(always)]
 	fn execute_internal(&self, online_shared_hyper_threads_for_process: BTreeSet<HyperThread>, online_isolated_hyper_threads_for_process: BTreeSet<HyperThread>) -> Result<Option<SignalNumber>, String>
 	{
-		InterruptRequest::force_all_interrupt_requests_to_just_these_hyper_threads(&online_isolated_hyper_threads, self.process_configuration.process_common_configuration.proc_path()).map_err(|io_result| format!("Failed to force all interrupt requests to cores used for event poll threads because of `{:?}`", io_result))?;
+		InterruptRequest::force_all_interrupt_requests_to_just_these_hyper_threads(&online_isolated_hyper_threads_for_process, self.process_configuration.process_common_configuration.proc_path()).map_err(|io_result| format!("Failed to force all interrupt requests to cores used for event poll threads because of `{:?}`", io_result))?;
 
 		let this_master_thread_logical_core_affinity = LogicalCores::from(online_shared_hyper_threads_for_process);
 		let event_poll_threads_logical_cores = if online_isolated_hyper_threads_for_process.is_empty()
