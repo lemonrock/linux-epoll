@@ -64,7 +64,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 			WouldLikeToResume((), started_coroutine) => started_coroutine,
 		};
 
-		event_poll.register::<SSR, A, _>(arena, reactor_compressed_type_identifier, streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor, streaming_socket_file_descriptor|
+		event_poll.register::<A, SSR, _>(arena, reactor_compressed_type_identifier, streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor, streaming_socket_file_descriptor|
 		{
 			uninitialized_reactor.initialize
 			(

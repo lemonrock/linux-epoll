@@ -10,10 +10,10 @@ pub trait ReactorsRegistrar
 	/// The arena used by the reactor **MUST** have been previously added to the `Arenas` through the `ArenasRegistrar`.
 	///
 	/// Very unsafe as no checks are made that `reactor_compressed_type_identifier` is actually for `R`.
-	unsafe fn add_a_new_reactor_efficiently<A: Arena<R>, R: Reactor>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>;
+	unsafe fn add_a_new_reactor_efficiently<A: Arena<R> + 'static, R: Reactor + 'static>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>;
 
 	/// Adds a new reactor, slightly slowly.
 	///
 	/// The arena used by the reactor **MUST** have been previously added to the `Arenas` through the `ArenasRegistrar`.
-	fn add_a_new_reactor_slightly_slowly<A: Arena<R>, R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>;
+	fn add_a_new_reactor_slightly_slowly<A: Arena<R> + 'static, R: Reactor + 'static>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>;
 }

@@ -19,16 +19,16 @@ macro_rules! streaming_server_listener_reactor
 		{
 			type FileDescriptor = $file_descriptor_name;
 
-			type RegistrationData = (Arc<StreamingServerListenerSocketSettings>, $rust_socket_type, AC, FileDescriptorDistributor<$sockaddr_type>, QueuePerThreadQueuesPublisher<(), String>, CompressedTypeIdentifier, u8);
+			type RegistrationData = (Arc<StreamingServerListenerSocketSettings>, $rust_socket_type, AC, QueuePerThreadQueuesPublisher<(), String>, CompressedTypeIdentifier, u8);
 
 			#[inline(always)]
 			fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 			{
-				let (settings, socket_address, access_control, file_descriptor_distributor) = registration_data;
+				let (settings, socket_address, access_control, publisher, accepted_streaming_socket_message_compressed_type_identifier, streaming_socket_service_identifier) = registration_data;
 
 				let streaming_server_listener_socket_file_descriptor = StreamingServerListenerSocketCommon::<$sockaddr_type, AC>::new_streaming_socket_file_descriptor(&settings, socket_address)?;
 
-				StreamingServerListenerSocketCommon::<$sockaddr_type, AC>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, A, T>(event_poll, arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, access_control, file_descriptor_distributor)
+				StreamingServerListenerSocketCommon::<$sockaddr_type, AC>::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<Self, A, T>(event_poll, arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, access_control, publisher, accepted_streaming_socket_message_compressed_type_identifier, streaming_socket_service_identifier)
 			}
 
 			#[inline(always)]

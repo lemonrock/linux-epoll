@@ -8,5 +8,5 @@ pub trait ArenasRegistrar
 	/// Register an arena.
 	///
 	/// It is not permissible to register multiple arenas for the same type of `R`.
-	fn register_arena<A: Arena<R>, R: Reactor>(&mut self, arena: A) -> CompressedTypeIdentifier;
+	fn register_arena<A: Arena<R> + 'static, R: Reactor + 'static>(&mut self, arena: A) -> CompressedTypeIdentifier;
 }

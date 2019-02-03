@@ -17,8 +17,11 @@ pub struct ProcessConfiguration
 	/// Scheduler to use per thread.
 	pub per_thread_scheduler: Scheduler,
 
-	/// Time out in milliseconds for event poll.
-	pub event_poll_time_out_milliseconds: u16,
+	/// Time out in milliseconds for each per thread event poll.
+	pub per_thread_event_poll_time_out_milliseconds: u16,
+
+	/// Size (in bytes) of each per thread message queue.
+	pub per_thread_message_queue_size_in_bytes: usize,
 }
 
 impl Default for ProcessConfiguration
@@ -30,7 +33,8 @@ impl Default for ProcessConfiguration
 			process_common_configuration: ProcessCommonConfiguration::default(),
 			per_thread_stack_size: 2^16,
 			per_thread_scheduler: Scheduler::RealTimeFirstInFirstOut(RealTimeSchedulerPriority::_99),
-			event_poll_time_out_milliseconds: 10,
+			per_thread_event_poll_time_out_milliseconds: 10,
+			per_thread_message_queue_size_in_bytes: 64 * 1024,
 		}
 	}
 }

@@ -2,8 +2,10 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+const MaximumEvents: usize = 1024;
+
 /// Wraps event polling.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug)]
 struct EventPoll<T: Terminate>
 {
 	arenas: Arenas<T>,
@@ -15,7 +17,7 @@ struct EventPoll<T: Terminate>
 impl<T: Terminate> ArenasRegistrar for EventPoll<T>
 {
 	#[inline(always)]
-	fn register_arena<A: Arena<R>, R: Reactor>(&mut self, arena: A) -> CompressedTypeIdentifier
+	fn register_arena<A: Arena<R> + 'static, R: Reactor + 'static>(&mut self, arena: A) -> CompressedTypeIdentifier
 	{
 		self.arenas.register::<A, R>(arena)
 	}
@@ -24,15 +26,15 @@ impl<T: Terminate> ArenasRegistrar for EventPoll<T>
 impl<T: Terminate> ReactorsRegistrar for EventPoll<T>
 {
 	#[inline(always)]
-	unsafe fn add_a_new_reactor_efficiently<A: Arena<R>, R: Reactor>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	unsafe fn add_a_new_reactor_efficiently<A: Arena<R> + 'static, R: Reactor + 'static>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
-		let arena = self.arenas.get_unsized_arena(reactor_compressed_type_identifier);
+		let arena = self.arenas.get_arena::<A, R>(reactor_compressed_type_identifier);
 
 		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
 	}
 
 	#[inline(always)]
-	fn add_a_new_reactor_slightly_slowly<A: Arena<R>, R: Reactor>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn add_a_new_reactor_slightly_slowly<A: Arena<R> + 'static, R: Reactor + 'static>(&self, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let (arena, reactor_compressed_type_identifier) = self.arenas.get_arena_and_reactor_compressed_type_identifier::<A, R>();
 
@@ -42,8 +44,6 @@ impl<T: Terminate> ReactorsRegistrar for EventPoll<T>
 
 impl<T: Terminate> EventPoll<T>
 {
-	const MaximumEvents: usize = 1024;
-
 	/// Creates a new instance.
 	///
 	/// Only one instance per thread is normally required.
@@ -57,7 +57,7 @@ impl<T: Terminate> EventPoll<T>
 				arenas,
 				epoll_file_descriptor: EPollFileDescriptor::new()?,
 				time_out: EPollTimeOut::in_n_milliseconds(time_out_milliseconds),
-				spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell::new(HashSet::with_capacity(Self::MaximumEvents))
+				spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell::new(HashSet::with_capacity(MaximumEvents))
 			}
 		)
 	}
@@ -88,9 +88,9 @@ impl<T: Terminate> EventPoll<T>
 	///
 	/// If interrupted by a signal then re-waits on epoll unless terminate has become true.
 	#[inline(always)]
-	pub(crate) fn event_loop_iteration(&self) -> Result<(), String>
+	pub(crate) fn event_loop_iteration(&self, terminate: &T) -> Result<(), String>
 	{
-		let mut events: [epoll_event; Self::MaximumEvents] = unsafe { uninitialized() };
+		let mut events: [epoll_event; MaximumEvents] = unsafe { uninitialized() };
 
 		self.spurious_event_suppression_of_already_closed_file_descriptors().clear();
 
@@ -100,7 +100,7 @@ impl<T: Terminate> EventPoll<T>
 			{
 				Ok(ready_events) => break ready_events,
 
-				Err(EPollWaitError::Interrupted) => if likely!(self.terminate.should_continue())
+				Err(EPollWaitError::Interrupted) => if likely!(terminate.should_continue())
 				{
 					continue
 				}
@@ -115,15 +115,15 @@ impl<T: Terminate> EventPoll<T>
 		{
 			let event_poll_token = EventPollToken(ready_event.token());
 
-			if unlikely!(self.spurious_event_suppression_of_already_closed_file_descriptors().contains(event_poll_token))
+			if unlikely!(self.spurious_event_suppression_of_already_closed_file_descriptors().contains(&event_poll_token))
 			{
 				continue
 			}
 
-			let result = self.react(event_poll_token, ready_event.flags());
+			let result = self.react(event_poll_token, ready_event.flags(), terminate);
 			if let Err(reason) = result
 			{
-				self.terminate.begin_termination();
+				terminate.begin_termination();
 				return Err(reason)
 			}
 		}
@@ -132,13 +132,13 @@ impl<T: Terminate> EventPoll<T>
 	}
 
 	#[inline(always)]
-	fn spurious_event_suppression_of_already_closed_file_descriptors(&self) -> &mut HashSet<RawFd>
+	fn spurious_event_suppression_of_already_closed_file_descriptors(&self) -> &mut HashSet<EventPollToken>
 	{
-		unsafe { &mut * self.spurious_event_suppression_of_already_closed_file_descriptors }
+		unsafe { &mut * self.spurious_event_suppression_of_already_closed_file_descriptors.get() }
 	}
 
 	#[inline(always)]
-	fn react(&self, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &impl Terminate) -> Result<bool, String>
+	fn react(&self, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &T) -> Result<(), String>
 	{
 		let reactor_compressed_type_identifier = event_poll_token.reactor_compressed_type_identifier();
 		let (unsized_arena, react_function_pointer) = self.arenas.get_unsized_arena_and_react_function_pointer(reactor_compressed_type_identifier);
@@ -146,13 +146,15 @@ impl<T: Terminate> EventPoll<T>
 	}
 
 	#[inline(always)]
-	pub(crate) fn react_callback<A: Arena<R>, R: Reactor>(&self, arena: &A, event_poll_token: EventPollToken, event_flags: EPollEventFlags) -> Result<bool, String>
+	pub(crate) fn react_callback<A: Arena<R>, R: Reactor>(&self, arena: NonNull<A>, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &T) -> Result<(), String>
 	{
+		let arena = unsafe { & * arena.as_ptr() };
+
 		let arena_index = event_poll_token.arena_index();
 
 		let reactor = arena.get(arena_index);
 
-		match reactor.react(event_flags, &self.terminate)
+		match reactor.react(event_flags, terminate)
 		{
 			Err(reason) => Err(reason),
 

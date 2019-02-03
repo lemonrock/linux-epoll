@@ -17,7 +17,7 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLSR: StreamingServerListenerSocketReactor<SD, AC>, A: Arena<SSLSR>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, publisher: QueuePerThreadQueuesPublisher<(), String>, accepted_streaming_socket_message_compressed_type_identifier: CompressedTypeIdentifier, streaming_socket_service_identifier: u8) -> Result<(), EventPollRegistrationError>
 	{
-		event_poll.register::<SSLSR, A, _>(arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor, streaming_server_listener_socket_file_descriptor|
+		event_poll.register::<A, SSLSR, _>(arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor, streaming_server_listener_socket_file_descriptor|
 		{
 			uninitialized_reactor.initialize
 			(
@@ -48,7 +48,7 @@ impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<
 				Ok(AcceptedConnection { streaming_socket_file_descriptor, peer_address }) => if likely!(self.is_remote_peer_allowed(peer_address, &streaming_socket_file_descriptor))
 				{
 					let logical_core_identifier = streaming_socket_file_descriptor.logical_core_identifier();
-					self.publisher.publish_message::<AcceptedStreamingSocketMessage<SD>>(logical_core_identifier, self.accepted_streaming_socket_message_compressed_type_identifier, AcceptedStreamingSocketMessage::<SD>::initialize);
+					self.publisher.publish_message::<AcceptedStreamingSocketMessage<SD>, _>(logical_core_identifier, self.accepted_streaming_socket_message_compressed_type_identifier, |receiver| AcceptedStreamingSocketMessage::<SD>::initialize(receiver, streaming_socket_file_descriptor, self.streaming_socket_service_identifier));
 				},
 
 				Err(error) => match error

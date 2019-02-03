@@ -4,7 +4,7 @@
 
 /// Represents a process about to start.
 #[derive(Debug)]
-pub struct Process<T: Terminate, R: Registration<T>>
+pub struct Process<T: Terminate + 'static, R: Registration<T>>
 {
 	process_configuration: ProcessConfiguration,
 	terminate: Arc<T>,
@@ -14,12 +14,12 @@ pub struct Process<T: Terminate, R: Registration<T>>
 impl<T: Terminate, R: Registration<T>> Process<T, R>
 {
 	/// Create a new instance.
-	pub fn new(process_configuration: ProcessConfiguration, registration: R) -> Self
+	pub fn new(process_configuration: ProcessConfiguration, registration: R, terminate: Arc<T>) -> Self
 	{
 		Self
 		{
 			process_configuration,
-			terminate: SimpleTerminate::new(),
+			terminate: terminate,
 			registration: Arc::new(registration),
 		}
 	}
@@ -40,13 +40,13 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 	#[inline(always)]
 	pub fn execute(self) -> Result<(), ProcessCommonConfigurationExecutionError>
 	{
-		let load_kernel_modules = || {};
+		let load_kernel_modules = || Ok(());
 
 		const uses_enhanced_intel_speedstep_technology: bool = false;
 
 		const isolated_cpus_required: bool = false;
 
-		let additional_kernel_command_line_validations = || {};
+		let additional_kernel_command_line_validations = |_| Ok(());
 
 		let main_loop = |_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process);
 
@@ -87,7 +87,7 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 		{
 			Err(panic_information) =>
 			{
-				self.terminate.begin_termination_due_to_panic(panic_information);
+				self.terminate.begin_termination_due_to_irrecoverable_error(&panic_information);
 				None
 			}
 
@@ -158,7 +158,7 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 	#[inline(always)]
 	fn spawn_event_poll_threads<'terminate>(&'terminate self, event_poll_threads_logical_cores: LogicalCores) -> Result<JoinHandles<'terminate, T>, ()>
 	{
-		let queue_per_threads_publisher = QueuePerThreadQueuesPublisher::allocate(&event_poll_threads_logical_cores);
+		let queue_per_threads_publisher = QueuePerThreadQueuesPublisher::allocate(&event_poll_threads_logical_cores, self.process_configuration.per_thread_message_queue_size_in_bytes);
 		let mut join_handles = JoinHandles::new(&event_poll_threads_logical_cores, self.terminate.deref());
 
 		for logical_core_identifier in event_poll_threads_logical_cores.iter()
@@ -182,7 +182,7 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 	{
 		let terminate = self.terminate.clone();
 		let scheduler = self.process_configuration.per_thread_scheduler;
-		let event_poll_time_out_milliseconds = self.process_configuration.event_poll_time_out_milliseconds;
+		let per_thread_event_poll_time_out_milliseconds = self.process_configuration.per_thread_event_poll_time_out_milliseconds;
 		let queue_per_threads_publisher = queue_per_threads_publisher.clone();
 		let registration = self.registration.clone();
 
@@ -207,7 +207,7 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 
 			ProcessCommonConfiguration::lock_down_thread_nice_value_setting();
 
-			let event_poll = match EventPoll::new(Arenas::default(), time_out_milliseconds)
+			let event_poll = match EventPoll::new(Arenas::default(), per_thread_event_poll_time_out_milliseconds)
 			{
 				Err(creation_error) =>
 				{
@@ -218,11 +218,11 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 			};
 			registration.register_all_arenas(&mut event_poll);
 			registration.register_any_reactors(&event_poll);
-			let per_thread_subscriber = PerThreadQueueSubscriber::new(queue_per_threads_publisher, terminate.clone(), &registration, &event_poll);
+			let per_thread_subscriber = PerThreadQueueSubscriber::new(queue_per_threads_publisher, terminate.clone(), registration.deref(), &event_poll);
 
 			while terminate.should_continue()
 			{
-				if let Err(explanation) = event_poll.event_loop_iteration()
+				if let Err(explanation) = event_poll.event_loop_iteration(&terminate)
 				{
 					terminate.begin_termination_due_to_irrecoverable_error(&explanation);
 					return
@@ -253,24 +253,15 @@ impl<T: Terminate, R: Registration<T>> Process<T, R>
 	#[inline(always)]
 	fn block_all_signals_bar_a_few(running_interactively: bool) -> sigset_t
 	{
-		let signals_to_accept = if running_interactively
+		let mut signals_to_accept = HashSet::with_capacity(1);
+		signals_to_accept.insert(SIGTERM);
+
+		if running_interactively
 		{
-			hashset!
-			{
-				SIGTERM,
-				SIGHUP,
-				SIGINT,
-				SIGQUIT,
-			}
+			signals_to_accept.insert(SIGHUP);
+			signals_to_accept.insert(SIGINT);
+			signals_to_accept.insert(SIGQUIT);
 		}
-		else
-		{
-			hashset!
-			{
-				SIGTERM,
-				// NOTE: `SIGHUP` has been used conventionally to force a daemon to re-read its configuration; we're probably better off using `SIGUSR1` or `SIGUSR2`.
-			}
-		};
 		block_all_signals_on_current_thread_bar(&signals_to_accept);
 		hash_set_to_signal_set(&signals_to_accept)
 	}

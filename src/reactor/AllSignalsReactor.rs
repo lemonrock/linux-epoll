@@ -22,14 +22,15 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 	#[inline(always)]
 	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
+		let signal_handler = registration_data;
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 
 		event_poll.register::<A, Self, _>(arena, reactor_compressed_type_identifier, signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this, signal_file_descriptor|
 		{
 			unsafe
 			{
-				((&mut uninitialized_this.signal_file_descriptor) as *mut Self::FileDescriptor).write(signal_file_descriptor)
-				((&mut uninitialized_this.signal_handler) as *mut SH).write(registration_data)
+				write(&mut uninitialized_this.signal_file_descriptor, signal_file_descriptor);
+				write(&mut uninitialized_this.signal_handler, signal_handler);
 			}
 			Ok(())
 		})
@@ -57,7 +58,7 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 				{
 					if terminate.should_continue()
 					{
-						if let Err(_) = signal.handle_signal(&self.0)
+						if let Err(_) = signal.handle_signal(&self.signal_handler)
 						{
 							return Err(format!("Could not handle signal"))
 						}

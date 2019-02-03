@@ -17,7 +17,7 @@ impl<'terminate, T: 'terminate + Terminate> Drop for JoinHandles<'terminate, T>
 		{
 			if let Err(panic_information) = join_handle.join()
 			{
-				self.terminate.begin_termination_due_to_irrecoverable_error(panic_information)
+				self.terminate.begin_termination_due_to_irrecoverable_error(&panic_information)
 			}
 		}
 	}

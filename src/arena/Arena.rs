@@ -3,7 +3,7 @@
 
 
 /// An arena.
-pub trait Arena<Holds>
+pub trait Arena<Holds>: Sized
 {
 	/// Used to hold this arena instance.
 	///
@@ -15,7 +15,7 @@ pub trait Arena<Holds>
 	#[inline(always)]
 	fn to_non_null(self) -> NonNull<Self>
 	{
-		Box::into_raw(Box::new(self))
+		unsafe{ NonNull::new_unchecked(Box::into_raw(Box::new(self))) }
 	}
 
 	/// Used to drop an arena instance previously converted to a pointer with `Self::to_non_null()`.
@@ -26,7 +26,7 @@ pub trait Arena<Holds>
 	#[inline(always)]
 	fn drop_from_non_null(this: NonNull<Self>)
 	{
-		unsafe { drop(Box::from_non_null(this)) }
+		unsafe { drop(Box::from_raw(this.as_ptr())) }
 	}
 
 	/// Allocate a `Holds` within this arena.
