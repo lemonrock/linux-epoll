@@ -19,7 +19,7 @@ pub enum EventPollRegistrationError
 	NewSocketServerListener(NewSocketServerListenerError),
 
 	/// Initial input-output activity failed before registration.
-	InitialInputOrOutputFailed(CompleteError),
+	InitialInputOrOutputFailed(Box<dyn error::Error + 'static>),
 }
 
 impl Display for EventPollRegistrationError
@@ -48,7 +48,7 @@ impl error::Error for EventPollRegistrationError
 
 			&NewSocketServerListener(ref error) => Some(error),
 
-			&InitialInputOrOutputFailed(ref error) => Some(error),
+			&InitialInputOrOutputFailed(ref error) => Some(error.deref()),
 		}
 	}
 }
@@ -86,14 +86,5 @@ impl From<NewSocketServerListenerError> for EventPollRegistrationError
 	fn from(error: NewSocketServerListenerError) -> Self
 	{
 		EventPollRegistrationError::NewSocketServerListener(error)
-	}
-}
-
-impl From<CompleteError> for EventPollRegistrationError
-{
-	#[inline(always)]
-	fn from(error: CompleteError) -> Self
-	{
-		EventPollRegistrationError::InitialInputOrOutputFailed(error)
 	}
 }

@@ -1,1 +1,0 @@
-{"rustc":14129478844208742439,"features":"[]","target":7463435585664098624,"profile":13846881912122723292,"path":8627418145802009717,"deps":[["dpdk-unix v0.3.0","dpdk_unix",10792100260069507222],["libc v0.2.48","libc",2887299412275622372],["likely v0.1.0","likely",15658814284871718494]],"local":[{"Precalculated":"0.4.4"}],"rustflags":[],"edition":"Edition2015"}

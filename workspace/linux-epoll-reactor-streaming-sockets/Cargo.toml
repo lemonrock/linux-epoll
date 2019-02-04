@@ -3,9 +3,9 @@
 
 
 [package]
-name = "linux-epoll"
-description = "linux-epoll"
-keywords = ["linux", "epoll", "reactor", "socket", "tcp", "tls"]
+name = "linux-epoll-reactor-streaming--sockets"
+description = "A reactor for linux-epoll that handles sockets for connected or accepted streams, particularly TCP and Unix Domain sockets."
+keywords = ["linux", "epoll", "reactor", "socket", "TCP"]
 categories = ["asynchronous", "network-programming", "os"]
 license = "MIT"
 authors = ["Raphael Cohn <raphael.cohn@stormmq.com>"]
@@ -18,14 +18,7 @@ publish = true
 version = "0.1.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
-arrayvec = "^0.4"
-cpu-affinity = "^0.4.4"
-dpdk-unix = "^0.3.0"
-file-descriptors = "^0.8.6"
-hashbrown = { version = "0.1", features = ["nightly", "serde"] }
-libc = "^0.2.44"
+context-coroutine = "^2.1.0"
 likely = "^0.1"
-message-dispatch = "^0.1.3"
-serde = "1.0"
-serde_derive = "1.0"
-terminate = "0.1.0"
+linux-epoll = { path = "../linux-epoll", version = "0.1.0" }
+rustls-extra = "0.15.0"

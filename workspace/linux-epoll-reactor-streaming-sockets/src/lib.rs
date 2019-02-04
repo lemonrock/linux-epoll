@@ -8,15 +8,12 @@
 #![deny(missing_docs)]
 #![deny(unreachable_patterns)]
 #![cfg_attr(any(target_os = "android", target_os = "linux"), feature(core_intrinsics))]
-#![cfg_attr(any(target_os = "android", target_os = "linux"), feature(extern_types))]
-#![cfg_attr(any(target_os = "android", target_os = "linux"), feature(nll))]
+#![cfg_attr(any(target_os = "android", target_os = "linux"), feature(read_initializer))]
 
 
-//! #linux-epoll
-//! 
-//! A complete Rust implementation of all the logic required for a multi-core, epoll-based client and server that reacts to events.
+//! #linux-epoll-reactor-streaming-sockets
 //!
-//! Uses coroutines and arenas for maximum efficiency and ease-of-programming.
+//! A reactor for client or server TCP socket and Unix Domain Socket connections.
 
 
 #[cfg(any(target_os = "android", target_os = "linux"))] include!("lib.android_linux.rs");
