@@ -9,7 +9,7 @@
 #![deny(unreachable_patterns)]
 #![cfg_attr(any(target_os = "android", target_os = "linux"), feature(core_intrinsics))]
 #![cfg_attr(any(target_os = "android", target_os = "linux"), feature(extern_types))]
-#![cfg_attr(any(target_os = "android", target_os = "linux"), feature(raw))]
+#![cfg_attr(any(target_os = "android", target_os = "linux"), feature(nll))]
 #![cfg_attr(any(target_os = "android", target_os = "linux"), feature(read_initializer))]
 
 

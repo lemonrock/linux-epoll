@@ -8,7 +8,7 @@ macro_rules! streaming_socket_reactor
 	{
 		/// This object wraps streaming sockets.
 		#[derive(Debug)]
-		struct $reactor_name<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>>
+		pub struct $reactor_name<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>>
 		{
 			common: StreamingSocketCommon<SF, SU, $sockaddr_type>,
 		}

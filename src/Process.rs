@@ -71,9 +71,14 @@ impl<T: Terminate, R: Registration> Process<T, R>
 
 		const isolated_cpus_required: bool = false;
 
-		let main_loop = |_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process);
-
-		self.process_configuration.process_common_configuration.execute(|| Ok(()), uses_enhanced_intel_speedstep_technology, isolated_cpus_required, |_| Ok(()), main_loop)
+		self.process_configuration.process_common_configuration.execute
+		(
+			|| Ok(()),
+			uses_enhanced_intel_speedstep_technology,
+			isolated_cpus_required,
+			|_| Ok(()),
+			|_online_shared_hyper_threads_for_os, online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process, _master_logical_core| self.execute_internal(online_shared_hyper_threads_for_process, online_isolated_hyper_threads_for_process)
+		)
 	}
 
 	#[inline(always)]

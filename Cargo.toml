@@ -20,8 +20,8 @@ version = "0.0.0"
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 arrayvec = "^0.4"
 context-coroutine = "^2.1.0"
-cpu-affinity = "^0.4.2"
-dpdk-unix = "^0.2.11"
+cpu-affinity = "^0.4.4"
+dpdk-unix = "^0.3.0"
 file-descriptors = "^0.8.6"
 hashbrown = { version = "0.1", features = ["nightly", "serde"] }
 libc = "^0.2.44"
