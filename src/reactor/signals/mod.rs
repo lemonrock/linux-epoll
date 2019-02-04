@@ -2,29 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[derive(Debug)]
-struct AcceptedStreamingSocketMessage<SD: SocketData>
-{
-	streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>,
-	streaming_socket_service_identifier: u8,
-}
+use super::*;
 
-impl<SD: SocketData> AcceptedStreamingSocketMessage<SD>
-{
-	#[inline(always)]
-	pub fn initialize(mut receiver: NonNull<Self>, streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, streaming_socket_service_identifier: u8)
-	{
-		unsafe
-		{
-			write
-			(
-				receiver.as_mut(),
-				Self
-				{
-					streaming_socket_file_descriptor,
-					streaming_socket_service_identifier,
-				}
-			)
-		}
-	}
-}
+
+include!("AllSignalsReactor.rs");

@@ -64,7 +64,6 @@ use ::std::io::ErrorKind;
 use ::std::io::Initializer;
 use ::std::io::Read;
 use ::std::io::Write;
-use ::std::marker::PhantomData;
 use ::std::mem::ManuallyDrop;
 use ::std::mem::transmute;
 use ::std::mem::transmute_copy;
@@ -99,6 +98,7 @@ pub mod arena;
 
 
 include!("EventPoll.rs");
+include!("EventPollRegister.rs");
 include!("EventPollRegistrationError.rs");
 include!("EventPollToken.rs");
 include!("JoinHandles.rs");

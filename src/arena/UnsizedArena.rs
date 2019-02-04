@@ -7,5 +7,5 @@ extern
 	/// Represents an Arena of an unknown size.
 	///
 	/// An Arena can not be represented as a trait object because of the `Holds` parameterized type.
-	type UnsizedArena;
+	pub type UnsizedArena;
 }

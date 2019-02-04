@@ -6,31 +6,31 @@ const MaximumEvents: usize = 1024;
 
 /// Wraps event polling.
 #[derive(Debug)]
-struct EventPoll<T: Terminate>
+pub(crate) struct EventPoll
 {
-	arenas: Arenas<T>,
+	arenas: Arenas,
 	epoll_file_descriptor: EPollFileDescriptor,
 	time_out: EPollTimeOut,
 	spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell<HashSet<EventPollToken>>,
 }
 
-impl<T: Terminate> ArenasRegistrar for EventPoll<T>
+impl ArenasRegistrar for EventPoll
 {
 	#[inline(always)]
-	fn register_arena<A: Arena<R> + 'static, R: Reactor + 'static>(&mut self, arena: A) -> CompressedTypeIdentifier
+	fn register_arena<A: Arena<R> + 'static, R: Reactor + 'static, T: Terminate>(&mut self, arena: A) -> CompressedTypeIdentifier
 	{
-		self.arenas.register::<A, R>(arena)
+		self.arenas.register_arena::<A, R, T>(arena)
 	}
 }
 
-impl<T: Terminate> ReactorsRegistrar for EventPoll<T>
+impl ReactorsRegistrar for EventPoll
 {
 	#[inline(always)]
 	unsafe fn add_a_new_reactor_efficiently<A: Arena<R> + 'static, R: Reactor + 'static>(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: R::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let arena = self.arenas.get_arena::<A, R>(reactor_compressed_type_identifier);
 
-		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<A, Self>(self, arena, reactor_compressed_type_identifier, registration_data)
 	}
 
 	#[inline(always)]
@@ -38,32 +38,14 @@ impl<T: Terminate> ReactorsRegistrar for EventPoll<T>
 	{
 		let (arena, reactor_compressed_type_identifier) = self.arenas.get_arena_and_reactor_compressed_type_identifier::<A, R>();
 
-		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary(self, arena, reactor_compressed_type_identifier, registration_data)
+		R::do_initial_input_and_output_and_register_with_epoll_if_necesssary::<A, Self>(self, arena, reactor_compressed_type_identifier, registration_data)
 	}
 }
 
-impl<T: Terminate> EventPoll<T>
+impl EventPollRegister for EventPoll
 {
-	/// Creates a new instance.
-	///
-	/// Only one instance per thread is normally required.
 	#[inline(always)]
-	pub fn new(arenas: Arenas<T>, time_out_milliseconds: u16) -> Result<Self, CreationError>
-	{
-		Ok
-		(
-			Self
-			{
-				arenas,
-				epoll_file_descriptor: EPollFileDescriptor::new()?,
-				time_out: EPollTimeOut::in_n_milliseconds(time_out_milliseconds),
-				spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell::new(HashSet::with_capacity(MaximumEvents))
-			}
-		)
-	}
-
-	#[inline(always)]
-	pub(crate) fn register<A: Arena<R>, R: Reactor, F: FnOnce(&mut R, R::FileDescriptor) -> Result<(), EventPollRegistrationError>>(&self, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: F) -> Result<(), EventPollRegistrationError>
+	fn register<A: Arena<R>, R: Reactor, F: FnOnce(&mut R, R::FileDescriptor) -> Result<(), EventPollRegistrationError>>(&self, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, file_descriptor: R::FileDescriptor, add_flags: EPollAddFlags, initializer: F) -> Result<(), EventPollRegistrationError>
 	{
 		let (mut non_null, arena_index) = arena.allocate()?;
 		let event_poll_token = EventPollToken::new(reactor_compressed_type_identifier, arena_index);
@@ -83,12 +65,33 @@ impl<T: Terminate> EventPoll<T>
 			}
 		}
 	}
+}
+
+impl EventPoll
+{
+	/// Creates a new instance.
+	///
+	/// Only one instance per thread is normally required.
+	#[inline(always)]
+	pub(crate) fn new(arenas: Arenas, time_out_milliseconds: u16) -> Result<Self, CreationError>
+	{
+		Ok
+		(
+			Self
+			{
+				arenas,
+				epoll_file_descriptor: EPollFileDescriptor::new()?,
+				time_out: EPollTimeOut::in_n_milliseconds(time_out_milliseconds),
+				spurious_event_suppression_of_already_closed_file_descriptors: UnsafeCell::new(HashSet::with_capacity(MaximumEvents))
+			}
+		)
+	}
 
 	/// One iteration of an event loop.
 	///
 	/// If interrupted by a signal then re-waits on epoll unless terminate has become true.
 	#[inline(always)]
-	pub(crate) fn event_loop_iteration(&self, terminate: &T) -> Result<(), String>
+	pub(crate) fn event_loop_iteration<T: Terminate>(&self, terminate: &T) -> Result<(), String>
 	{
 		let mut events: [epoll_event; MaximumEvents] = unsafe { uninitialized() };
 
@@ -120,7 +123,7 @@ impl<T: Terminate> EventPoll<T>
 				continue
 			}
 
-			let result = self.react(event_poll_token, ready_event.flags(), terminate);
+			let result = self.react::<T>(event_poll_token, ready_event.flags(), terminate);
 			if let Err(reason) = result
 			{
 				terminate.begin_termination();
@@ -138,17 +141,18 @@ impl<T: Terminate> EventPoll<T>
 	}
 
 	#[inline(always)]
-	fn react(&self, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &T) -> Result<(), String>
+	fn react<T: Terminate>(&self, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &T) -> Result<(), String>
 	{
 		let reactor_compressed_type_identifier = event_poll_token.reactor_compressed_type_identifier();
 		let (unsized_arena, react_function_pointer) = self.arenas.get_unsized_arena_and_react_function_pointer(reactor_compressed_type_identifier);
-		react_function_pointer(self, unsized_arena, event_poll_token, event_flags, terminate)
+		react_function_pointer(self, unsized_arena, event_poll_token, event_flags, unsafe { NonNull::new_unchecked(terminate as *const _ as *mut _) })
 	}
 
 	#[inline(always)]
-	pub(crate) fn react_callback<A: Arena<R>, R: Reactor>(&self, arena: NonNull<A>, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: &T) -> Result<(), String>
+	pub(crate) fn react_function_pointer<A: Arena<R>, R: Reactor, T: Terminate>(&self, arena: NonNull<A>, event_poll_token: EventPollToken, event_flags: EPollEventFlags, terminate: NonNull<T>) -> Result<(), String>
 	{
 		let arena = unsafe { & * arena.as_ptr() };
+		let terminate = unsafe { & * terminate.as_ptr() };
 
 		let arena_index = event_poll_token.arena_index();
 

@@ -18,3 +18,4 @@ include!("SimpleArena.rs");
 include!("UnsizedArena.rs");
 include!("UnsizedArenaDropInPlaceFunctionPointer.rs");
 include!("UnsizedReactFunctionPointer.rs");
+include!("UnsizedTerminate.rs");

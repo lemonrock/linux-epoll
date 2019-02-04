@@ -15,9 +15,9 @@ struct StreamingServerListenerSocketCommon<SD: SocketData, AC: AccessControl<SD>
 impl<SD: SocketData, AC: AccessControl<SD>> StreamingServerListenerSocketCommon<SD, AC>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSLSR: StreamingServerListenerSocketReactor<SD, AC>, A: Arena<SSLSR>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, publisher: QueuePerThreadQueuesPublisher<(), String>, accepted_streaming_socket_message_compressed_type_identifier: CompressedTypeIdentifier, streaming_socket_service_identifier: u8) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<SSLSR>, SSLSR: StreamingServerListenerSocketReactor<SD, AC>, EPR: EventPollRegister>(event_poll_register: &EPR, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, streaming_server_listener_socket_file_descriptor: SSLSR::FileDescriptor, access_control: AC, publisher: QueuePerThreadQueuesPublisher<(), String>, accepted_streaming_socket_message_compressed_type_identifier: CompressedTypeIdentifier, streaming_socket_service_identifier: u8) -> Result<(), EventPollRegistrationError>
 	{
-		event_poll.register::<A, SSLSR, _>(arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor, streaming_server_listener_socket_file_descriptor|
+		event_poll_register.register::<A, SSLSR, _>(arena, reactor_compressed_type_identifier, streaming_server_listener_socket_file_descriptor, EPollAddFlags::EdgeTriggeredInputExclusive, |uninitialized_reactor, streaming_server_listener_socket_file_descriptor|
 		{
 			uninitialized_reactor.initialize
 			(

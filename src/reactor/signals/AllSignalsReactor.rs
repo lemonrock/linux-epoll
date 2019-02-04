@@ -16,16 +16,14 @@ impl<SH: SignalHandler> Reactor for AllSignalsReactor<SH>
 
 	type RegistrationData = SH;
 
-	// (arena: &A, compressed_type_identifier: CompressedTypeIdentifier) are really things that should belong to the event_poll
-
 	/// Starts blocking signals at this point.
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<Self>, EPR: EventPollRegister>(event_poll_register: &EPR, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, registration_data: Self::RegistrationData) -> Result<(), EventPollRegistrationError>
 	{
 		let signal_handler = registration_data;
 		let (signal_file_descriptor, _signal_mask) = SignalFileDescriptor::new_with_filled_signal_mask()?;
 
-		event_poll.register::<A, Self, _>(arena, reactor_compressed_type_identifier, signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this, signal_file_descriptor|
+		event_poll_register.register::<A, Self, _>(arena, reactor_compressed_type_identifier, signal_file_descriptor, EPollAddFlags::EdgeTriggeredInput, |uninitialized_this, signal_file_descriptor|
 		{
 			unsafe
 			{

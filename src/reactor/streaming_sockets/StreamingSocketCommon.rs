@@ -45,7 +45,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for
 impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSocketCommon<SF, SU, SD>
 {
 	#[inline(always)]
-	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<SSR: StreamingSocketReactor<SF, SU, SD>, A: Arena<SSR>, T: Terminate>(event_poll: &EventPoll<T>, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, Rc<SF>, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
+	fn do_initial_input_and_output_and_register_with_epoll_if_necesssary<A: Arena<SSR>, SSR: StreamingSocketReactor<SF, SU, SD>, EPR: EventPollRegister>(event_poll_register: &EPR, arena: &A, reactor_compressed_type_identifier: CompressedTypeIdentifier, (streaming_socket_file_descriptor, server_stream_factory, additional_arguments, stream_user): (SSR::FileDescriptor, Rc<SF>, SF::AdditionalArguments, Rc<SU>)) -> Result<(), EventPollRegistrationError>
 	{
 		let start_arguments =
 		(
@@ -64,7 +64,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 			WouldLikeToResume((), started_coroutine) => started_coroutine,
 		};
 
-		event_poll.register::<A, SSR, _>(arena, reactor_compressed_type_identifier, streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor, streaming_socket_file_descriptor|
+		event_poll_register.register::<A, SSR, _>(arena, reactor_compressed_type_identifier, streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor, streaming_socket_file_descriptor|
 		{
 			uninitialized_reactor.initialize
 			(

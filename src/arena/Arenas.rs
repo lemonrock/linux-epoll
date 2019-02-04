@@ -4,18 +4,16 @@
 
 /// Holds arenas of different types.
 #[derive(Debug)]
-pub(crate) struct Arenas<T: Terminate>
+pub(crate) struct Arenas
 {
-	terminate: PhantomData<T>,
-
 	reactor_compressed_type_lookup_table: HashMap<TypeId, (CompressedTypeIdentifier, TypeId)>,
-	arenas: ArrayVec<[(NonNull<UnsizedArena>, UnsizedArenaDropInPlaceFunctionPointer, UnsizedReactFunctionPointer<T>); CompressedTypeIdentifier::Size]>,
+	arenas: ArrayVec<[(NonNull<UnsizedArena>, UnsizedArenaDropInPlaceFunctionPointer, UnsizedReactFunctionPointer); CompressedTypeIdentifier::Size]>,
 
 	last_reactor_type_identifier_looked_up: Cell<TypeId>,
 	last_unsized_arena_and_reactor_compressed_type_identifier_for_last_reactor_type_identifier_looked_up: Cell<(NonNull<UnsizedArena>, CompressedTypeIdentifier)>,
 }
 
-impl<T: Terminate> Drop for Arenas<T>
+impl Drop for Arenas
 {
 	#[inline(always)]
 	fn drop(&mut self)
@@ -27,15 +25,13 @@ impl<T: Terminate> Drop for Arenas<T>
 	}
 }
 
-impl<T: Terminate> Default for Arenas<T>
+impl Default for Arenas
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
 		Self
 		{
-			terminate: PhantomData,
-
 			reactor_compressed_type_lookup_table: HashMap::with_capacity(CompressedTypeIdentifier::Size),
 			arenas: ArrayVec::new(),
 
@@ -45,18 +41,10 @@ impl<T: Terminate> Default for Arenas<T>
 	}
 }
 
-impl<T: Terminate> Arenas<T>
+impl ArenasRegistrar for Arenas
 {
 	#[inline(always)]
-	fn empty_type_identifier() -> TypeId
-	{
-		unsafe { zeroed() }
-	}
-
-	/// Register an arena.
-	///
-	/// It is not permissible to register multiple arenas for the same type of `R`.
-	pub(crate) fn register<A: Arena<R> + 'static, R: Reactor + 'static>(&mut self, arena: A) -> CompressedTypeIdentifier
+	fn register_arena<A: Arena<R> + 'static, R: Reactor + 'static, T: Terminate>(&mut self, arena: A) -> CompressedTypeIdentifier
 	{
 		let arena_type_identifier = TypeId::of::<A>();
 		let reactor_type_identifier = TypeId::of::<R>();
@@ -70,12 +58,21 @@ impl<T: Terminate> Arenas<T>
 		let sized_arena_drop_in_place_function_pointer: fn(NonNull<A>) = A::drop_from_non_null;
 		let unsized_arena_drop_in_place_function_pointer: UnsizedArenaDropInPlaceFunctionPointer = unsafe { transmute(sized_arena_drop_in_place_function_pointer) };
 
-		let sized_react_function_pointer: for<'event_poll, 'terminate> fn(&'event_poll EventPoll<T>, NonNull<A>, EventPollToken, EPollEventFlags, &'terminate T) -> Result<(), String> = EventPoll::<T>::react_callback::<A, R>;
-		let unsized_react_function_pointer: UnsizedReactFunctionPointer<T> = unsafe { transmute(sized_react_function_pointer) };
+		let sized_react_function_pointer: for<'event_poll> fn(&'event_poll EventPoll, NonNull<A>, EventPollToken, EPollEventFlags, NonNull<T>) -> Result<(), String> = EventPoll::react_function_pointer::<A, R, T>;
+		let unsized_react_function_pointer: UnsizedReactFunctionPointer = unsafe { transmute(sized_react_function_pointer) };
 
 		self.arenas.push((unsized_arena, unsized_arena_drop_in_place_function_pointer, unsized_react_function_pointer));
 
 		reactor_compressed_type_identifier
+	}
+}
+
+impl Arenas
+{
+	#[inline(always)]
+	fn empty_type_identifier() -> TypeId
+	{
+		unsafe { zeroed() }
 	}
 
 	/// Gets an arena.
@@ -89,7 +86,7 @@ impl<T: Terminate> Arenas<T>
 	}
 
 	#[inline(always)]
-	pub(crate) fn get_unsized_arena_and_react_function_pointer(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier) -> (NonNull<UnsizedArena>, UnsizedReactFunctionPointer<T>)
+	pub(crate) fn get_unsized_arena_and_react_function_pointer(&self, reactor_compressed_type_identifier: CompressedTypeIdentifier) -> (NonNull<UnsizedArena>, UnsizedReactFunctionPointer)
 	{
 		let value: u8 = reactor_compressed_type_identifier.into();
 		let index = value as usize;
@@ -100,7 +97,7 @@ impl<T: Terminate> Arenas<T>
 		}
 		else
 		{
-			*self.arenas.get_unchecked(index)
+			unsafe { *self.arenas.get_unchecked(index) }
 		};
 
 		(unsized_arena, react_function_pointer)
@@ -118,7 +115,7 @@ impl<T: Terminate> Arenas<T>
 		}
 		else
 		{
-			self.arenas.get_unchecked(index).0
+			unsafe{ self.arenas.get_unchecked(index).0 }
 		}
 	}
 

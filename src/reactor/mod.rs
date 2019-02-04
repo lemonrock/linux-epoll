@@ -5,6 +5,10 @@
 use super::*;
 
 
+/// Signal reactors using `signalfd`.
+pub mod signals;
+
+
 /// Streaming socket reactors and supporting logic.
 #[macro_use] pub mod streaming_sockets;
 
@@ -13,7 +17,7 @@ use super::*;
 pub mod streaming_server_listener_sockets;
 
 
-include!("AllSignalsReactor.rs");
+include!("AdaptedReactorsRegistrar.rs");
 include!("CompleteError.rs");
 include!("InputOutputYielder.rs");
 include!("ReactEdgeTriggeredStatus.rs");
