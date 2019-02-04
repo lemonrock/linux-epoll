@@ -1,0 +1,28 @@
+TARGET = Some("x86_64-unknown-linux-musl")
+OPT_LEVEL = Some("0")
+HOST = Some("x86_64-apple-darwin")
+CC_x86_64-unknown-linux-musl = None
+CC_x86_64_unknown_linux_musl = None
+TARGET_CC = None
+CC = None
+CROSS_COMPILE = Some("x86_64-linux-musl-")
+CFLAGS_x86_64-unknown-linux-musl = None
+CFLAGS_x86_64_unknown_linux_musl = None
+TARGET_CFLAGS = None
+CFLAGS = None
+DEBUG = Some("true")
+running: "x86_64-linux-musl-gcc" "-O0" "-ffunction-sections" "-fdata-sections" "-fPIC" "-g" "-fno-omit-frame-pointer" "-m64" "-static" "-Wall" "-Wextra" "-DBOOST_CONTEXT_EXPORT" "-o" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/src/asm/jump_x86_64_sysv_elf_gas.o" "-c" "src/asm/jump_x86_64_sysv_elf_gas.S"
+exit code: 0
+running: "x86_64-linux-musl-gcc" "-O0" "-ffunction-sections" "-fdata-sections" "-fPIC" "-g" "-fno-omit-frame-pointer" "-m64" "-static" "-Wall" "-Wextra" "-DBOOST_CONTEXT_EXPORT" "-o" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/src/asm/make_x86_64_sysv_elf_gas.o" "-c" "src/asm/make_x86_64_sysv_elf_gas.S"
+exit code: 0
+running: "x86_64-linux-musl-gcc" "-O0" "-ffunction-sections" "-fdata-sections" "-fPIC" "-g" "-fno-omit-frame-pointer" "-m64" "-static" "-Wall" "-Wextra" "-DBOOST_CONTEXT_EXPORT" "-o" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/src/asm/ontop_x86_64_sysv_elf_gas.o" "-c" "src/asm/ontop_x86_64_sysv_elf_gas.S"
+exit code: 0
+AR_x86_64-unknown-linux-musl = None
+AR_x86_64_unknown_linux_musl = None
+TARGET_AR = None
+AR = None
+running: "ar" "crs" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/libboost_context.a" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/src/asm/jump_x86_64_sysv_elf_gas.o" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/src/asm/make_x86_64_sysv_elf_gas.o" "/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/src/asm/ontop_x86_64_sysv_elf_gas.o"
+cargo:warning=warning: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib: warning for library: /Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out/libboost_context.a the table of contents is empty (no object file members in the library define global symbols)
+exit code: 0
+cargo:rustc-link-lib=static=boost_context
+cargo:rustc-link-search=native=/Volumes/Source/lemonrock/linux-epoll/workspace/target/x86_64-unknown-linux-musl/debug/build/context-ffedfb52ae19c266/out

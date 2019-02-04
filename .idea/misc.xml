@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CargoProjects">
-    <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/workspace/linux-epoll/Cargo.toml" />
   </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
