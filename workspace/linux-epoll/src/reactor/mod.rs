@@ -9,10 +9,6 @@ use super::*;
 #[macro_use] pub mod streaming_sockets;
 
 
-/// Streaming server listener socket reactors and supporting logic.
-pub mod streaming_server_listener_sockets;
-
-
 include!("AdaptedReactorsRegistrar.rs");
 include!("CompleteError.rs");
 include!("InputOutputYielder.rs");

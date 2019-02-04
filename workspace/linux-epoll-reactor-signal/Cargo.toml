@@ -18,5 +18,4 @@ publish = true
 version = "0.1.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
-file-descriptors = "^0.8.6"
 linux-epoll = { path = "../linux-epoll", version = "0.1.0" }

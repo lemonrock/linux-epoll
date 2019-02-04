@@ -3,4 +3,8 @@
 
 
 [workspace]
-members = ["linux-epoll", "linux-epoll-reactor-signal"]
+members = [
+	"linux-epoll",
+	"linux-epoll-reactor-signal",
+	"linux-epoll-reactor-streaming-server-listener-sockets"
+]

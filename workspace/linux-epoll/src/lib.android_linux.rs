@@ -4,24 +4,22 @@
 
 extern crate arrayvec;
 extern crate context_coroutine;
-extern crate cpu_affinity;
+pub extern crate cpu_affinity;
 extern crate dpdk_unix;
 pub extern crate file_descriptors;
-extern crate hashbrown;
-extern crate libc;
+pub extern crate hashbrown;
+pub extern crate libc;
 #[macro_use] extern crate likely;
-extern crate message_dispatch;
+pub extern crate message_dispatch;
 extern crate rustls_extra;
 #[macro_use] extern crate serde_derive;
 extern crate terminate;
-extern crate treebitmap;
 
 
 use self::arena::*;
 use self::reactor::*;
 use self::reactor::streaming_sockets::streams::*;
 use self::reactor::streaming_sockets::stream_factories::*;
-use self::reactor::streaming_server_listener_sockets::access_control::*;
 use ::arrayvec::ArrayVec;
 use ::context_coroutine::*;
 use ::cpu_affinity::*;
@@ -34,13 +32,11 @@ use ::file_descriptors::epoll::*;
 use ::file_descriptors::epoll::syscall::*;
 use ::file_descriptors::socket::*;
 use ::file_descriptors::socket::syscall::*;
-use ::libc::gid_t;
 use ::libc::SIGHUP;
 use ::libc::SIGINT;
 use ::libc::SIGQUIT;
 use ::libc::sigset_t;
 use ::libc::SIGTERM;
-use ::libc::uid_t;
 use ::message_dispatch::*;
 pub use ::message_dispatch::erased_boxed_functions::CompressedTypeIdentifier;
 use ::rustls_extra::*;
@@ -56,7 +52,6 @@ use ::std::fmt;
 use ::std::fmt::Debug;
 use ::std::fmt::Display;
 use ::std::fmt::Formatter;
-use ::std::hash::Hash;
 use ::std::io;
 use ::std::io::ErrorKind;
 use ::std::io::Initializer;
@@ -68,14 +63,8 @@ use ::std::mem::transmute;
 use ::std::mem::transmute_copy;
 use ::std::mem::uninitialized;
 use ::std::mem::zeroed;
-use ::std::net::Ipv4Addr;
-use ::std::net::Ipv6Addr;
-use ::std::net::SocketAddrV4;
-use ::std::net::SocketAddrV6;
 use ::std::ops::Deref;
-use ::std::ops::DerefMut;
 use ::std::os::unix::io::AsRawFd;
-use ::std::path::PathBuf;
 use ::std::panic::*;
 use ::std::ptr::drop_in_place;
 use ::std::ptr::NonNull;
@@ -85,7 +74,6 @@ use ::std::sync::Arc;
 use ::std::thread::Builder;
 use ::std::thread::JoinHandle;
 pub use ::terminate::*;
-use ::treebitmap::IpLookupTable;
 
 
 /// Implementations of the `Arena` trait.

@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/workspace/linux-epoll/linux-epoll.iml" filepath="$PROJECT_DIR$/workspace/linux-epoll/linux-epoll.iml" />
       <module fileurl="file://$PROJECT_DIR$/workspace/linux-epoll-reactor-signal/linux-epoll-reactor-signal.iml" filepath="$PROJECT_DIR$/workspace/linux-epoll-reactor-signal/linux-epoll-reactor-signal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/workspace/linux-epoll-reactor-streaming-server-listener-sockets/linux-epoll-reactor-streaming-server-listener-sockets.iml" filepath="$PROJECT_DIR$/workspace/linux-epoll-reactor-streaming-server-listener-sockets/linux-epoll-reactor-streaming-server-listener-sockets.iml" />
     </modules>
   </component>
 </project>
