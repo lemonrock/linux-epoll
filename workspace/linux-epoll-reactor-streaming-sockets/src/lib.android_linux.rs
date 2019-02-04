@@ -52,12 +52,11 @@ pub mod streams;
 include!("streaming_socket_reactor.rs");
 
 
-include!("ByteCounter.rs");
 include!("CompleteError.rs");
-include!("InputOutputYielder.rs");
 include!("ReactEdgeTriggeredStatus.rs");
 include!("StreamingSocketCommon.rs");
 include!("StreamingSocketInternetProtocolVersion4Reactor.rs");
 include!("StreamingSocketInternetProtocolVersion6Reactor.rs");
 include!("StreamingSocketReactor.rs");
 include!("StreamingSocketUnixDomainReactor.rs");
+include!("TlsInputOutputError.rs");

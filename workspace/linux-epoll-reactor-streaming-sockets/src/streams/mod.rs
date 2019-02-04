@@ -10,6 +10,8 @@ include!("read_loop_or_await_or_error.rs");
 include!("write_loop_or_await_or_error.rs");
 
 
+include!("ByteCounter.rs");
+include!("InputOutputYielder.rs");
 include!("GenericStream.rs");
 include!("SessionExt.rs");
 include!("Stream.rs");
@@ -17,6 +19,5 @@ include!("stream_read_write.rs");
 include!("StreamUser.rs");
 include!("TlsClientStream.rs");
 include!("TlsGenericStream.rs");
-include!("TlsInputOutputError.rs");
 include!("TlsServerStream.rs");
 include!("UnencryptedStream.rs");
