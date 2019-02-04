@@ -5,7 +5,7 @@
 #[derive(Debug)]
 pub(crate) struct GenericStream<'yielder, SD: SocketData>
 {
-	streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>,
+	streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>,
 	input_output_yielder: InputOutputYielder<'yielder>,
 	byte_counter: ByteCounter,
 }
@@ -46,13 +46,13 @@ impl<'yielder, SD: SocketData> GenericStream<'yielder, SD>
 impl<'yielder, SD: SocketData> GenericStream<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn wrap(streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
+	pub(crate) fn wrap(streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>) -> Self
 	{
 		Self::new(streaming_socket_file_descriptor, InputOutputYielder::new(yielder), ByteCounter::default())
 	}
 
 	#[inline(always)]
-	fn new(streaming_socket_file_descriptor: ManuallyDrop<StreamingSocketFileDescriptor<SD>>, input_output_yielder: InputOutputYielder<'yielder>, byte_counter: ByteCounter) -> Self
+	fn new(streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, input_output_yielder: InputOutputYielder<'yielder>, byte_counter: ByteCounter) -> Self
 	{
 		Self
 		{

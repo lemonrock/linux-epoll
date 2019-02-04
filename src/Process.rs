@@ -104,11 +104,20 @@ impl<T: Terminate, R: Registration> Process<T, R>
 
 			ProcessCommonConfiguration::lock_down_raw_network_and_other_input_and_output();
 
-			Scheduler::Idle.set_for_current_thread();
-			this_master_thread_logical_core_affinity.set_current_thread_affinity();
+			if let Err(explanation) = Scheduler::Idle.set_for_current_thread()
+			{
+				return Err(format!("Could not set Idle scehduler for current master because `{:?}`", explanation))
+			}
+
+			if let Err(explanation) = this_master_thread_logical_core_affinity.set_current_thread_affinity()
+			{
+				return Err(format!("Could not set logical core affinity for master thread because `{:?}`", explanation))
+			}
+
+
 			ProcessCommonConfiguration::lock_down_thread_nice_value_setting();
 
-			self.wait_on_signals(self.process_configuration.running_interactively())
+			Ok(self.wait_on_signals(self.process_configuration.running_interactively()))
 		}));
 
 		let signal_to_re_raise = match result
@@ -119,7 +128,13 @@ impl<T: Terminate, R: Registration> Process<T, R>
 				None
 			}
 
-			Ok(signal_to_re_raise) =>
+			Ok(Err(could_not)) =>
+			{
+				self.terminate.begin_termination_due_to_irrecoverable_error(&could_not);
+				None
+			}
+
+			Ok(Ok(signal_to_re_raise)) =>
 			{
 				self.terminate.begin_termination();
 				signal_to_re_raise

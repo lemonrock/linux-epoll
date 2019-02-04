@@ -6,7 +6,6 @@
 pub struct StreamingSocketCommon<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData>
 {
 	started_coroutine: StartedStackAndTypeSafeTransfer<SimpleStack, Self>,
-	streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>,
 }
 
 #[doc(hidden)]
@@ -22,7 +21,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Debug for Str
 #[doc(hidden)]
 impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> Coroutine for StreamingSocketCommon<SF, SU, SD>
 {
-	type StartArguments = (ManuallyDrop<StreamingSocketFileDescriptor<SD>>, Rc<SF>, SF::AdditionalArguments, Rc<SU>);
+	type StartArguments = (StreamingSocketFileDescriptor<SD>, Rc<SF>, SF::AdditionalArguments, Rc<SU>);
 
 	type ResumeArguments = ReactEdgeTriggeredStatus;
 
@@ -49,7 +48,7 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 	{
 		let start_arguments =
 		(
-			ManuallyDrop::new(unsafe { transmute_copy(&streaming_socket_file_descriptor) }),
+			unsafe { transmute_copy(&streaming_socket_file_descriptor) },
 			server_stream_factory,
 			additional_arguments,
 			stream_user,
@@ -66,12 +65,13 @@ impl<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData> StreamingSock
 
 		event_poll_register.register::<A, SSR, _>(arena, reactor_compressed_type_identifier, streaming_socket_file_descriptor, EPollAddFlags::Streaming, |uninitialized_reactor, streaming_socket_file_descriptor|
 		{
+			forget(streaming_socket_file_descriptor);
+
 			uninitialized_reactor.initialize
 			(
 				Self
 				{
 					started_coroutine,
-					streaming_socket_file_descriptor,
 				}
 			);
 			Ok(())

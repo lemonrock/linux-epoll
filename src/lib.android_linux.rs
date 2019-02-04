@@ -64,6 +64,7 @@ use ::std::io::ErrorKind;
 use ::std::io::Initializer;
 use ::std::io::Read;
 use ::std::io::Write;
+use ::std::mem::forget;
 use ::std::mem::ManuallyDrop;
 use ::std::mem::transmute;
 use ::std::mem::transmute_copy;
