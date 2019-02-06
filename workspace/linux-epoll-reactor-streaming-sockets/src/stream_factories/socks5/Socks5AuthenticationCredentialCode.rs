@@ -2,19 +2,24 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// A credential code.
+///
+/// Never `0xFF`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Socks5AuthenticationCredentialCode(u8);
 
+impl Into<u8> for Socks5AuthenticationCredentialCode
+{
+	#[inline(always)]
+	fn into(self) -> u8
+	{
+		self.0
+	}
+}
 
-/// SOCKS4a wrapping factories.
-pub mod socks4a;
+impl Socks5AuthenticationCredentialCode
+{
+	const None: Self = Self(0x00);
 
-
-/// SOCKS5 wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+	const UserNameAndPassword: Self = Self(0x02);
+}

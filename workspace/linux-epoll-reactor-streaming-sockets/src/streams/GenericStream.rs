@@ -52,6 +52,12 @@ impl<'yielder, SD: SocketData> GenericStream<'yielder, SD>
 	}
 
 	#[inline(always)]
+	pub(crate) fn unwrap(self) -> (StreamingSocketFileDescriptor<SD>, Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>)
+	{
+		(self.streaming_socket_file_descriptor, self.input_output_yielder)
+	}
+
+	#[inline(always)]
 	fn new(streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, input_output_yielder: InputOutputYielder<'yielder>, byte_counter: ByteCounter) -> Self
 	{
 		Self

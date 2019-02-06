@@ -19,6 +19,7 @@ version = "0.1.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 context-coroutine = "^2.1.0"
+hashbrown = "^0.1"
 likely = "^0.1"
 linux-epoll = { path = "../linux-epoll", version = "0.1.0" }
 rustls-extra = "0.15.0"

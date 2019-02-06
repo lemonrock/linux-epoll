@@ -80,4 +80,10 @@ impl<'yielder, SD: SocketData> UnencryptedStream<'yielder, SD>
 	{
 		Self(generic_stream)
 	}
+
+	#[inline(always)]
+	pub(crate) fn unwrap(self) -> (StreamingSocketFileDescriptor<SD>, Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>)
+	{
+		self.0.unwrap()
+	}
 }

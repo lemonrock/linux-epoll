@@ -5,8 +5,11 @@
 /// A factory to create instances of `TlsServerStream`.
 pub struct TlsServerStreamFactory
 {
-	tls_configuration: Arc<ServerConfig>,
-	session_buffer_limit: usize,
+	/// TLS server configuration.
+	pub tls_configuration: Arc<ServerConfig>,
+
+	/// TLS session buffer size limit.
+	pub session_buffer_limit: usize,
 }
 
 impl Debug for TlsServerStreamFactory

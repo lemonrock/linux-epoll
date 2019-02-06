@@ -2,19 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// SOCKS4a protocol failure error.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Socks4aProtocolFailureError
+{
+	/// Version was not `4` (actual value in tuple).
+	VersionInvalid(u8),
 
+	/// Command code was `91`.
+	RequestRejectedOrFailed,
 
-/// SOCKS4a wrapping factories.
-pub mod socks4a;
+	/// Command code was `92`.
+	RequestRejectedBecauseSocksServerCanNotConnectToIdentdOnTheClient,
 
+	/// Command code was `93`.
+	RequestRejectedBecauseTheClientProgramAndIdentdReportDifferentUserIdentifiers,
 
-/// SOCKS5 wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+	/// Command code was invalid (actual value in tuple).
+	CommandCodeWasInvalid(u8),
+}

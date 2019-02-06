@@ -16,7 +16,7 @@ pub struct RemotePeerAddressBasedAccessControl
 	permitted_protocol_version_4_subnets: Option<IpLookupTable<Ipv4Addr, ()>>,
 	denied_protocol_version_6_subnets: IpLookupTable<Ipv6Addr, ()>,
 	permitted_protocol_version_6_subnets: Option<IpLookupTable<Ipv6Addr, ()>>,
-	denied_unix_domain_user_identifiers: HashSet<uid_t>,
+	denied_unix_domain_user_identifierentifiers: HashSet<uid_t>,
 	permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>,
 }
 
@@ -25,7 +25,7 @@ impl Debug for RemotePeerAddressBasedAccessControl
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
 	{
-		write!(f, "RemotePeerAddressBasedAccessControl {{ denied_protocol_version_4_subnets: _, permitted_protocol_version_4_subnets: _, denied_protocol_version_6_subnets: _, permitted_protocol_version_6_subnets: _, denied_unix_domain_user_identifiers: {:?}, permitted_unix_domain_group_identifiers: {:?} }}", self.denied_unix_domain_user_identifiers, self.permitted_unix_domain_group_identifiers)
+		write!(f, "RemotePeerAddressBasedAccessControl {{ denied_protocol_version_4_subnets: _, permitted_protocol_version_4_subnets: _, denied_protocol_version_6_subnets: _, permitted_protocol_version_6_subnets: _, denied_unix_domain_user_identifierentifiers: {:?}, permitted_unix_domain_group_identifiers: {:?} }}", self.denied_unix_domain_user_identifierentifiers, self.permitted_unix_domain_group_identifiers)
 	}
 }
 
@@ -36,7 +36,7 @@ impl RemotePeerAddressBasedAccessControl
 	/// Permitted lists are `Option`s.
 	/// If they are `None`, then the permitted list is not checked and all possible values are permitted (as long as the accompanying deny list does not deny them).
 	#[inline(always)]
-	pub fn new(denied_protocol_version_4_subnets: InternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_4_subnets: Option<InternetProtocolSubnets<Ipv4Addr>>, denied_protocol_version_6_subnets: InternetProtocolSubnets<Ipv6Addr>, permitted_protocol_version_6_subnets: Option<InternetProtocolSubnets<Ipv6Addr>>, denied_unix_domain_user_identifiers: HashSet<uid_t>, permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>) -> Self
+	pub fn new(denied_protocol_version_4_subnets: InternetProtocolSubnets<Ipv4Addr>, permitted_protocol_version_4_subnets: Option<InternetProtocolSubnets<Ipv4Addr>>, denied_protocol_version_6_subnets: InternetProtocolSubnets<Ipv6Addr>, permitted_protocol_version_6_subnets: Option<InternetProtocolSubnets<Ipv6Addr>>, denied_unix_domain_user_identifierentifiers: HashSet<uid_t>, permitted_unix_domain_group_identifiers: Option<HashSet<gid_t>>) -> Self
 	{
 		Self
 		{
@@ -44,7 +44,7 @@ impl RemotePeerAddressBasedAccessControl
 			permitted_protocol_version_4_subnets: permitted_protocol_version_4_subnets.map(|value| value.to_ip_lookup_table()),
 			denied_protocol_version_6_subnets: denied_protocol_version_6_subnets.to_ip_lookup_table(),
 			permitted_protocol_version_6_subnets: permitted_protocol_version_6_subnets.map(|value| value.to_ip_lookup_table()),
-			denied_unix_domain_user_identifiers,
+			denied_unix_domain_user_identifierentifiers,
 			permitted_unix_domain_group_identifiers,
 		}
 	}
@@ -97,7 +97,7 @@ impl AccessControl<sockaddr_un> for RemotePeerAddressBasedAccessControl
 	{
 		let credentials = streaming_socket_file_descriptor.remote_peer_credentials();
 
-		if unlikely!(self.denied_unix_domain_user_identifiers.contains(&credentials.user_identifier))
+		if unlikely!(self.denied_unix_domain_user_identifierentifiers.contains(&credentials.user_identifierentifier))
 		{
 			return false
 		}

@@ -5,16 +5,8 @@
 use super::*;
 
 
-/// SOCKS4a wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+include!("InternetProtocolVersion4AddressOrHostName.rs");
+include!("Socks4aConnect.rs");
+include!("Socks4aConnectReply.rs");
+include!("Socks4aProtocolFailureError.rs");
+include!("Socks4aStreamFactory.rs");

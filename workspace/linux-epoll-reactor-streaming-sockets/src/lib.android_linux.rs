@@ -3,6 +3,7 @@
 
 
 extern crate context_coroutine;
+extern crate hashbrown;
 #[macro_use] extern crate likely;
 extern crate linux_epoll;
 extern crate rustls_extra;
@@ -11,6 +12,8 @@ extern crate rustls_extra;
 use self::stream_factories::*;
 use self::streams::*;
 use ::context_coroutine::*;
+use ::hashbrown::HashMap;
+use ::hashbrown::hash_map::Entry;
 use ::linux_epoll::*;
 use ::linux_epoll::arena::*;
 #[allow(unused_imports)] use ::linux_epoll::file_descriptors::VectoredWrite;
@@ -33,9 +36,11 @@ use ::std::io::ErrorKind;
 use ::std::io::Initializer;
 use ::std::io::Read;
 use ::std::io::Write;
+use ::std::mem::copy_nonoverlapping;
 use ::std::mem::forget;
 use ::std::mem::transmute_copy;
-#[allow(unused_imports)] use ::std::ops::Deref;
+use ::std::mem::uninitialized;
+use ::std::ops::Deref;
 use ::std::ptr::write;
 use ::std::rc::Rc;
 use ::std::sync::Arc;
