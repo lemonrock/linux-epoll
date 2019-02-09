@@ -6,17 +6,13 @@
 ///
 /// Note that a Host Name should never exceed 253 bytes (254 including trailing ASCII NUL).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum InternetProtocolVersion4AddressOrHostName
+pub enum InternetProtocolAddressOrHostName
 {
-	/// Internet Protocol version 4 address.
-	///
-	/// This will work with SOCKS4 and SOCKS4a servers.
-	InternetProtocolVersion4Address(IpAddrV4),
+	/// Internet Protocol version 4 or version 6 address.
+	InternetProtocolAddress(IpAddr),
 
-	/// Ask SOCKS to resolve the host name to an Internet Protocol version 4 address for us.
+	/// Ask SOCKS to resolve the host name to an Internet Protocol version 4 or version 6 address for us.
 	///
-	/// Note that a Host Name should never exceed 253 bytes (254 including trailing ASCII NUL).
-	///
-	/// This will only work with SOCKS4a servers.
-	HostName(CString),
+	/// Note that a Host Name should never exceed 253 bytes (254 including prefixed length byte) and should never be empty.
+	HostName(ArrayVec<[u8; 253]>),
 }

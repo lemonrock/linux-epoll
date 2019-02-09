@@ -27,11 +27,13 @@ impl<SD: SocketData> StreamFactory<SD> for TlsClientStreamFactory
 	/// Rust's lack of associated type constructors makes this impossible to express; `yielder` is ***NOT*** a parameter to put on `TlsClientStreamFactory` (eg `TlsClientStreamFactory<'yielder>`) because the lifetime has nothing to do with the lifetime of the factory (indeed, factories live far longer than the coroutines they are invovled in instantiating).
 	type S = TlsClientStream<'static, SD>;
 
+	type ProxyOrTunnelInformation = ();
+
 	/// The ASCII host name.
 	type AdditionalArguments = Rc<DNSName>;
 
 	#[inline(always)]
-	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>
+	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<(Self::S, Self::ProxyOrTunnelInformation), CompleteError>
 	{
 		let ascii_host_name = additional_arguments;
 
@@ -40,6 +42,6 @@ impl<SD: SocketData> StreamFactory<SD> for TlsClientStreamFactory
 
 		// Grotesque hack which extends lifetime from 'yielder to 'static.
 		let stream: Self::S = unsafe { transmute(stream) };
-		Ok(stream)
+		Ok((stream, ()))
 	}
 }

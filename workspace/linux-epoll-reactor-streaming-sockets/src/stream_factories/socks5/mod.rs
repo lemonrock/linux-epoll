@@ -5,11 +5,14 @@
 use super::*;
 
 
+include!("BoundSocketAddress.rs");
 include!("error.rs");
+include!("InternetProtocolAddressOrHostName.rs");
 include!("Socks5AuthenticationCredential.rs");
 include!("Socks5AuthenticationCredentialCode.rs");
 include!("Socks5AuthenticationCredentials.rs");
 include!("Socks5ConnectReply.rs");
+include!("Socks5CredentialReply.rs");
 include!("Socks5ProtocolFailureError.rs");
 include!("Socks5StreamFactory.rs");
 include!("Socks5UserNamePasswordReply.rs");

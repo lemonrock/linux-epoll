@@ -8,12 +8,12 @@ macro_rules! streaming_socket_reactor
 	{
 		/// This object wraps streaming sockets.
 		#[derive(Debug)]
-		pub struct $reactor_name<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>>
+		pub struct $reactor_name<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S, SF::ProxyOrTunnelInformation>>
 		{
 			common: StreamingSocketCommon<SF, SU, $sockaddr_type>,
 		}
 
-		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>> Reactor for $reactor_name<SF, SU>
+		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S, SF::ProxyOrTunnelInformation>> Reactor for $reactor_name<SF, SU>
 		{
 			type FileDescriptor = $file_descriptor_name;
 
@@ -32,7 +32,7 @@ macro_rules! streaming_socket_reactor
 			}
 		}
 
-		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S>> StreamingSocketReactor<SF, SU, $sockaddr_type> for $reactor_name<SF, SU>
+		impl<SF: StreamFactory<$sockaddr_type>, SU: StreamUser<SF::S, SF::ProxyOrTunnelInformation>> StreamingSocketReactor<SF, SU, $sockaddr_type> for $reactor_name<SF, SU>
 		{
 			#[inline(always)]
 			fn initialize(&mut self, common: StreamingSocketCommon<SF, SU, $sockaddr_type>)

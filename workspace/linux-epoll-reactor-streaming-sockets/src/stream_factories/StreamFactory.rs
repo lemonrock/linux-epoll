@@ -8,6 +8,9 @@ pub trait StreamFactory<SD: SocketData>
 	/// The type of the `Stream` being created.
 	type S: Stream;
 
+	/// The type of any information produced during initial connection via, say, a SOCKS5 proxy.
+	type ProxyOrTunnelInformation: Sized;
+
 	/// Any additional data needed to instantiate a new stream.
 	///
 	/// For example, for TLS client sessions, one has to know the DNS host name of the destination server.
@@ -18,5 +21,5 @@ pub trait StreamFactory<SD: SocketData>
 	/// Creates a new stream, initiates handshaking on it if required, then returns it or an error.
 	///
 	/// Always called within a coroutine.
-	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<Self::S, CompleteError>;
+	fn new_stream_and_handshake<'yielder>(&self, streaming_socket_file_descriptor: StreamingSocketFileDescriptor<SD>, yielder: Yielder<'yielder, ReactEdgeTriggeredStatus, (), Result<(), CompleteError>>, additional_arguments: Self::AdditionalArguments) -> Result<(Self::S, Self::ProxyOrTunnelInformation), CompleteError>;
 }

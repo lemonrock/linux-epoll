@@ -3,7 +3,7 @@
 
 
 /// A trait implemented by streaming socket reactors.
-pub trait StreamingSocketReactor<SF: StreamFactory<SD>, SU: StreamUser<SF::S>, SD: SocketData>: Reactor<FileDescriptor=StreamingSocketFileDescriptor<SD>, RegistrationData=(StreamingSocketFileDescriptor<SD>, Rc<SF>, SF::AdditionalArguments, Rc<SU>)>
+pub trait StreamingSocketReactor<SF: StreamFactory<SD>, SU: StreamUser<SF::S, SF::ProxyOrTunnelInformation>, SD: SocketData>: Reactor<FileDescriptor=StreamingSocketFileDescriptor<SD>, RegistrationData=(StreamingSocketFileDescriptor<SD>, Rc<SF>, SF::AdditionalArguments, Rc<SU>)>
 {
 	#[doc(hidden)]
 	fn initialize(&mut self, common: StreamingSocketCommon<SF, SU, SD>);

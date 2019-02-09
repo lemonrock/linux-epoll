@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// Data required to establish a SOCKS4a client connect stream.
+/// Data required to establish a SOCKS4a client CONNECT.
 #[derive(Debug, Clone, Ord, PartialOrd, PartialEq, Eq, Hash)]
 pub struct Socks4aConnect
 {
@@ -43,7 +43,7 @@ impl Socks4aConnect
 		let mut buffer: [u8; Self::PacketMaximumSize] = unsafe { uninitialized() };
 
 		let user_identifier_length = self.user_identifier.to_bytes_with_nul().len();
-		let minimum_buffer_length = SizeOfVN + SizeOfCD + SizeOfDSTPORT + SizeOfDSTIP + user_identifier_length;
+		let minimum_buffer_length = Self::SizeOfVN + Self::SizeOfCD + Self::SizeOfDSTPORT + Self::SizeOfDSTIP + user_identifier_length;
 
 		use self::InternetProtocolVersion4AddressOrHostName::*;
 
@@ -113,13 +113,15 @@ impl Socks4aConnect
 	#[inline(always)]
 	unsafe fn write_DSTPORT_unchecked(&self, buffer: &mut [u8])
 	{
-		*(buffer.get_unchecked_mut(Self::SizeOfVN + Self::SizeOfCD) as *mut [u8; 2]) = self.destination_port.to_be_bytes();
+		// NOTE: Works on ARM 32-bit as DSTPORT is 2-byte (16-bit) aligned.
+		*(buffer.get_unchecked_mut(Self::SizeOfVN + Self::SizeOfCD) as *mut u8 as *mut [u8; 2]) = self.destination_port.to_be_bytes();
 	}
 
 	#[inline(always)]
 	unsafe fn write_DSTIP_unchecked(&self, buffer: &mut [u8], octets: [u8; 4])
 	{
-		*(buffer.get_unchecked_mut(Self::SizeOfVN + Self::SizeOfCD + Self::SizeOfDSTPORT) as *mut [u8; 4]) = octets;
+		// NOTE: Works on ARM 32-bit as DSTIP is 4-byte (32-bit) aligned.
+		*(buffer.get_unchecked_mut(Self::SizeOfVN + Self::SizeOfCD + Self::SizeOfDSTPORT) as *mut u8 as *mut [u8; 4]) = octets;
 	}
 
 	#[inline(always)]

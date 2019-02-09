@@ -2,6 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+extern crate arrayvec;
 extern crate context_coroutine;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
@@ -11,6 +12,7 @@ extern crate rustls_extra;
 
 use self::stream_factories::*;
 use self::streams::*;
+use ::arrayvec::ArrayVec;
 use ::context_coroutine::*;
 use ::hashbrown::HashMap;
 use ::hashbrown::hash_map::Entry;
@@ -40,6 +42,10 @@ use ::std::mem::copy_nonoverlapping;
 use ::std::mem::forget;
 use ::std::mem::transmute_copy;
 use ::std::mem::uninitialized;
+use ::std::net::IpAddr;
+use ::std::net::Ipv4Addr;
+use ::std::net::Ipv6Addr;
+use ::std::net::SocketAddrV4;
 use ::std::ops::Deref;
 use ::std::ptr::write;
 use ::std::rc::Rc;

@@ -18,6 +18,7 @@ publish = true
 version = "0.1.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
+arrayvec = { version = "^0.4", features = ["array-sizes-129-255"] }
 context-coroutine = "^2.1.0"
 hashbrown = "^0.1"
 likely = "^0.1"

@@ -12,7 +12,7 @@ struct Socks4aConnectReply<'yielder, SD: SocketData>
 impl<'yielder, SD: SocketData> Socks4aConnectReply<'yielder, SD>
 {
 	#[inline(always)]
-	pub(crate) fn read_reply(unencrypted_stream: UnencryptedStream<'yielder, SD>) -> Result<UnencryptedStream<'yielder, SD>, CompleteError>
+	pub(crate) fn read_reply(unencrypted_stream: UnencryptedStream<'yielder, SD>) -> Result<(UnencryptedStream<'yielder, SD>, SocketAddrV4), CompleteError>
 	{
 		use self::Socks4aProtocolFailureError::*;
 
@@ -31,18 +31,18 @@ impl<'yielder, SD: SocketData> Socks4aConnectReply<'yielder, SD>
 
 		this.read_reply_bytes()?;
 
-		let version = unsafe { *small_reply_packet_buffer.get_unchecked(0) } ;
+		let version = unsafe { *this.small_reply_packet_buffer.get_unchecked(0) } ;
 		if version != Socks4aConnect::Version
 		{
 			return error(VersionInvalid(version))
 		}
 
-		if unlikely!(self.bytes_read_so_far == 1)
+		if unlikely!(this.bytes_read_so_far == 1)
 		{
 			this.read_reply_bytes()?;
 		}
 
-		let command = unsafe { *small_reply_packet_buffer.get_unchecked(1) };
+		let command = unsafe { *this.small_reply_packet_buffer.get_unchecked(1) };
 
 		match command
 		{
@@ -53,13 +53,22 @@ impl<'yielder, SD: SocketData> Socks4aConnectReply<'yielder, SD>
 			_ => return error(CommandCodeWasInvalid(command)),
 		}
 
-		// Discard final 6 bytes, which are supposed to be DSTPORT and DSTIP but are considered junk, eg <https://www.openssh.com/txt/socks4.protocol>.
 		while this.bytes_read_so_far < 8
 		{
 			this.read_reply_bytes()?;
 		}
 
-		Ok(this.unencrypted_stream)
+		// On ARM 32-bit platforms, not using copy_nonoverlapping will cause ?SIGBUS as the address is not 32-bit aligned.
+		let mut bind_address_octets: [u8; 4] = unsafe { uninitialized() };
+		unsafe { copy_nonoverlapping(from, to, length) };
+		let bind_address = Ipv4Addr::from(bind_address_octets);
+
+		let bind_port_octets = unsafe { *this.small_reply_packet_buffer.get_unchecked(6) as *mut u8 as *mut [u8; 2] };
+		let bind_port = u16::from_be_bytes(bind_port_octets);
+
+		let bound_socket = SocketAddrV4::new(bind_address, bind_port);
+
+		Ok((this.unencrypted_stream, bound_socket))
 	}
 
 	#[inline(always)]

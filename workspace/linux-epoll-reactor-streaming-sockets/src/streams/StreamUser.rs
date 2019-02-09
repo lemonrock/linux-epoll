@@ -3,8 +3,8 @@
 
 
 /// Use a stream.
-pub trait StreamUser<S: Stream>
+pub trait StreamUser<S: Stream, ProxyOrTunnelInformation=()>
 {
 	/// Use stream as if it was blocking.
-	fn use_stream(&self, stream: S) -> Result<(), CompleteError>;
+	fn use_stream(&self, stream: S, proxy_or_tunnel_information: ProxyOrTunnelInformation) -> Result<(), CompleteError>;
 }

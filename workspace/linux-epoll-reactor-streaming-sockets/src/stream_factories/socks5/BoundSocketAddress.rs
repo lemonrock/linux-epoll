@@ -2,21 +2,17 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// An Internet Protocol version 4 address (for SOCKS4) or host name to be resolved by the SOCKS proxy server (SOCKS4a).
+/// A SOCKS5 bound socket address.
 ///
-/// Note that a Host Name should never exceed 253 bytes (254 including trailing ASCII NUL).
+/// Conceptually similar to a `SocketAddr`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum InternetProtocolVersion4AddressOrHostName
+pub struct BoundSocketAddress
 {
-	/// Internet Protocol version 4 address.
+	/// An address.
 	///
-	/// This will work with SOCKS4 and SOCKS4a servers.
-	InternetProtocolVersion4Address(IpAddrV4),
+	/// Normally an Internet Protocol Version 4 or Version 6 address, but the SOCKS5 protocol permits DNS domain names and host names.
+	pub address: InternetProtocolAddressOrHostName,
 
-	/// Ask SOCKS to resolve the host name to an Internet Protocol version 4 address for us.
-	///
-	/// Note that a Host Name should never exceed 253 bytes (254 including trailing ASCII NUL).
-	///
-	/// This will only work with SOCKS4a servers.
-	HostName(CString),
+	/// A port number.
+	pub port: u16,
 }

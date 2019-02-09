@@ -18,7 +18,7 @@ publish = true
 version = "0.1.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
-arrayvec = "^0.4"
+arrayvec = { version = "^0.4", features = ["array-sizes-129-255"] }
 cpu-affinity = "^0.4.4"
 dpdk-unix = "^0.3.0"
 file-descriptors = "^0.8.6"

@@ -235,6 +235,7 @@ dependencies = [
 name = "linux-epoll-reactor-streaming--sockets"
 version = "0.1.0"
 dependencies = [
+ "arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "context-coroutine 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashbrown 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "likely 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
