@@ -2,23 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
-
-
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+/// Values are the lower 8-bits of the registered IANA values.
+///
+/// Obsolete, reserved and undefined values are excluded.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum ResourceRecordClass
+{
+	/// The internet class `IN`.
+	Internet = 0x01,
+}

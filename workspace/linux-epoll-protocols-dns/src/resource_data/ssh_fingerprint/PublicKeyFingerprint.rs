@@ -2,23 +2,18 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// A SSH public key fingerprint.
+#[derive(Debug)]
+pub struct PublicKeyFingerprint<'a>
+{
+	/// Public key algorithm.
+	pub public_key_algorithm: PublicKeyAlgorithm,
 
+	/// Digest algorithm used to produced disgest of public key.
+	pub digest_algorithm: FingerprintType,
 
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+	/// Digest of public key.
+	///
+	/// Length has already been checked to make sure it is correct for the `digest_algorithm`.
+	pub digest_bytes: &'a [u8],
+}

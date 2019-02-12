@@ -5,20 +5,21 @@
 use super::*;
 
 
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
+/// `LOC` record support.
+pub mod location;
 
 
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
+/// `SSHFP` record support.
+pub mod ssh_fingerprint;
 
 
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
+/// `SOA` record support.
+pub mod start_of_authority;
 
 
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+/// `TXT` record support.
+pub mod text_strings;
+
+
+include!("MailExchange.rs");
+include!("ResourceRecordVisitor.rs");

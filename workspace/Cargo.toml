@@ -5,6 +5,7 @@
 [workspace]
 members = [
 	"linux-epoll",
+	"linux-epoll-protocols-dns",
 	"linux-epoll-reactor-signal",
 	"linux-epoll-reactor-streaming-server-listener-sockets",
 	"linux-epoll-reactor-streaming-sockets"

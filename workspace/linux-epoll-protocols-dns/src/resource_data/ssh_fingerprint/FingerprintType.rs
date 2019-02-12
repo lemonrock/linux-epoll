@@ -2,23 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum FingerprintType
+{
+	/// SHA-1.
+	///
+	/// Defined by RFC 4255.
+	///
+	/// Digest size is 160 bits.
+	SHA_1 = 1,
 
-
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+	/// SHA-256.
+	///
+	/// Defined by RFC 6594.
+	///
+	/// Digest size is 256 bits.
+	SHA_256 = 2,
+}

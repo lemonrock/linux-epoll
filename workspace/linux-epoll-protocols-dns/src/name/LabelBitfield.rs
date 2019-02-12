@@ -2,23 +2,20 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct LabelBitfield(u8);
 
+impl LabelBitfield
+{
+	#[inline(always)]
+	fn raw_kind(self) -> u8
+	{
+		self.0 >> 6
+	}
 
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+	#[inline(always)]
+	fn length_or_offset(self) -> usize
+	{
+		(self.0 & 0b0011_1111) as usize
+	}
+}

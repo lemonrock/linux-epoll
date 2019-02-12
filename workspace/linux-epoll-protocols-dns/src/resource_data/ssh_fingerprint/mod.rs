@@ -5,20 +5,6 @@
 use super::*;
 
 
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+include!("PublicKeyAlgorithm.rs");
+include!("PublicKeyFingerprint.rs");
+include!("FingerprintType.rs");

@@ -4,21 +4,13 @@
 
 use super::*;
 
-
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+include!("Label.rs");
+include!("LabelBitfield.rs");
+include!("LabelBytes.rs");
+include!("LabelKind.rs");
+include!("Name.rs");
+include!("ParsedLabel.rs");
+include!("ParsedLabels.rs");
+include!("ParsedNameIterator.rs");
+include!("UpTo63Bytes.rs");
+include!("UpTo255Bytes.rs");

@@ -2,23 +2,17 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+struct TextString
+{
+	length: u8,
+	bytes: UpTo255Bytes,
+}
 
-
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
-
-
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+impl TextString
+{
+	#[inline(always)]
+	fn as_slice(&self, length: usize) -> &[u8]
+	{
+		unsafe { from_raw_parts((&self.bytes) as *const UpTo255Bytes as *const u8, length) }
+	}
+}

@@ -2,23 +2,40 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+#[repr(C, packed)]
+struct TcpMessage
+{
+	length: [u8; 2],
+	message: Message,
+}
 
+impl TcpMessage
+{
+	/// Length (excluding the two byte length field).
+	#[inline(always)]
+	pub fn length(&self) -> u16
+	{
+		u16::from_be_bytes(self.length)
+	}
 
-/// HTTP CONNECT proxy wrapping factories.
-pub mod http_connect;
+	/// Set length.
+	#[inline(always)]
+	pub fn set_length(&mut self, length: u16)
+	{
+		self.length = length.to_be_bytes()
+	}
 
+	/// Message.
+	#[inline(always)]
+	pub fn message(&self) -> &Message
+	{
+		&self.message
+	}
 
-/// SOCKS4a proxy wrapping factories.
-pub mod socks4a;
-
-
-/// SOCKS5 proxy wrapping factories.
-pub mod socks5;
-
-
-include!("send_packet.rs");
-include!("StreamFactory.rs");
-include!("TlsClientStreamFactory.rs");
-include!("TlsServerStreamFactory.rs");
-include!("UnencryptedStreamFactory.rs");
+	/// Mutable message.
+	#[inline(always)]
+	pub fn message_mutable(&mut self) -> &mut Message
+	{
+		&mut self.message
+	}
+}
