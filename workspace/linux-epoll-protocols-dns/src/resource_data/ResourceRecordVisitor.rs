@@ -23,15 +23,50 @@ pub trait ResourceRecordVisitor
 	/// Visits a record of type `MX`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn MX<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: MailExchange<'a>) -> Result<(), DnsProtocolError>;
 
+	/// Visits a record of type `TXT`.
+	fn TXT<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: TextStringsIterator) -> Result<(), DnsProtocolError>;
+
 	/// Visits a record of type `AAAA`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn AAAA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &Ipv6Addr) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `LOC`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn LOC<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &Location) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `TXT`.
-	fn TXT<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: TextStringsIterator) -> Result<(), DnsProtocolError>;
+	/// Visits a record of type `SRV`, which may not be aligned (this is a problem for 32-bit ARM).
+	fn SRV<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Service) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `DNAME`.
+	fn DNAME<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `SSHFP`.
 	fn SSHFP<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: PublicKeyFingerprint<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `OPENPGPKEY`.
+	fn OPENPGPKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `TLSA`.
+	fn TLSA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: TlsDane<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits an unsupported record type.
+	///
+	/// Default implementation ignores it.
+	#[inline(always)]
+	fn unsupported<'a>(&mut self, _name: ParsedNameIterator<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _parsed_labels: &mut ParsedLabels<'a>, _unsupported_resource_record_type: [u8; 2]) -> Result<(), DnsProtocolError>
+	{
+		Ok(())
+	}
 }
+
+/*
+https://tools.ietf.org/html/rfc6840#section-2
+
+[RFC5155] describes the use and behavior of the NSEC3 and NSEC3PARAM
+   records for hashed denial of existence.  Validator implementations
+   are strongly encouraged to include support for NSEC3 because a number
+   of highly visible zones use it.  Validators that do not support
+   validation of responses using NSEC3 will be hampered in validating
+   large portions of the DNS space.
+
+resolvers MUST ignore the DO bit in responses even if they set in in requests due to broken implementations
+
+*/

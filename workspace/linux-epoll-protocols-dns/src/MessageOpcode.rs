@@ -35,5 +35,5 @@ pub enum MessageOpcode
 	/// DNS Stateful Operations, DSO.
 	///
 	/// Defined in [RFC-ietf-dnsop-session-signal-20](http://www.iana.org/go/draft-ietf-dnsop-session-signal-20).
-	DnsStatefulOperations = 5 << 3,
+	DnsStatefulOperations = 6 << 3,
 }

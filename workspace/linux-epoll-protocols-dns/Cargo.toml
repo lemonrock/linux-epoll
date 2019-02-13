@@ -3,9 +3,9 @@
 
 
 [package]
-name = "linux-epoll-reactor-signal"
-description = "A reactor for linux-epoll that handles signals using signalfd."
-keywords = ["linux", "epoll", "reactor", "signal", "signalfd"]
+name = "linux-epoll-protocols-dns"
+description = "A simple, secure DNS client for linux-epoll that only works over TLS over TCP."
+keywords = ["linux", "epoll", "dns", "client", "tls"]
 categories = ["asynchronous", "network-programming", "os"]
 license = "MIT"
 authors = ["Raphael Cohn <raphael.cohn@stormmq.com>"]
@@ -20,6 +20,4 @@ version = "0.1.0"
 [dependencies]
 arrayvec = { version = "^0.4", features = ["array-sizes-129-255"] }
 hashbrown = "0.1.8"
-
-[target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
-linux-epoll = { path = "../linux-epoll", version = "0.1.0" }
+likely = "^0.1"

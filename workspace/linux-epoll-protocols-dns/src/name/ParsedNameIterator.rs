@@ -49,7 +49,7 @@ impl<'a> ParsedNameIterator<'a>
 
 		let mut previous_parsed_label_reference = &initial_parsed_label;
 
-		loop
+		let true_end_of_name_pointer = loop
 		{
 			if unlikely!(current_label_starts_at_pointer == end_of_name_data_pointer)
 			{
@@ -79,11 +79,13 @@ impl<'a> ParsedNameIterator<'a>
 					previous_parsed_label_reference.set_next(parsed_label_reference);
 					previous_parsed_label_reference = parsed_label_reference;
 
-					current_label_starts_at_pointer = next_label_starts_at_pointer;
-
 					if unlikely!(parsed_label_reference.is_terminal_root_label())
 					{
-						break
+						break next_label_starts_at_pointer
+					}
+					else
+					{
+						current_label_starts_at_pointer = next_label_starts_at_pointer
 					}
 				}
 
@@ -100,16 +102,12 @@ impl<'a> ParsedNameIterator<'a>
 
 					previous_parsed_label_reference.set_next(parsed_label_reference);
 
-					current_label_starts_at_pointer = next_label_starts_at_pointer;
-
-					break
+					break current_label_starts_at_pointer + 1
 				}
 
 				unsupported @ _ => return Err(UnsupportedNameLabelKind(unsupported))
 			}
-		}
-
-		let true_end_of_name_pointer = current_label_starts_at_pointer;
+		};
 
 		Ok(Self(initial_parsed_label.next()), true_end_of_name_pointer)
 	}

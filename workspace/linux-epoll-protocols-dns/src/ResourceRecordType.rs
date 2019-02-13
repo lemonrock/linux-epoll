@@ -57,6 +57,11 @@ impl ResourceRecordType
 	/// Defined in RFC 2782.
 	pub const SRV: [u8; 2] = [0x00, 0x33];
 
+	/// Delegation name record.
+	///
+	/// Defined in RFC 6672.
+	pub const DNAME: [u8; 2] = [0x00, 0x39];
+
 	/// A psuedo record type.
 	///
 	/// Defined in RFC 6891.

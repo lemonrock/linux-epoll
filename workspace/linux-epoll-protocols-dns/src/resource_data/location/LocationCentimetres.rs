@@ -15,7 +15,7 @@ impl LocationCentimetres
 	{
 		let scalar = (self.0 >> 4) as u64;
 
-		let power_of_ten = (self.0 & b1111) as u64;
+		let power_of_ten = (self.0 & 0b0000_1111) as u64;
 
 		scalar * 10.pow(power_of_ten)
 	}

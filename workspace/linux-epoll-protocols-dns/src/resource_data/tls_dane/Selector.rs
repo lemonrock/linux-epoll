@@ -2,8 +2,22 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-extern
+/// See <https://www.iana.org/assignments/dane-parameters/dane-parameters.xhtml>
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum Selector
 {
-	/// A variable number of bytes.
-	pub(crate) type UpTo255Bytes;
+	/// 'Cert'.
+	///
+	/// Full certificate: the Certificate binary structure as defined by RFC 5280.
+	///
+	/// Defined by RFC 6698.
+	FullCertificate = 0,
+
+	/// 'SPKI'.
+	///
+	/// Subject public key information: DER-encoded binary structure as defined by RFC 5280.
+	///
+	/// Defined by RFC 6698.
+	SubjectPublicKeyInformation = 1,
 }

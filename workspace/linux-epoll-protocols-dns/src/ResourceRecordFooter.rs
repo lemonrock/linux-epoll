@@ -29,7 +29,7 @@ impl ResourceRecordFooter
 	}
 
 	#[inline(always)]
-	fn resource_record_class(&self) -> Result<ResourceRecordClass, ProtocolError>
+	fn resource_record_class(&self) -> Result<ResourceRecordClass, DnsProtocolError>
 	{
 		use self::DnsProtocolError::ClassIsReservedUnassignedOrObsolete;
 
@@ -131,6 +131,6 @@ impl ResourceRecordFooter
 	#[inline(always)]
 	fn debug_assert_is_opt(&self)
 	{
-		debug_assert!(unsafe{ self.type_.known } , WellKnownResourceRecordType::OPT, "This is not an EDNS0 extension record")
+		debug_assert_eq!(self.type_ , ResourceRecordType::OPT, "This is not an EDNS0 extension record")
 	}
 }

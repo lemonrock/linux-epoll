@@ -5,7 +5,7 @@
 extern
 {
 	/// A Name consists of one or more labels.
-	type Name;
+	pub(crate) type Name;
 }
 
 impl Name

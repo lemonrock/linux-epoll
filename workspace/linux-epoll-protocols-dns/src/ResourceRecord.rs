@@ -31,84 +31,81 @@ impl ResourceRecord
 			return Err(ResourceRecordIsShorterThanMinimumSizeAfterParsingName)
 		}
 
-		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_labels, resource_record_visitor)
+		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, processing_additional_record_section, have_already_seen_an_edns_opt_record)
 	}
 
 	#[inline(always)]
-	fn dispatch_resource_record_type<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn dispatch_resource_record_type<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool) -> Result<(), DnsProtocolError>
 	{
 		match self.resource_record_type(end_of_name_pointer)
 		{
-			ResourceRecordType::A => self.handle_a(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::A => self.handle_a(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::NS => self.handle_ns(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::NS => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::CNAME => self.handle_cname(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::CNAME => self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::SOA => self.handle_soa(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::SOA => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::PTR => self.handle_ptr(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::PTR => self.handle_ptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::MX => self.handle_mx(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::MX => self.handle_mx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::TXT => self.handle_txt(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::TXT => self.handle_txt(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::AAAA => self.handle_aaaa(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::AAAA => self.handle_aaaa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::LOC => self.handle_loc(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::LOC => self.handle_loc(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::SRV =>
-			{
-			}
+			ResourceRecordType::SRV => self.handle_srv(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
 			ResourceRecordType::OPT => self.handle_opt(end_of_name_pointer, end_of_message_pointer, processing_additional_record_section, have_already_seen_an_edns_opt_record),
 
-			ResourceRecordType::SSHFP => self.handle_sshfp(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, resource_record_visitor),
+			ResourceRecordType::DNAME => self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::OPENPGPKEY =>
-			{
-				// rfc4880 Transferable Public Key
-			}
+			ResourceRecordType::SSHFP => self.handle_sshfp(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::TLSA =>
-			{
-			}
+			ResourceRecordType::OPENPGPKEY => self.handle_openpgpkey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::Asterisk => Err(ResourceRecordTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry),
+			ResourceRecordType::TLSA => self.handle_tlsa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::CAA =>
-			{
-			}
+			ResourceRecordType::Asterisk => Err(DnsProtocolError::ResourceRecordTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry),
 
-			xxx
-			// TODO: Review - may be handle some unsupported but very occasionally encountered kinds, eg HINFO, with an extension function rather than an error.
-			unsupported_resource_record_type @ _ => Err(ResourceRecordTypeIsUnsupported(unsupported_resource_record_type))
+			// TODO: CAA - used by CloudFlare in rare circumstances.
+//			ResourceRecordType::CAA =>
+//			{
+//				// looks like a bit of a pig.
+//			}
+
+			// TODO: HINFO - used by CloudFlare in rare circumstances.
+
+			unsupported_resource_record_type @ _ => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, unsupported_resource_record_type),
 		}
 	}
 
 	#[inline(always)]
-	fn handle_a<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_a<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
 	{
 		let (time_to_live, record) = self.parse_internet_protocol_address_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.A(parsed_name_iterator, time_to_live, record)
+		resource_record_visitor.A(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
-	fn handle_ns<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_ns<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.NS(parsed_name_iterator, time_to_live, record)
+		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.NS(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
-	fn handle_cname<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_cname<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.CNAME(parsed_name_iterator, time_to_live, record)
+		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.CNAME(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
-	fn handle_soa<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_soa<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -127,30 +124,30 @@ impl ResourceRecord
 				footer: unsafe { & * (end_of_rname_pointer as *const StartOfAuthorityFooter) },
 			};
 
-			resource_record_visitor.SOA(parsed_name_iterator, time_to_live, start_of_authority)
+			resource_record_visitor.SOA(resource_record_name, time_to_live, start_of_authority)
 		}
 		else
 		{
-			Err(StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME)
+			Err(DnsProtocolError::StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME)
 		}
 	}
 
 	#[inline(always)]
-	fn handle_ptr<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_ptr<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.PTR(parsed_name_iterator, time_to_live, record)
+		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.PTR(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
-	fn handle_mx<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_mx<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
 		if unlikely!(resource_data.len() < 3)
 		{
-			Err(ResourceDataForTypeMXHasTooShortALength(resource_data.len()))
+			Err(DnsProtocolError::ResourceDataForTypeMXHasTooShortALength(resource_data.len()))
 		}
 
 		let record = MailExchange
@@ -159,29 +156,31 @@ impl ResourceRecord
 			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[2 .. ])?,
 		};
 
-		resource_record_visitor.MX(parsed_name_iterator, time_to_live, record)
+		resource_record_visitor.MX(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
-	fn handle_txt<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_txt<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
 		let text_strings_iterator = TextStringsIterator::new(self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?)?;
 
-		resource_record_visitor.TXT(parsed_name_iterator, time_to_live, text_strings_iterator)
+		resource_record_visitor.TXT(resource_record_name, time_to_live, text_strings_iterator)
 	}
 
 	#[inline(always)]
-	fn handle_aaaa<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_aaaa<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
 	{
 		let (time_to_live, record) = self.parse_internet_protocol_address_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.AAAA(parsed_name_iterator, time_to_live, record)
+		resource_record_visitor.AAAA(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
-	fn handle_loc<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_loc<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
 	{
+		use self::DnsProtocolError::*;
+
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -197,12 +196,37 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeLOCHasAnIncorrectVersion(location.version))
 		}
 
-		resource_record_visitor.LOC(parsed_name_iterator, time_to_live, location)
+		resource_record_visitor.LOC(resource_record_name, time_to_live, location)
+	}
+
+	#[inline(always)]
+	fn handle_srv<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	{
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+		let length = resource_data.len();
+		if unlikely!(length < 7)
+		{
+			return Err(DnsProtocolError::ResourceDataForTypeSRVHasAnIncorrectLength(length))
+		}
+
+		let record = Service
+		{
+			priority: u16::from_be_bytes(unsafe { *(resource_data.get_unchecked(0) as *const [u8; 2]) }),
+			weight: u16::from_be_bytes(unsafe { *(resource_data.get_unchecked(2) as *const [u8; 2]) }),
+			port: u16::from_be_bytes(unsafe { *(resource_data.get_unchecked(4) as *const [u8; 2]) }),
+			target: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[6 .. ])?,
+		};
+
+		resource_record_visitor.SRV(resource_record_name, time_to_live, record)
 	}
 
 	#[inline(always)]
 	fn handle_opt(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool) -> Result<(), DnsProtocolError>
 	{
+		use self::DnsProtocolError::*;
+
 		if !processing_additional_record_section
 		{
 			return Err(EdnsOptRecordOutsideOfAdditionalDataSection)
@@ -213,7 +237,7 @@ impl ResourceRecord
 			return Err(MoreThanOneEdnsOptRecord)
 		}
 
-		let start_of_name_pointer = (self.name as *const Name as usize);
+		let start_of_name_pointer = self.name as *const Name as usize;
 		if unlikely!(end_of_name_pointer - start_of_name_pointer != 1)
 		{
 			return Err(EdnsOptRecordNameTooLong)
@@ -226,11 +250,16 @@ impl ResourceRecord
 		}
 
 		let requestors_udp_payload_size = self.requestors_udp_payload_size(end_of_name_pointer);
+		// TODO: This value is supposed to be a minimum of 512 bytes.
+
 		let extended_response_code_and_flags = self.extended_response_code_and_flags(end_of_name_pointer);
 		let upper_8_bits = extended_response_code_and_flags.extended_response_code_upper_8_bits();
+
 		let version = extended_response_code_and_flags.version()?;
-		debug_assert!(version, ExtendedDnsVersion::Version0, "Why do we support EDNS versions other than 0?");
+		debug_assert_eq!(version, ExtendedDnsVersion::Version0, "Why do we support EDNS versions other than 0?");
+
 		let dnssec_ok = extended_response_code_and_flags.dnssec_ok();
+
 		extended_response_code_and_flags.z()?;
 
 		// TODO: Parse TLV options.
@@ -240,8 +269,17 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn handle_sshfp<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_name_iterator: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_dname<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
 	{
+		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.DNAME(resource_record_name, time_to_live, record)
+	}
+
+	#[inline(always)]
+	fn handle_sshfp<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	{
+		use self::DnsProtocolError::*;
+
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -254,9 +292,9 @@ impl ResourceRecord
 		let raw_public_key_algorithm = unsafe { * resource_data.get_unchecked(0) };
 		let public_key_algorithm: PublicKeyAlgorithm = match raw_public_key_algorithm
 		{
-			0x01 ... 0x04 => unsafe { transmute(raw_fingerprint_type) },
+			0x01 ... 0x04 => unsafe { transmute(raw_public_key_algorithm) },
 
-			_ => return Err(ResourceDataForTypeSSHFPHasAnUnrecognisedPublicKeyAlgorithm(raw_fingerprint_type)),
+			_ => return Err(ResourceDataForTypeSSHFPHasAnUnrecognisedPublicKeyAlgorithm(raw_public_key_algorithm)),
 		};
 
 		use self::FingerprintType::*;
@@ -284,8 +322,98 @@ impl ResourceRecord
 				digest_bytes,
 			};
 
-			resource_record_visitor.SSHFP(parsed_name_iterator, time_to_live, record)
+			resource_record_visitor.SSHFP(resource_record_name, time_to_live, record)
 		}
+	}
+
+	#[inline(always)]
+	fn handle_openpgpkey<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	{
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		resource_record_visitor.OPENPGPKEY(resource_record_name, time_to_live, resource_data)
+	}
+
+	#[inline(always)]
+	fn handle_tlsa<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	{
+		use self::DnsProtocolError::*;
+
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		let length = resource_data.len();
+		if unlikely!(length < 3)
+		{
+			return Err(ResourceDataForTypeTLSAHasAnIncorrectLength(length))
+		}
+
+		let raw_certificate_usage = unsafe { * resource_data.get_unchecked(0) };
+		let certificate_usage: CertificateUsage = match raw_certificate_usage
+		{
+			0x00 ... 0x03 => unsafe { transmute(raw_certificate_usage) },
+
+			_ => return Err(ResourceDataForTypeTLSAHasAnUnrecognisedCertificateUsage(raw_certificate_usage)),
+		};
+
+		let raw_selector = unsafe { * resource_data.get_unchecked(1) };
+		let selector: Selector = match raw_selector
+		{
+			0x00 ... 0x01 => unsafe { transmute(raw_selector) },
+
+			_ => return Err(ResourceDataForTypeTLSAHasAnUnrecognisedSelector(raw_selector)),
+		};
+
+		let certificate_association_data = &resource_data[3 .. ];
+
+		#[inline(always)]
+		fn validate_hash_digest(certificate_association_data: &[u8], matching_type: MatchingType, digest_size_in_bits: usize) -> Result<MatchingType, DnsProtocolError>
+		{
+			if unlikely!(certificate_association_data.len() != digest_size_in_bits / 8)
+			{
+				Err(ResourceDataForTypeTLSAHasADigestLengthThatIsIncorrectForTheMatchingType(matching_type, certificate_association_data.len()))
+			}
+			else
+			{
+				Ok(matching_type)
+			}
+		}
+
+		use self::MatchingType::*;
+		let raw_matching_type = unsafe { * resource_data.get_unchecked(2) };
+		let matching_type = match raw_matching_type
+		{
+			0x00 => NoHashUsed,
+
+			0x01 => validate_hash_digest(certificate_association_data, Sha2_256, 256)?,
+
+			0x02 => validate_hash_digest(certificate_association_data, Sha2_512, 512)?,
+
+			_ => return Err(ResourceDataForTypeTLSAHasAnUnrecognisedMatchingType(raw_matching_type)),
+		};
+
+		let record = TlsDane
+		{
+			certificate_usage,
+			selector,
+			matching_type,
+			certificate_association_data,
+		};
+
+		resource_record_visitor.TLSA(resource_record_name, time_to_live, record)
+	}
+
+	#[inline(always)]
+	fn handle_unsupported<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>, unsupported_resource_record_type: [u8; 2]) -> Result<(), DnsProtocolError>
+	{
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		resource_record_visitor.unsupported(resource_record_name, time_to_live, resource_data, parsed_labels, unsupported_resource_record_type)
 	}
 
 	#[inline(always)]
@@ -297,7 +425,7 @@ impl ResourceRecord
 		let length = resource_data.len();
 		if unlikely!(length != size_of::<Address>())
 		{
-			Err(ResourceDataForTypeAOrAAAAHasAnIncorrectLength(length))
+			Err(DnsProtocolError::ResourceDataForTypeAOrAAAAHasAnIncorrectLength(length))
 		}
 		else
 		{
@@ -307,7 +435,7 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn parse_name_only<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(TimeToLiveInSeconds, ParsedNameIterator<'a>), DnsProtocolError>
+	fn parse_name_only<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>) -> Result<(TimeToLiveInSeconds, ParsedNameIterator<'a>), DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -320,7 +448,7 @@ impl ResourceRecord
 	fn validate_class_and_get_time_to_live(&self, end_of_name_pointer: usize) -> Result<TimeToLiveInSeconds, DnsProtocolError>
 	{
 		let class = self.resource_record_class(end_of_name_pointer)?;
-		debug_assert!(class, ResourceRecordClass::Internet, "Why do we support classes other than Internet?");
+		debug_assert_eq!(class, ResourceRecordClass::Internet, "Why do we support classes other than Internet?");
 
 		Ok(self.time_to_live(end_of_name_pointer))
 	}
@@ -331,11 +459,11 @@ impl ResourceRecord
 		let resource_data_length = self.resource_data_length(end_of_name_pointer);
 		if unlikely!(end_of_name_pointer + resource_data_length > end_of_message_pointer)
 		{
-			Err(ResourceDataLengthOverflows)
+			Err(DnsProtocolError::ResourceDataLengthOverflows)
 		}
 		else
 		{
-			Ok(unsafe { from_raw_parts(self.resource_data(end_of_name_pointer) as *const ResourceDataOctets as *const u8, resource_data_length as usize) })
+			Ok(unsafe { from_raw_parts(self.resource_data(end_of_name_pointer) as *const ResourceData as *const u8, resource_data_length as usize) })
 		}
 	}
 
@@ -373,7 +501,7 @@ impl ResourceRecord
 
 	/// `CLASS` field.
 	#[inline(always)]
-	fn resource_record_class(&self, end_of_name_pointer: usize) -> Result<ResourceRecordClass, ProtocolError>
+	fn resource_record_class(&self, end_of_name_pointer: usize) -> Result<ResourceRecordClass, DnsProtocolError>
 	{
 		self.footer(end_of_name_pointer).resource_record_class()
 	}

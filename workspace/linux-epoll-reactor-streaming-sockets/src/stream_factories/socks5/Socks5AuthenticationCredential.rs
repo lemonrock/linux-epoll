@@ -5,7 +5,7 @@
 /// At this point there is no support for the GSS-API methods; however, GSS-API is only really effective when used with Kerberos.
 ///
 /// A potential source of draft RFCs for other authentication methods is listed as part of [Dante](https://www.inet.no/dante/doc/).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Has)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Socks5AuthenticationCredential
 {
 	/// No authentication credentials.

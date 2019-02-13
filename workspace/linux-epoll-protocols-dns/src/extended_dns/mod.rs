@@ -2,9 +2,12 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-enum ExtendedDnsVersion
-{
-	Version0 = 0x00,
-}
+use super::*;
+
+
+/// DNSSEC.
+pub(crate) mod dnssec;
+
+
+include!("ExtendedDnsVersion.rs");
+include!("ExtendedResponseCodeAndFlags.rs");

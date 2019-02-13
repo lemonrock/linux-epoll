@@ -179,7 +179,7 @@ impl MessageHeader
 	///
 	/// A four bit field that specifies the response outcome.
 	#[inline(always)]
-	pub fn assumed_to_be_valid_response_code(self) -> MessageRCode
+	pub fn assumed_to_be_valid_response_code(self) -> MessageResponseCode
 	{
 		self.bitfield2.assumed_to_be_valid_rcode()
 	}

@@ -2,10 +2,11 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-// There is also https://github.com/mersinvald/primitive-map-rs and heapless (https://japaric.github.io/heapless/heapless/struct.IndexMap.html)
-struct ParsedLabels<'a>
+pub(crate) struct ParsedLabels<'a>
 {
 	start_of_message_pointer: usize,
+
+	/// Alternative hash maps include https://github.com/mersinvald/primitive-map-rs and heapless (https://japaric.github.io/heapless/heapless/struct.IndexMap.html).
 	parsed_labels: HashMap<u16, ParsedLabel<'a>>,
 }
 

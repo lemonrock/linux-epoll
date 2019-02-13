@@ -2,8 +2,5 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-extern
-{
-	/// A variable number of bytes.
-	pub(crate) type UpTo255Bytes;
-}
+/// An OpenPGP RFC4880 transferable public key 'blob' of raw bytes (ie without basic-64 encoding or ASCII armor encoding).
+pub type OpenPgpRfc4880TransferablePublicKey<'a> = &'a [u8];

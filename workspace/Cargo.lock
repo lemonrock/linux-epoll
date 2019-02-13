@@ -225,6 +225,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "linux-epoll-protocols-dns"
+version = "0.1.0"
+dependencies = [
+ "arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashbrown 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "likely 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "linux-epoll-reactor-signal"
 version = "0.1.0"
 dependencies = [

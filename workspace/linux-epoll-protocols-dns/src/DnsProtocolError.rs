@@ -27,9 +27,6 @@ pub enum DnsProtocolError
 	/// Resource record type is asterisk in a resource record.
 	ResourceRecordTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry,
 
-	/// Resource record type is unsupported (value in type).
-	ResourceRecordTypeIsUnsupported([u8; 2]),
-
 	/// Resource data for resource record type `A` or `AAAA` has an incorrect length (value in tuple).
 	ResourceDataForTypeAOrAAAAHasAnIncorrectLength(usize),
 
@@ -38,6 +35,12 @@ pub enum DnsProtocolError
 
 	/// Resource data for resource record type `LOC` has an incorrect version (value in tuple).
 	ResourceDataForTypeLOCHasAnIncorrectVersion(u8),
+
+	/// Resource data for resource record type `TLSA` has an incorrect length (value in tuple).
+	ResourceDataForTypeTLSAHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `SRV` has an incorrect length (value in tuple).
+	ResourceDataForTypeSRVHasAnIncorrectLength(usize),
 
 	/// Resource data for resource record type `SSHFP` has an incorrect length (value in tuple).
 	ResourceDataForTypeSSHFPHasAnIncorrectLength(usize),
@@ -52,6 +55,18 @@ pub enum DnsProtocolError
 	///
 	/// Tuple contains the fingerprint type and the actual digest size.
 	ResourceDataForTypeSSHFPHasADigestOfIncorrectSizeForTheFingerprintType(FingerprintType, usize),
+
+	/// Resource data for resource record type `TLSA` has an unrecognised certificate usage (value in tuple).
+	ResourceDataForTypeTLSAHasAnUnrecognisedCertificateUsage(u8),
+
+	/// Resource data for resource record type `TLSA` has an unrecognised selector (value in tuple).
+	ResourceDataForTypeTLSAHasAnUnrecognisedSelector(u8),
+
+	/// Resource data for resource record type `TLSA` has an unrecognised matching type (value in tuple).
+	ResourceDataForTypeTLSAHasAnUnrecognisedMatchingType(u8),
+
+	/// Resource data for resource record type `TLSA` has an unrecognised matching type (value in tuple).
+	ResourceDataForTypeTLSAHasADigestLengthThatIsIncorrectForTheMatchingType(MatchingType, usize),
 
 	/// Resource data for resource record type `MX` has too short a length (value in tuple).
 	ResourceDataForTypeMXHasTooShortALength(usize),

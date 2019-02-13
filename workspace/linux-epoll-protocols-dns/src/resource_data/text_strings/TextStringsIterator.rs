@@ -11,7 +11,7 @@ pub struct TextStringsIterator<'a>
 	marker: PhantomData<&'a ()>,
 }
 
-impl<'a> Iterator for TextStringsIterator
+impl<'a> Iterator for TextStringsIterator<'a>
 {
 	type Item = Result<&'a [u8], DnsProtocolError>;
 
@@ -39,7 +39,7 @@ impl<'a> Iterator for TextStringsIterator
 	}
 }
 
-impl<'a> TextStringsIterator
+impl<'a> TextStringsIterator<'a>
 {
 	#[inline(always)]
 	fn new(resource_data: &'a [u8]) -> Result<Self, DnsProtocolError>

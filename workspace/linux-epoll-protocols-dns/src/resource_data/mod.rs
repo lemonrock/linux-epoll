@@ -21,5 +21,11 @@ pub mod start_of_authority;
 pub mod text_strings;
 
 
+/// `TLSA` record support.
+pub mod tls_dane;
+
+
 include!("MailExchange.rs");
+include!("OpenPgpRfc4880TransferablePublicKey.rs");
 include!("ResourceRecordVisitor.rs");
+include!("Service.rs");

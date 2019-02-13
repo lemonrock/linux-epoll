@@ -52,13 +52,13 @@ impl QuerySectionEntry
 	}
 
 	#[inline(always)]
-	fn query_section_entry_footer(&self) -> &QuestionSectionEntryFooter
+	fn query_section_entry_footer(&self) -> &QuerySectionEntryFooter
 	{
 		unimplemented!();
 	}
 
 	#[inline(always)]
-	fn query_section_entry_footer_mutable(&mut self) -> &mut QuestionSectionEntryFooter
+	fn query_section_entry_footer_mutable(&mut self) -> &mut QuerySectionEntryFooter
 	{
 		unimplemented!();
 	}
