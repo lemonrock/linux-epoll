@@ -8,8 +8,8 @@ struct QuerySectionEntryFooter
 {
 	/// A two octet code which specifies the type of the query.
 	///
-	/// The values for this field include all codes valid for a `TYPE` field, together with some more general codes which  can match more than one type of Resource Record (RR).
-	qtype: [u8; 2],
+	/// The values for this field include all codes valid for a `TYPE` field, together with some more general codes which can match more than one type of Resource Record (RR).
+	qtype: QueryType,
 
 	/// A two octet code that specifies the class of the query.
 	///
@@ -20,15 +20,15 @@ struct QuerySectionEntryFooter
 impl QuerySectionEntryFooter
 {
 	#[inline(always)]
-	fn query_type(&self) -> [u8; 2]
+	fn query_type_or_data_type(&self) -> QueryTypeOrDataType
 	{
 		self.qtype
 	}
 
 	#[inline(always)]
-	fn set_query_type(&mut self, question_type: [u8; 2])
+	fn set_query_type_or_data_type(&mut self, query_type_or_data_type: QueryTypeOrDataType)
 	{
-		self.qtype = question_type;
+		self.qtype = query_type_or_data_type;
 	}
 
 	#[inline(always)]

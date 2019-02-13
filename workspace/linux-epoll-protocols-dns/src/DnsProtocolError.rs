@@ -25,8 +25,29 @@ pub enum DnsProtocolError
 	/// Resource data length overflows the space available.
 	ResourceDataLengthOverflows,
 
-	/// Resource record type is asterisk in a resource record.
-	ResourceRecordTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry,
+	/// An obsolete data type was present.
+	ObsoleteResourceRecordType(DataType),
+
+	/// An unknown query or meta type was present.
+	UnknownQueryTypeOrMetaType(DataType),
+
+	/// A reserved record type was present.
+	ReservedRecordType(DataType),
+
+	/// Query type (`QTYPE`) `IXFR` is in a resource record.
+	QueryTypeIXFRShouldNotOccurOutsideOfAQuestionSectionEntry,
+
+	/// Query type (`QTYPE`) `AXFR` is in a resource record.
+	QueryTypeAXFRShouldNotOccurOutsideOfAQuestionSectionEntry,
+
+	/// Query type (`QTYPE`) `MAILB` is in a resource record.
+	QueryTypeMAILBShouldNotOccurOutsideOfAQuestionSectionEntry,
+
+	/// Query type (`QTYPE`) `MAILA` is in a resource record.
+	QueryTypeMAILAShouldNotOccurOutsideOfAQuestionSectionEntry,
+
+	/// Query type (`QTYPE`) `*` is in a resource record.
+	QueryTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry,
 
 	/// Resource data for resource record type `A` or `AAAA` has an incorrect length (value in tuple).
 	ResourceDataForTypeAOrAAAAHasAnIncorrectLength(usize),
@@ -69,6 +90,15 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `TLSA` has an unrecognised matching type (value in tuple).
 	ResourceDataForTypeTLSAHasADigestLengthThatIsIncorrectForTheMatchingType(MatchingType, usize),
 
+	/// Resource data for resource record type `HINFO` has too short a length (value in tuple).
+	ResourceDataForTypeHINFOHasTooShortALength(usize),
+
+	/// Resource data for resource record type `HINFO` has too short a length after checking length of CPU field (value in tuple).
+	ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(usize),
+
+	/// Resource data for resource record type `HINFO` has too short a length after checking length of OS field (value in tuple).
+	ResourceDataForTypeHINFOWouldHaveOsDataOverflow(usize),
+
 	/// Resource data for resource record type `MX` has too short a length (value in tuple).
 	ResourceDataForTypeMXHasTooShortALength(usize),
 
@@ -79,22 +109,42 @@ pub enum DnsProtocolError
 	StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME,
 
 	/// A resource record of the psuedo-type `OPT` is present other than in the additional record section.
-	EdnsOptRecordOutsideOfAdditionalDataSection,
+	ExtendedDnsOptRecordOutsideOfAdditionalDataSection,
+
+	/// More than one resource record of the psuedo-type `OPT` is present in the additional record section.
+	MoreThanOneExtendedDnsOptRecord,
 
 	/// A resource record of the psuedo-type `OPT` is present with a name other than ''.
-	EdnsOptRecordNameTooLong,
+	ExtendedDnsOptRecordNameTooLong,
 
 	/// A resource record of the psuedo-type `OPT` is present with a name other than ''.
-	EdnsOptRecordNameNotRoot,
+	ExtendedDnsOptRecordNameNotRoot,
 
 	/// An unsupported EDNS version; unsupported version in tuple.
 	UnsupportedExtendedDnsVersion(u8),
 
-	/// EDNS `Z`field not zero.
+	/// EDNS(0) `Z`field not zero.
 	ExtendedDnsZFieldNotZero,
 
-	/// More than one resource record of the psuedo-type `OPT` is present in the additional record section.
-	MoreThanOneEdnsOptRecord,
+	/// EDNS(0) Option field has a length less than 4.
+	ExtendedDnsOptionTooShort,
+
+	/// EDNS(0) Option code was in the reserved set (0, 65001-65534 and 65535); code is in tuple.
+	///
+	/// Code 4 is ignored as the draft it pertains sees occasionaly progress; it might come into being.
+	ExtendedDnsOptionCodeWasReserved(u16),
+
+	/// EDNS(0) Option length field indicates an option data field whose length would exceed that remaining in the resource data of the `OPT` resource record.
+	ExtendedDnsOptionDataOverflows,
+
+	/// EDNS(0) Option `DAU` must only be set in a request.
+	ExtendedDnsOptionDAUMustOnlyBeSetInARequest,
+
+	/// EDNS(0) Option `DHU` must only be set in a request.
+	ExtendedDnsOptionDHUMustOnlyBeSetInARequest,
+
+	/// EDNS(0) Option `N3U` must only be set in a request.
+	ExtendedDnsOptionN3UMustOnlyBeSetInARequest,
 
 	/// The name was not long enough.
 	///
@@ -104,8 +154,11 @@ pub enum DnsProtocolError
 	/// The name occupies no bytes at all.
 	NameIsEmpty,
 
-	/// The unsupported name label (2 bits, ie `u2`).
-	UnsupportedNameLabelKind(u8),
+	/// The extended name labels are unused.
+	ExtendedNameLabelsAreUnused,
+
+	/// The unallocated name labels are unused.
+	UnallocatedNameLabelsAreUnused,
 
 	/// The label pointer offset does not point to a previously parsed label.
 	///

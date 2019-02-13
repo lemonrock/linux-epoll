@@ -48,6 +48,8 @@ impl<'a> ParsedNameIterator<'a>
 		use self::DnsProtocolError::*;
 
 		const Bytes: u8 = 0b00;
+		const Extended: u8 = 0b01;
+		const Unallocated: u8 = 0b10;
 		const CompressedOffsetPointer: u8 = 0b11;
 
 		let maximum_for_end_of_name_pointer = Self::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
@@ -93,6 +95,10 @@ impl<'a> ParsedNameIterator<'a>
 					}
 				}
 
+				Extended => return Err(ExtendedNameLabelsAreUnused),
+
+				Unallocated => return Err(UnallocatedNameLabelsAreUnused),
+
 				CompressedOffsetPointer =>
 				{
 					let offset = label.length_or_offset();
@@ -108,6 +114,8 @@ impl<'a> ParsedNameIterator<'a>
 
 					break current_label_starts_at_pointer + 1
 				}
+
+				_ => unreachable!(),
 
 				unsupported @ _ => return Err(UnsupportedNameLabelKind(unsupported))
 			}

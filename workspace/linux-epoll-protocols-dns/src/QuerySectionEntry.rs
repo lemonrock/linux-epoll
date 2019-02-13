@@ -11,42 +11,42 @@ impl QuerySectionEntry
 {
 	/// `QNAME` field.
 	#[inline(always)]
-	pub fn name(&self) -> &Name
+	fn name(&self) -> &Name
 	{
 		unsafe { & * (self as *const Self as *const Name) }
 	}
 
 	/// `QNAME` field.
 	#[inline(always)]
-	pub fn name_mutable(&mut self) -> &mut Name
+	fn name_mutable(&mut self) -> &mut Name
 	{
 		unsafe { &mut * (self as *mut Self as *mut Name) }
 	}
 
 	/// `QTYPE` field.
 	#[inline(always)]
-	pub fn query_type(&self) -> [u8; 2]
+	fn query_type_or_data_type(&self) -> QueryTypeOrDataType
 	{
 		self.query_section_entry_footer().query_type()
 	}
 
 	/// `QTYPE` field.
 	#[inline(always)]
-	pub fn set_query_type(&self, question_type: [u8; 2])
+	fn set_query_type_or_data_type(&self, query_type_or_data_type: QueryTypeOrDataType)
 	{
-		self.query_section_entry_footer_mutable().set_query_type(question_type)
+		self.query_section_entry_footer_mutable().set_query_type(query_type_or_data_type)
 	}
 
 	/// `QCLASS` field.
 	#[inline(always)]
-	pub fn query_class(&self) -> Result<QueryClass, DnsProtocolError>
+	fn query_class(&self) -> Result<QueryClass, DnsProtocolError>
 	{
 		self.query_section_entry_footer().query_class()
 	}
 
 	/// `QCLASS` field.
 	#[inline(always)]
-	pub fn set_query_class(&self, query_class: QueryClass)
+	fn set_query_class(&self, query_class: QueryClass)
 	{
 		self.query_section_entry_footer_mutable().set_query_class(query_class)
 	}

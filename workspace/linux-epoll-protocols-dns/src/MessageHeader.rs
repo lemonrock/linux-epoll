@@ -109,6 +109,8 @@ impl MessageHeader
 	/// Reserved for future use.
 	///
 	/// Must be zero in all queries and responses.
+	///
+	/// Some ancient DNS clients set this to `1` to tell a DNS server that only a response from the primary DNS server for a zone is acceptable.
 	#[inline(always)]
 	pub fn z(self) -> bool
 	{

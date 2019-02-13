@@ -2,21 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// TLS-DANE record data.
+/// Key exchange data.
 #[derive(Debug)]
-pub struct TlsDane<'a>
+pub struct KeyExchange<'a>
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// Preference.
+	pub preference: u16,
 
-	/// Selector.
-	pub selector: Selector,
-
-	/// Matching type.
-	pub matching_type: MatchingType,
-
-	/// Certificae association data.
-	///
-	/// If the matching type is a hash, then the length of this digest has been validated.
-	pub certificate_association_data: &'a [u8],
+	/// Mail server name.
+	pub mail_server_name: ParsedNameIterator<'a>,
 }

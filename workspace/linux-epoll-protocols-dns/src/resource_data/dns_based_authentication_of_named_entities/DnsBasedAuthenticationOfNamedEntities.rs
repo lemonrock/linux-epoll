@@ -2,32 +2,21 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// DNS-based Authentication of Named Entities (DANE) record data.
+#[derive(Debug)]
+pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+{
+	/// Certificate usage.
+	pub certificate_usage: CertificateUsage,
 
+	/// Selector.
+	pub selector: Selector,
 
-/// `TLSA` and `SMIME` record support.
-pub mod dns_based_authentication_of_named_entities;
+	/// Matching type.
+	pub matching_type: MatchingType,
 
-
-/// `LOC` record support.
-pub mod location;
-
-
-/// `SSHFP` record support.
-pub mod ssh_fingerprint;
-
-
-/// `SOA` record support.
-pub mod start_of_authority;
-
-
-/// `TXT` record support.
-pub mod text_strings;
-
-
-include!("HostInformation.rs");
-include!("KeyExchange.rs");
-include!("MailExchange.rs");
-include!("OpenPgpRfc4880TransferablePublicKey.rs");
-include!("ResourceRecordVisitor.rs");
-include!("Service.rs");
+	/// Certificae association data.
+	///
+	/// If the matching type is a hash, then the length of this digest has been validated.
+	pub certificate_association_data: &'a [u8],
+}

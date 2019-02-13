@@ -5,7 +5,7 @@
 #[repr(C, packed)]
 struct ResourceRecordFooter
 {
-	type_: ResourceRecordType,
+	type_: DataType,
 	class: [u8; 2],
 	ttl: [u8; 4],
 	rdlen: [u8; 2],
@@ -14,16 +14,16 @@ struct ResourceRecordFooter
 
 impl ResourceRecordFooter
 {
-	const MinimumSize: usize = size_of::<ResourceRecordType>() + size_of::<[u8; 2]>() + size_of::<[u8; 4]>() + size_of::<[u8; 2]>() + ResourceData::MinimumSize;
+	const MinimumSize: usize = size_of::<DataType>() + size_of::<[u8; 2]>() + size_of::<[u8; 4]>() + size_of::<[u8; 2]>() + ResourceData::MinimumSize;
 
 	#[inline(always)]
-	fn resource_record_type(&self) -> ResourceRecordType
+	fn resource_record_type(&self) -> DataType
 	{
 		self.type_
 	}
 
 	#[inline(always)]
-	fn set_resource_record_type(&mut self, resource_record_type: ResourceRecordType)
+	fn set_resource_record_type(&mut self, resource_record_type: DataType)
 	{
 		self.type_ = resource_record_type
 	}
@@ -131,6 +131,6 @@ impl ResourceRecordFooter
 	#[inline(always)]
 	fn debug_assert_is_opt(&self)
 	{
-		debug_assert_eq!(self.type_.0 , ResourceRecordType::OPT, "This is not an EDNS0 extension record")
+		debug_assert_eq!(self.type_.0 , DataType::OPT, "This is not an EDNS0 extension record")
 	}
 }

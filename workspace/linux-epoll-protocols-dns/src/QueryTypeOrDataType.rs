@@ -2,7 +2,10 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-include!("CertificateUsage.rs");
-include!("MatchingType.rs");
-include!("Selector.rs");
-include!("TlsDane.rs");
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
+union QueryTypeOrDataType
+{
+	query_type: QueryType,
+	resource_record_data_type: DataType,
+}

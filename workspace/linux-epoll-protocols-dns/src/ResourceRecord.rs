@@ -11,9 +11,12 @@ impl ResourceRecord
 {
 	const MinimumSize: usize = Name::MinimumSize + ResourceRecordFooter::MinimumSize;
 
+	/// Returns `Ok(end_of_resource_data_pointer)` unless there is an error.
 	#[inline(always)]
-	fn parse_resource_record<'a>(&'a self, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool) -> Result<(), DnsProtocolError>
+	fn parse_resource_record<'a>(&'a self, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool, is_a_response: bool) -> Result<usize, DnsProtocolError>
 	{
+		debug_assert!(is_a_response, "Server validation (of requests) is not supported");
+
 		use self::DnsProtocolError::*;
 
 		let start_of_resource_record_pointer = self as *const Self as usize;
@@ -31,83 +34,261 @@ impl ResourceRecord
 			return Err(ResourceRecordIsShorterThanMinimumSizeAfterParsingName)
 		}
 
-		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, processing_additional_record_section, have_already_seen_an_edns_opt_record)
+		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, processing_additional_record_section, have_already_seen_an_edns_opt_record, is_a_response)
 	}
 
 	#[inline(always)]
-	fn dispatch_resource_record_type<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool) -> Result<(), DnsProtocolError>
+	fn dispatch_resource_record_type<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool, is_a_response: bool) -> Result<usize, DnsProtocolError>
 	{
+		use self::DnsProtocolError::*;
+
 		let resource_record_type = self.resource_record_type(end_of_name_pointer);
+		let resource_record_type_bytes = resource_record_type.0;
 
-		match resource_record_type.0
+		let type_upper = unsafe { * resource_record_type_bytes.get_unchecked(0) };
+		let type_lower = unsafe { * resource_record_type_bytes.get_unchecked(1) };
+
+		/// Based on RFC 6895, Section 3.1, Page 8.
+		match type_upper
 		{
-			ResourceRecordType::A => self.handle_a(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+			0x00 => match type_lower
+			{
+				DataType::SIG0_lower => self.handle_sig0(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::NS => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::A_lower => self.handle_a(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::CNAME => self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::NS_lower => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::SOA => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::MD_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::PTR => self.handle_ptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::MF_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::MX => self.handle_mx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::CNAME_lower => self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::TXT => self.handle_txt(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::SOA_lower => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::AAAA => self.handle_aaaa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::MB_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::LOC => self.handle_loc(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::MG_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::SRV => self.handle_srv(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::MR_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::OPT => self.handle_opt(end_of_name_pointer, end_of_message_pointer, processing_additional_record_section, have_already_seen_an_edns_opt_record),
+				DataType::NULL_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::DNAME => self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::WKS_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::SSHFP => self.handle_sshfp(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::PTR_lower => self.handle_ptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			ResourceRecordType::OPENPGPKEY => self.handle_openpgpkey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::HINFO_lower => self.handle_hinfo(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			ResourceRecordType::TLSA => self.handle_tlsa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::MINFO_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			ResourceRecordType::Asterisk => Err(DnsProtocolError::ResourceRecordTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry),
+				DataType::MX_lower => self.handle_mx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-			// TODO: CAA - used by CloudFlare in rare circumstances.
-//			ResourceRecordType::CAA =>
-//			{
-//				// looks like a bit of a pig.
-//			}
+				DataType::TXT_lower => self.handle_txt(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-			// TODO: HINFO - used by CloudFlare in rare circumstances.
+				DataType::RP_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-			_ => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				DataType::AFSDB_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::X25_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::ISDN_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::RT_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::NSAP_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::NSAP_PTR_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::SIG_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::KEY_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::PX_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::GPOS_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::AAAA_lower => self.handle_aaaa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::LOC_lower => self.handle_loc(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::NXT_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::EID_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::NIMLOC_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::SRV_lower => self.handle_srv(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+
+				DataType::ATMA_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::NAPTR_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+
+				DataType::CERT_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::A6_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::DNAME_lower => self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+
+				DataType::SINK_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				MetaType::OPT_lower => self.handle_opt(end_of_name_pointer, end_of_message_pointer, processing_additional_record_section, have_already_seen_an_edns_opt_record, is_a_response),
+
+				DataType::APL_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::DS_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::SSHFP_lower => self.handle_sshfp(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::IPSECKEY_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::NSEC_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::RRSIG_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::DNSKEY_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::DHCID_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::NSEC3_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::NSEC3PARAM_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::TLSA_lower => self.handle_tlsa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::SMIMEA_lower => self.handle_smimea(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				54 => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::HIP_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::NINFO_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::RKEY_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::TALINK_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::CDS_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::CDNSKEY_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::OPENPGPKEY_lower => self.handle_openpgpkey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::CSYNC_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::ZONEMD_lower => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				64 ... 98 => self.unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+
+				DataType::SPF_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::UINFO_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::UID_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::GID_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::UNSPEC_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
+
+				DataType::NID_lower => self.swallow("Class independent"),
+
+				DataType::L32_lower => self.swallow("Class independent"),
+
+				DataType::L64_lower => self.swallow("Class independent"),
+
+				DataType::LP_lower => self.swallow("Class independent"),
+
+				DataType::EUI48_lower => self.swallow("Class independent"),
+
+				DataType::EUI64_lower => self.swallow("Class independent"),
+
+				110 ... 0x7F => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				0x80 ... 0xF8 => Err(UnknownQueryTypeOrMetaType(resource_record_type)),
+
+				MetaType::TKEY_lower => self.swallow("Only really useful for updates, which, frankly, are probably better done out-of-band than using DNS; regardless, when using DNS over TLS a client certificate is much more useful"),
+
+				MetaType::TSIG_lower => self.swallow("Only really useful for updates, which, frankly, are probably better done out-of-band than using DNS; regardless, when using DNS over TLS a client certificate is much more useful"),
+
+				QueryType::IXFR_lower => Err(QueryTypeIXFRShouldNotOccurOutsideOfAQuestionSectionEntry),
+
+				QueryType::AXFR_lower => Err(QueryTypeAXFRShouldNotOccurOutsideOfAQuestionSectionEntry),
+
+				QueryType::MAILB_lower => Err(QueryTypeMAILBShouldNotOccurOutsideOfAQuestionSectionEntry),
+
+				QueryType::MAILA_lower => Err(QueryTypeMAILAShouldNotOccurOutsideOfAQuestionSectionEntry),
+
+				QueryType::Asterisk_lower => Err(QueryTypeAsteriskShouldNotOccurOutsideOfAQuestionSectionEntry),
+
+				_ => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+			},
+
+			0x01 => match type_lower
+			{
+				DataType::URI_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::CAA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::DOA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::AMTRELAY_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				
+				_ => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+			},
+
+			0x02 ... 0x7F => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+			0x80 => match type_lower
+			{
+				DataType::TA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				DataType::DLV_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+				_ => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+			},
+
+			0x81 ... 0xEF => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+
+			_ => Err(ReservedRecordType(resource_record_type))
 		}
 	}
 
 	#[inline(always)]
-	fn handle_a<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn swallow<'a>(&'a self, _reason: &'static str) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_internet_protocol_address_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.A(resource_record_name, time_to_live, record)
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn handle_ns<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_a<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
-		resource_record_visitor.NS(resource_record_name, time_to_live, record)
+		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_internet_protocol_address_only(end_of_name_pointer, end_of_message_pointer)?;
+		resource_record_visitor.A(resource_record_name, time_to_live, record)?;
+		Ok(end_of_resource_data_pointer)
 	}
 
 	#[inline(always)]
-	fn handle_cname<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_ns<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
-		resource_record_visitor.CNAME(resource_record_name, time_to_live, record)
+		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.NS(resource_record_name, time_to_live, record)?;
+		Ok(end_of_resource_data_pointer)
 	}
 
 	#[inline(always)]
-	fn handle_soa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_cname<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.CNAME(resource_record_name, time_to_live, record)?;
+		Ok(end_of_resource_data_pointer)
+	}
+
+	#[inline(always)]
+	fn handle_soa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -126,7 +307,8 @@ impl ResourceRecord
 				footer: unsafe { & * (end_of_rname_pointer as *const StartOfAuthorityFooter) },
 			};
 
-			resource_record_visitor.SOA(resource_record_name, time_to_live, start_of_authority)
+			resource_record_visitor.SOA(resource_record_name, time_to_live, start_of_authority)?;
+			Ok(Self::end_of_resource_data_pointer(resource_data))
 		}
 		else
 		{
@@ -135,14 +317,52 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn handle_ptr<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_ptr<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
-		resource_record_visitor.PTR(resource_record_name, time_to_live, record)
+		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.PTR(resource_record_name, time_to_live, record)?;
+		Ok(end_of_resource_data_pointer)
 	}
 
 	#[inline(always)]
-	fn handle_mx<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_hinfo<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		use self::DnsProtocolError::*;
+
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+		if unlikely!(resource_data.len() < 1 + 1)
+		{
+			return Err(ResourceDataForTypeHINFOHasTooShortALength(resource_data.len()))
+		}
+
+		let cpu = unsafe { & * (resource_data.get_unchecked(0) as *const u8 as *const TextString) };
+		let cpu_size = cpu.len() as usize;
+		if unlikely!(resource_data.len() < 1 + cpu_size + 1)
+		{
+			return Err(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(resource_data.len()))
+		}
+
+		let os = unsafe { & * (resource_data.get_unchecked(1 + cpu_size) as *const u8 as *const TextString) };
+		let os_size = cpu.len() as usize;
+		if unlikely!(resource_data.len() != 1 + cpu_size + 1 + os_size)
+		{
+			return Err(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(resource_data.len()))
+		}
+
+		let record = HostInformation
+		{
+			cpu,
+			os,
+		};
+
+		resource_record_visitor.HINFO(resource_record_name, time_to_live, record)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
+	}
+
+	#[inline(always)]
+	fn handle_mx<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -158,28 +378,31 @@ impl ResourceRecord
 			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[2 .. ])?,
 		};
 
-		resource_record_visitor.MX(resource_record_name, time_to_live, record)
+		resource_record_visitor.MX(resource_record_name, time_to_live, record)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn handle_txt<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_txt<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
 		let text_strings_iterator = TextStringsIterator::new(self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?)?;
 
-		resource_record_visitor.TXT(resource_record_name, time_to_live, text_strings_iterator)
+		resource_record_visitor.TXT(resource_record_name, time_to_live, text_strings_iterator)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn handle_aaaa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_aaaa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_internet_protocol_address_only(end_of_name_pointer, end_of_message_pointer)?;
-		resource_record_visitor.AAAA(resource_record_name, time_to_live, record)
+		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_internet_protocol_address_only(end_of_name_pointer, end_of_message_pointer)?;
+		resource_record_visitor.AAAA(resource_record_name, time_to_live, record)?;
+		Ok(end_of_resource_data_pointer)
 	}
 
 	#[inline(always)]
-	fn handle_loc<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_loc<'a>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 
@@ -197,11 +420,12 @@ impl ResourceRecord
 		let version = location.version()?;
 		debug_assert_eq!(version, LocationVersion::Version0, "Why are we supporting a version other than 0 of LOC records?");
 
-		resource_record_visitor.LOC(resource_record_name, time_to_live, location)
+		resource_record_visitor.LOC(resource_record_name, time_to_live, location)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn handle_srv<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_srv<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
@@ -220,41 +444,67 @@ impl ResourceRecord
 			target: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[6 .. ])?,
 		};
 
-		resource_record_visitor.SRV(resource_record_name, time_to_live, record)
+		resource_record_visitor.SRV(resource_record_name, time_to_live, record)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn handle_opt(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool) -> Result<(), DnsProtocolError>
+	fn handle_kx<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	{
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		if unlikely!(resource_data.len() < 3)
+		{
+			return Err(DnsProtocolError::ResourceDataForTypeKXHasTooShortALength(resource_data.len()))
+		}
+
+		let record = KeyExchange
+		{
+			preference: u16::from_be_bytes(unsafe { *(resource_data.as_ptr() as *const [u8; 2]) }),
+			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[2 .. ])?,
+		};
+
+		resource_record_visitor.KX(resource_record_name, time_to_live, record)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
+	}
+
+	#[inline(always)]
+	fn handle_opt(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool, is_a_response: bool) -> Result<usize, DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 
 		if !processing_additional_record_section
 		{
-			return Err(EdnsOptRecordOutsideOfAdditionalDataSection)
+			return Err(ExtendedDnsOptRecordOutsideOfAdditionalDataSection)
 		}
 
 		if have_already_seen_an_edns_opt_record
 		{
-			return Err(MoreThanOneEdnsOptRecord)
+			return Err(MoreThanOneExtendedDnsOptRecord)
 		}
 
 		let start_of_name_pointer = self.name() as *const Name as usize;
 		if unlikely!(end_of_name_pointer - start_of_name_pointer != 1)
 		{
-			return Err(EdnsOptRecordNameTooLong)
+			return Err(ExtendedDnsOptRecordNameTooLong)
 		}
 
 		let name_length_or_offset = unsafe { * (self.name() as *const Name as *const u8) };
 		if unlikely!(name_length_or_offset != 0x00)
 		{
-			return Err(EdnsOptRecordNameNotRoot)
+			return Err(ExtendedDnsOptRecordNameNotRoot)
 		}
 
 		let requestors_udp_payload_size = self.requestors_udp_payload_size(end_of_name_pointer);
 		// TODO: This value is supposed to be a minimum of 512 bytes.
+		x
 
 		let extended_response_code_and_flags = self.extended_response_code_and_flags(end_of_name_pointer);
+
 		let upper_8_bits = extended_response_code_and_flags.extended_response_code_upper_8_bits();
+		// TODO: Any value that isn't zero is effectively an error.
+
 
 		let version = extended_response_code_and_flags.version()?;
 		debug_assert_eq!(version, ExtendedDnsVersion::Version0, "Why do we support EDNS versions other than 0?");
@@ -263,21 +513,101 @@ impl ResourceRecord
 
 		extended_response_code_and_flags.z()?;
 
-		// TODO: Parse TLV options.
-		xxx
-
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		// 2-byte option code, 2-byte option length
+		let mut current_pointer = resource_data.as_ptr() as usize;
+		let end_of_options_pointer = current_pointer + resource_data.len();
+		while current_pointer != end_of_options_pointer
+		{
+			if unlikely!(current_pointer + 4 > end_of_options_pointer)
+			{
+				return Err(ExtendedDnsOptionTooShort)
+			}
+
+			let option_code = u16::from_be_bytes(unsafe { * (current_pointer as *const [u8; 2]) });
+
+			#[inline(always)]
+			fn validate_raw_option_data<'a>(current_pointer: usize) -> Result<&'a [u8], DnsProtocolError>
+			{
+				let option_length = u16::from_be_bytes(unsafe { * ((current_pointer + 2) as *const [u8; 2]) }) as usize;
+				let option_data_pointer = current_pointer + 4;
+				if unlikely!(option_data_pointer + option_length > end_of_options_pointer)
+				{
+					Err(ExtendedDnsOptionDataOverflows)
+				}
+				else
+				{
+					Ok(unsafe { from_raw_parts(option_data_pointer as *const u8, option_length) })
+				}
+			}
+
+			const DAU: u16 = 5;
+			const DHU: u16 = 6;
+			const N3U: u16 = 7;
+
+			// Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.  These values are only set in queries.
+			match option_code
+			{
+				0 | 65001 ... 65535 => return Err(ExtendedDnsOptionCodeWasReserved(option_code)),
+
+				// RFC 6975, Section 6, Paragraph 4: "Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.
+				// These values are only set in queries".
+				DAU => if likely!(is_a_response)
+				{
+					return Err(ExtendedDnsOptionDAUMustOnlyBeSetInARequest)
+				}
+				else
+				{
+					let option_data = validate_raw_option_data(current_pointer)?;
+					// 2-byte length
+					// list of 1-byte algorithm codes
+				}
+
+				// RFC 6975, Section 6, Paragraph 4: "Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.
+				// These values are only set in queries".
+				DHU => if likely!(is_a_response)
+				{
+					return Err(ExtendedDnsOptionDHUMustOnlyBeSetInARequest)
+				}
+				else
+				{
+					let option_data = validate_raw_option_data(current_pointer)?;
+					// 2-byte length
+					// list of 1-byte algorithm codes
+				}
+
+				// RFC 6975, Section 6, Paragraph 4: "Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.
+				// These values are only set in queries".
+				N3U => if likely!(is_a_response)
+				{
+					return Err(ExtendedDnsOptionN3UMustOnlyBeSetInARequest)
+				}
+				else
+				{
+					let option_data = validate_raw_option_data(current_pointer)?;
+					// 2-byte length
+					// list of 1-byte algorithm codes
+				}
+
+				_ =>
+				{
+					let option_data = validate_raw_option_data(current_pointer)?;
+				}
+			}
+		}
 	}
 
 	#[inline(always)]
-	fn handle_dname<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<(), DnsProtocolError>
+	fn handle_dname<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
-		resource_record_visitor.DNAME(resource_record_name, time_to_live, record)
+		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		resource_record_visitor.DNAME(resource_record_name, time_to_live, record)?;
+		Ok(end_of_resource_data_pointer)
 	}
 
 	#[inline(always)]
-	fn handle_sshfp<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_sshfp<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 
@@ -323,22 +653,39 @@ impl ResourceRecord
 				digest_bytes,
 			};
 
-			resource_record_visitor.SSHFP(resource_record_name, time_to_live, record)
+			resource_record_visitor.SSHFP(resource_record_name, time_to_live, record)?;
+			Ok(Self::end_of_resource_data_pointer(resource_data))
 		}
 	}
 
 	#[inline(always)]
-	fn handle_openpgpkey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_openpgpkey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		resource_record_visitor.OPENPGPKEY(resource_record_name, time_to_live, resource_data)
+		resource_record_visitor.OPENPGPKEY(resource_record_name, time_to_live, resource_data)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
+	}
+	#[inline(always)]
+	fn handle_tlsa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, record, end_of_resource_data_pointer) = self.handle_tlsa_or_smimea(end_of_name_pointer, end_of_message_pointer)?;
+		resource_record_visitor.TLSA(resource_record_name, time_to_live, record)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn handle_tlsa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<(), DnsProtocolError>
+	fn handle_smimea<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, record, end_of_resource_data_pointer) = self.handle_tlsa_or_smimea(end_of_name_pointer, end_of_message_pointer)?;
+		resource_record_visitor.SMIMEA(resource_record_name, time_to_live, record)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
+	}
+
+	#[inline(always)]
+	fn handle_tlsa_or_smimea<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(TimeToLiveInSeconds, DnsBasedAuthenticationOfNamedEntities<'a>, usize), DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 
@@ -396,29 +743,33 @@ impl ResourceRecord
 			_ => return Err(ResourceDataForTypeTLSAHasAnUnrecognisedMatchingType(raw_matching_type)),
 		};
 
-		let record = TlsDane
-		{
-			certificate_usage,
-			selector,
-			matching_type,
-			certificate_association_data,
-		};
-
-		resource_record_visitor.TLSA(resource_record_name, time_to_live, record)
+		Ok
+		(
+			time_to_live,
+			DnsBasedAuthenticationOfNamedEntities
+			{
+				certificate_usage,
+				selector,
+				matching_type,
+				certificate_association_data,
+			},
+			Self::end_of_resource_data_pointer(resource_data)
+		)
 	}
 
 	#[inline(always)]
-	fn handle_unsupported<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>, unsupported_resource_record_type: ResourceRecordType) -> Result<(), DnsProtocolError>
+	fn handle_unsupported<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>, unsupported_resource_record_type: DataType) -> Result<usize, DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		resource_record_visitor.unsupported(resource_record_name, time_to_live, resource_data, parsed_labels, unsupported_resource_record_type)
+		resource_record_visitor.unsupported(resource_record_name, time_to_live, resource_data, parsed_labels, unsupported_resource_record_type)?;
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
-	fn parse_internet_protocol_address_only<Address: Sized>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(TimeToLiveInSeconds, &Address), DnsProtocolError>
+	fn parse_internet_protocol_address_only<'a, Address: 'a + Sized>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(TimeToLiveInSeconds, &'a Address, usize), DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
@@ -431,18 +782,18 @@ impl ResourceRecord
 		else
 		{
 			let address = unsafe { &*(resource_data.as_ptr() as *const Address) };
-			Ok((time_to_live, address))
+			Ok((time_to_live, address, Self::end_of_resource_data_pointer(resource_data)))
 		}
 	}
 
 	#[inline(always)]
-	fn parse_name_only<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>) -> Result<(TimeToLiveInSeconds, ParsedNameIterator<'a>), DnsProtocolError>
+	fn parse_name_only<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>) -> Result<(TimeToLiveInSeconds, ParsedNameIterator<'a>, usize), DnsProtocolError>
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 		let record = parsed_labels.parse_name_in_slice_with_nothing_left(resource_data)?;
 
-		Ok((time_to_live, record))
+		Ok((time_to_live, record, Self::end_of_resource_data_pointer(resource_data)))
 	}
 
 	#[inline(always)]
@@ -468,6 +819,12 @@ impl ResourceRecord
 		}
 	}
 
+	#[inline(always)]
+	fn end_of_resource_data_pointer(resource_data: &[u8]) -> usize
+	{
+		resource_data.as_ptr() as usize + resource_data.len()
+	}
+
 	/// `NAME` field.
 	///
 	/// For an `OPT` record, this should always just be `0x00`.
@@ -488,14 +845,14 @@ impl ResourceRecord
 
 	/// `TYPE` field.
 	#[inline(always)]
-	fn resource_record_type(&self, end_of_name_pointer: usize) -> ResourceRecordType
+	fn resource_record_type(&self, end_of_name_pointer: usize) -> DataType
 	{
 		self.footer(end_of_name_pointer).resource_record_type()
 	}
 
 	/// `TYPE` field.
 	#[inline(always)]
-	fn set_resource_record_type(&mut self, end_of_name_pointer: usize, resource_record_type: ResourceRecordType)
+	fn set_resource_record_type(&mut self, end_of_name_pointer: usize, resource_record_type: DataType)
 	{
 		self.footer_mutable(end_of_name_pointer).set_resource_record_type(resource_record_type)
 	}
