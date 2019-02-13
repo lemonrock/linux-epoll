@@ -32,7 +32,7 @@ impl Message
 
 	/// Mutable message body.
 	#[inline(always)]
-	pub fn message_body_mutable(&self) -> &mut MessageBody
+	pub fn message_body_mutable(&mut self) -> &mut MessageBody
 	{
 		unsafe { &mut * ((self as *mut Self as usize + size_of::<MessageHeader>()) as *mut MessageBody) }
 	}

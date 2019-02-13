@@ -13,7 +13,7 @@ pub(crate) struct ParsedLabels<'a>
 impl<'a> ParsedLabels<'a>
 {
 	#[inline(always)]
-	fn parse_name_in_slice_with_nothing_left(&mut self, slice: &'a [u8]) -> Result<ParsedNameIterator<'a>, DnsProtocolError>
+	pub(crate) fn parse_name_in_slice_with_nothing_left(&mut self, slice: &'a [u8]) -> Result<ParsedNameIterator<'a>, DnsProtocolError>
 	{
 		match self.parse_name_in_slice(slice)
 		{
@@ -31,7 +31,7 @@ impl<'a> ParsedLabels<'a>
 	}
 
 	#[inline(always)]
-	fn parse_name_in_slice(&mut self, slice: &'a [u8]) -> Result<(ParsedNameIterator<'a>, usize), DnsProtocolError>
+	pub(crate) fn parse_name_in_slice(&mut self, slice: &'a [u8]) -> Result<(ParsedNameIterator<'a>, usize), DnsProtocolError>
 	{
 		let length = slice.len();
 		if unlikely!(length == 0)
@@ -44,7 +44,7 @@ impl<'a> ParsedLabels<'a>
 	}
 
 	#[inline(always)]
-	fn parse_name(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(ParsedNameIterator<'a>, usize), DnsProtocolError>
+	pub(crate) fn parse_name(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(ParsedNameIterator<'a>, usize), DnsProtocolError>
 	{
 		ParsedNameIterator::parse(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
 	}
@@ -66,7 +66,7 @@ impl<'a> ParsedLabels<'a>
 	}
 
 	#[inline(always)]
-	fn insert(&mut self, parsed_label: ParsedLabel<'a>)
+	fn insert(&mut self, parsed_label: ParsedLabel<'a>) -> &ParsedLabel<'a>
 	{
 		let label_starts_at_pointer = parsed_label.this_label_starts_at_pointer();
 
@@ -74,7 +74,18 @@ impl<'a> ParsedLabels<'a>
 		debug_assert!(label_starts_at_pointer - self.start_of_message_pointer <= ::std::u16::MAX as usize, "offset is larger than ::std::u16::MAX");
 
 		let compressed_offset = (label_starts_at_pointer - self.start_of_message_pointer) as u16;
-		let previous = self.parsed_labels.insert(compressed_offset, parsed_label);
-		debug_assert_eq!(None, previous, "There was a previous label at this offset");
+
+		use self::Entry::*;
+
+		match self.parsed_labels.entry(compressed_offset)
+		{
+			Vacant(vacant) =>
+			{
+				vacant.insert(parsed_label)
+			}
+
+			#[cfg(debug_assertions)] _ => panic!("There was a previous label at this offset"),
+			#[cfg(not(debug_assertions))] _ => unreachable!()
+		}
 	}
 }

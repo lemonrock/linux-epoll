@@ -51,7 +51,7 @@ pub trait ResourceRecordVisitor
 	///
 	/// Default implementation ignores it.
 	#[inline(always)]
-	fn unsupported<'a>(&mut self, _name: ParsedNameIterator<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _parsed_labels: &mut ParsedLabels<'a>, _unsupported_resource_record_type: [u8; 2]) -> Result<(), DnsProtocolError>
+	fn unsupported<'a>(&mut self, _name: ParsedNameIterator<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _parsed_labels: &mut ParsedLabels<'a>, _unsupported_resource_record_type: ResourceRecordType) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}

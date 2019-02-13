@@ -8,7 +8,7 @@ struct ResourceRecordFooter
 	type_: ResourceRecordType,
 	class: [u8; 2],
 	ttl: [u8; 4],
-	rdlength: [u8; 2],
+	rdlen: [u8; 2],
 	rdata: ResourceData,
 }
 
@@ -107,30 +107,30 @@ impl ResourceRecordFooter
 	#[inline(always)]
 	fn resource_data_length(&self) -> u16
 	{
-		u16::from_be_bytes(self.rdlength)
+		u16::from_be_bytes(self.rdlen)
 	}
 
 	#[inline(always)]
 	fn set_resource_data_length(&mut self, length: u16)
 	{
-		self.rdlength = length.to_be_bytes()
+		self.rdlen = length.to_be_bytes()
 	}
 
 	#[inline(always)]
 	fn resource_data(&self) -> &ResourceData
 	{
-		&self.message
+		&self.rdata
 	}
 
 	#[inline(always)]
 	fn resource_data_mutable(&mut self) -> &mut ResourceData
 	{
-		&mut self.message
+		&mut self.rdata
 	}
 
 	#[inline(always)]
 	fn debug_assert_is_opt(&self)
 	{
-		debug_assert_eq!(self.type_ , ResourceRecordType::OPT, "This is not an EDNS0 extension record")
+		debug_assert_eq!(self.type_.0 , ResourceRecordType::OPT, "This is not an EDNS0 extension record")
 	}
 }

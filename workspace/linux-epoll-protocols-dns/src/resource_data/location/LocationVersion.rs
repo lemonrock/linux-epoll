@@ -2,17 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// Start of Authority (`SOA`) data.
-pub struct StartOfAuthority<'a>
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub(crate) enum LocationVersion
 {
-	/// `MNAME`.
-	pub mname: ParsedNameIterator<'a>,
-
-	/// `RNAME`.
-	pub rname: ParsedNameIterator<'a>,
-
-	/// All other fields.
-	///
-	/// Not necesarily aligned, so may fault on 32-bit ARM.
-	pub footer: &'a StartOfAuthorityFooter,
+	Version0 = 0,
 }

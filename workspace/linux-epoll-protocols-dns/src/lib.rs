@@ -16,13 +16,11 @@
 //! A simple implementation of a secure DNS client.
 
 
-extern crate arrayvec;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
 
 
 use self::extended_dns::*;
-use self::extended_dns::dnssec::*;
 use self::name::*;
 use self::resource_data::*;
 use self::resource_data::location::*;
@@ -30,8 +28,8 @@ use self::resource_data::ssh_fingerprint::*;
 use self::resource_data::start_of_authority::*;
 use self::resource_data::text_strings::*;
 use self::resource_data::tls_dane::*;
-use ::arrayvec::ArrayVec;
 use ::hashbrown::HashMap;
+use ::hashbrown::hash_map::Entry;
 use ::std::cell::Cell;
 use ::std::cmp::min;
 use ::std::marker::PhantomData;

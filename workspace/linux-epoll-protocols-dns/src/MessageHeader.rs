@@ -79,7 +79,7 @@ impl MessageHeader
 	#[inline(always)]
 	pub fn is_truncated(self) -> bool
 	{
-		self.bitfield1.truncation()
+		self.bitfield1.is_truncated()
 	}
 
 	/// `RD` field.
@@ -172,7 +172,7 @@ impl MessageHeader
 	#[inline(always)]
 	pub fn raw_response_code(self) -> u8
 	{
-		self.bitfield2.raw_rcode()
+		self.bitfield2.raw_response_code()
 	}
 
 	/// `RCODE` field.
@@ -181,7 +181,7 @@ impl MessageHeader
 	#[inline(always)]
 	pub fn assumed_to_be_valid_response_code(self) -> MessageResponseCode
 	{
-		self.bitfield2.assumed_to_be_valid_rcode()
+		self.bitfield2.assumed_to_be_valid_response_code()
 	}
 
 	/// `QDCOUNT` field.

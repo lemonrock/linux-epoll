@@ -2,8 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C, packed)]
-struct ResourceRecordType([u8; 2]);
+struct ResourceRecordType(pub [u8; 2]);
 
 impl ResourceRecordType
 {
@@ -97,10 +98,4 @@ impl ResourceRecordType
     ///
     /// Defined in RFC 6844.
 	pub const CAA: [u8; 2] = [0x01, 0x01];
-
-	#[inline(always)]
-	fn is_edns_opt_pseudo_record_type(self) -> bool
-	{
-		&self.0 == &Self::OPT.0
-	}
 }

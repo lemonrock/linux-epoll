@@ -18,7 +18,7 @@ impl QuerySectionEntry
 
 	/// `QNAME` field.
 	#[inline(always)]
-	pub fn name_mutable(&self) -> &mut Name
+	pub fn name_mutable(&mut self) -> &mut Name
 	{
 		unsafe { &mut * (self as *mut Self as *mut Name) }
 	}

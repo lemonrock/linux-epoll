@@ -6,17 +6,16 @@
 #[repr(C, packed)]
 pub struct Location
 {
-	/// Version.
 	version: u8,
 
 	/// Size of a sphere at this location.
-	pub size: LocationCentimetres,
+	pub size: LocationCompressedCentimetres,
 
 	/// Horizontal precision.
-	pub horizontal_precision: LocationCentimetres,
+	pub horizontal_precision: LocationCompressedCentimetres,
 
 	/// Vertical precision.
-	pub vertical_precision: LocationCentimetres,
+	pub vertical_precision: LocationCompressedCentimetres,
 
 	/// The latitude of the center of the sphere described by `size()`, expressed as a 32-bit integer, most significant octet first (network standard byte order), in thousandths of a second of arc.
 	///
@@ -30,4 +29,20 @@ pub struct Location
 
 	/// The altitude of the center of the sphere described by by `size()`d, expressed as a 32-bit integer, most significant octet first (network standard byte order), in centimeters, from a base of 100,000m below the WGS 84 reference spheroid used by GPS.
 	pub unsigned_altitude: [u8; 4],
+}
+
+impl Location
+{
+	#[inline(always)]
+	pub(crate) fn version(&self) -> Result<LocationVersion, DnsProtocolError>
+	{
+		if likely!(self.version == 0)
+		{
+			Ok(LocationVersion::Version0)
+		}
+		else
+		{
+			Err(DnsProtocolError::ResourceDataForTypeLOCHasAnIncorrectVersion(self.version))
+		}
+	}
 }

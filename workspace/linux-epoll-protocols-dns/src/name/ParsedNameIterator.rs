@@ -8,7 +8,7 @@
 ///
 /// RFC 2065 asserts that the maximum number of labels is 127; this makes sense if every label bar the last (which is Root) is 1 byte long and so occupies 2 bytes.
 /// However, the maximum reasonable length is an IPv6 reverse DNS look up, which requires 34 labels (32 for each nibble and 2 for `ip6.arpa`).
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ParsedNameIterator<'a>(Option<NonNull<ParsedLabel<'a>>>);
 
 impl<'a> Iterator for ParsedNameIterator<'a>
@@ -25,7 +25,7 @@ impl<'a> Iterator for ParsedNameIterator<'a>
 			Some(non_null_parsed_label) =>
 			{
 				let parsed_label_reference = unsafe { non_null_parsed_label.as_ref() };
-				self.current = parsed_label_reference.next();
+				self.0 = parsed_label_reference.next();
 
 				Some(parsed_label_reference.label_bytes())
 			}
@@ -35,31 +35,35 @@ impl<'a> Iterator for ParsedNameIterator<'a>
 
 impl<'a> ParsedNameIterator<'a>
 {
+	#[inline(always)]
+	fn maximum_for_end_of_name_pointer(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<usize, DnsProtocolError>
+	{
+		let maximum_potential_name_length = Self::maximum_potential_name_length(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
+		let end_of_name_data_pointer = start_of_name_pointer + maximum_potential_name_length;
+		Ok(end_of_name_data_pointer)
+	}
+
 	fn parse(parsed_labels: &mut ParsedLabels<'a>, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 
-		let maximum_potential_name_length = Self::maximum_potential_name_length(start_of_name_pointer, end_of_data_section_containing_name_pointer);
-		let end_of_name_data_pointer = start_of_name_pointer + maximum_potential_name_length;
+		const Bytes: u8 = 0b00;
+		const CompressedOffsetPointer: u8 = 0b11;
 
-		let mut parsed_name = Self::default();
+		let maximum_for_end_of_name_pointer = Self::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
+
 		let mut current_label_starts_at_pointer = start_of_name_pointer;
-
 		let initial_parsed_label = ParsedLabel::Fake;
-
 		let mut previous_parsed_label_reference = &initial_parsed_label;
 
 		let true_end_of_name_pointer = loop
 		{
-			if unlikely!(current_label_starts_at_pointer == end_of_name_data_pointer)
+			if unlikely!(current_label_starts_at_pointer == maximum_for_end_of_name_pointer)
 			{
-				return Err(DnsProtocolError::NoTerminalRootLabel)
+				return Err(NoTerminalRootLabel)
 			}
 
 			let label = unsafe { & * (current_label_starts_at_pointer as *const Label) };
-
-			const Bytes: u8 = 0b00;
-			const CompressedOffsetPointer: u8 = 0b11;
 
 			match label.raw_kind()
 			{
@@ -70,9 +74,9 @@ impl<'a> ParsedNameIterator<'a>
 
 					let next_label_starts_at_pointer = parsed_label.next_label_starts_at_pointer();
 
-					if unlikely!(next_label_starts_at_pointer > end_of_name_data_pointer)
+					if unlikely!(next_label_starts_at_pointer > maximum_for_end_of_name_pointer)
 					{
-						return Err(DnsProtocolError::LabelLengthOverflows)
+						return Err(LabelLengthOverflows)
 					}
 
 					let parsed_label_reference = parsed_labels.insert(parsed_label);
@@ -95,7 +99,7 @@ impl<'a> ParsedNameIterator<'a>
 
 					if unlikely!(parsed_labels.start_of_message_pointer + offset >= current_label_starts_at_pointer)
 					{
-						return Err(DnsProtocolError::LabelPointerOffsetPointsForwardToUnparsedData)
+						return Err(LabelPointerOffsetPointsForwardToUnparsedData)
 					}
 
 					let parsed_label_reference = parsed_labels.get(offset, current_label_starts_at_pointer)?;
@@ -109,7 +113,7 @@ impl<'a> ParsedNameIterator<'a>
 			}
 		};
 
-		Ok(Self(initial_parsed_label.next()), true_end_of_name_pointer)
+		Ok((Self(initial_parsed_label.next()), true_end_of_name_pointer))
 	}
 
 	#[inline(always)]

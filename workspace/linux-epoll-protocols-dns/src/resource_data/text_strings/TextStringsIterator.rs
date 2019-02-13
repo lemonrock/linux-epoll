@@ -42,7 +42,7 @@ impl<'a> Iterator for TextStringsIterator<'a>
 impl<'a> TextStringsIterator<'a>
 {
 	#[inline(always)]
-	fn new(resource_data: &'a [u8]) -> Result<Self, DnsProtocolError>
+	pub(crate) fn new(resource_data: &'a [u8]) -> Result<Self, DnsProtocolError>
 	{
 		let length = resource_data.len();
 		if unlikely!(length == 0)
