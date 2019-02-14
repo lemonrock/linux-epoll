@@ -305,33 +305,6 @@ impl ResourceRecord
 
 			_ => Err(ReservedRecordType(resource_record_type))
 		}
-
-		NAPTR
-			compressed labels allowed.
-		CERT*
-		DS*
-
-		NSEC
-		RRSIG*
-		DNSKEY*
-		DHCID
-		NSEC3
-		NSEC3PARAM
-
-		CDS
-		CDNSKEY
-
-		NID
-		L32
-		L64
-		LP
-
-		EUI48
-		EUI64
-
-		CAA
-		URI
-
 	}
 
 	#[inline(always)]
@@ -580,7 +553,6 @@ impl ResourceRecord
 			};
 
 			resource_record_visitor.NAPTR_domain_name(resource_record_name, time_to_live, record)?;
-			Ok(Self::end_of_resource_data_pointer(resource_data))
 		}
 		else
 		{
@@ -605,32 +577,7 @@ impl ResourceRecord
 
 			resource_record_visitor.NAPTR_regular_expression(resource_record_name, time_to_live, record)?;
 		}
-
-
-
-
-
-		if regular_expression.is_empty()
-		{
-
-		}
-		else
-		{
-
-		}
-
-		xxxx;
-
-
-
-		// order - 16-bit
-		// PREFERENCE - 16-bit
-		// flags - character-string, with values A-Z and 0-9.
-		// services - character-string, unconstrained.
-		// regexp - character-string, complex rules.
-		// domain-name.
-
-		// Either one of regexp or domain-name should be present; both is an error. Absence for a domain name is simply the presence of the root label. Absence for regexp is an empty text string.
+		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
@@ -852,6 +799,36 @@ impl ResourceRecord
 
 
 		xxxx
+
+		/*
+
+
+
+
+		CERT*
+			DS*
+
+			NSEC
+		RRSIG*
+			DNSKEY*
+			DHCID
+		NSEC3
+		NSEC3PARAM
+
+		CDS
+		CDNSKEY
+
+		NID
+		L32
+		L64
+		LP
+
+		EUI48
+		EUI64
+
+		URI
+		CAA
+		*/
 	}
 
 	#[inline(always)]
