@@ -120,7 +120,7 @@ impl DataType
 
 	/// Andrew File System (AFS) Data Base location
 	///
-	/// Defined in RFC 1183 and updated by RFC 5864.
+	/// Defined in RFC 1183; made obsolete by RFC 5864.
 	pub const AFSDB_higher: u8 = 0x00;
 	pub const AFSDB_lower: u8 = 18;
 	pub const AFSDB: Self = Self([Self::AFSDB_higher, Self::AFSDB_lower]);

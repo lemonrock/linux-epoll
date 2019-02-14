@@ -2,32 +2,14 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// A naming authority pointer with a domain name.
+pub struct NamingAuthorityPointerWithDomainName<'a>
+{
+	/// Header.
+	pub header: NamingAuthorityPointerHeader<'a>,
 
-
-/// `TLSA` and `SMIME` record support.
-pub mod dns_based_authentication_of_named_entities;
-
-
-/// `LOC` record support.
-pub mod location;
-
-
-/// `NAPTR` record support.
-pub mod naming_authority_pointer;
-
-
-/// `SSHFP` record support.
-pub mod ssh_fingerprint;
-
-
-/// `SOA` record support.
-pub mod start_of_authority;
-
-
-include!("HostInformation.rs");
-include!("KeyExchange.rs");
-include!("MailExchange.rs");
-include!("OpenPgpRfc4880TransferablePublicKey.rs");
-include!("ResourceRecordVisitor.rs");
-include!("Service.rs");
+	/// Regular expression, up to 255 bytes long.
+	///
+	/// Will never be empty (0 bytes long).
+	pub domain_name: ParsedNameIterator<'a>,
+}

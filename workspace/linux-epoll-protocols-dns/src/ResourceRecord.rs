@@ -37,6 +37,57 @@ impl ResourceRecord
 		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, processing_additional_record_section, have_already_seen_an_edns_opt_record, is_a_response)
 	}
 
+	/// Compression of names within `RDATA` is a mess.
+	///
+	/// RFC 3597, Section 4, Paragraph 2 restricts the records to which name (label) compression can be applied to be those defined in RFC 1035 which implicitly contain a name, hence:-
+	///
+	/// * `CNAME`
+	/// * `MB`
+	/// * `MD`
+	/// * `MF`
+	/// * `MG`
+	/// * `MINFO`
+	/// * `MR`
+	/// * `MX`
+	/// * `NS`
+	/// * `PTR`
+	/// * `SOA`
+	///
+	/// Of these, many are obsolete, leaving the list as:-
+	///
+	/// * `CNAME`
+	/// * `MX`
+	/// * `NS`
+	/// * `PTR`
+	/// * `SOA`
+	///
+	/// Additionally:-
+	///
+	/// * RFC 2163 permits compression to `PX` records;
+	/// * RFC 2535 permits compression in `SIG` and `NXT` records;
+	/// * RFC 3597 permits compression in `RP`, `AFSDB`, `RT` and `NAPTR` records;
+	/// * RFC 3597 prohibits compression in `PX`, `SIG` and `NXT` records;
+	/// * RFC 2782 prohibits compression in `SRV` records but the original RFC 2052 mandated it;
+	/// * RFC 3597 prohibits compression for all future record types;
+	/// * RFC 6672 prohibits compression for `DNAME`, but historically, there was confusion in the original RFC 2672 about whether it was permitted.
+	///
+	/// Of the records listed in the clause above, all are obsolete apart from `NAPTR`, `SRV` and `DNAME`.
+	///
+	/// Observations:-
+	///
+	/// * Given the history of `SRV`, it seems prudent to permit compression.
+	/// * Given the similarity of `DNAME` to `CNAME`, and the historic confusion, it seems prudent to permit compression;
+	///
+	/// This gives a list of
+	///
+	/// * `CNAME`
+	/// * `MX`
+	/// * `NS`
+	/// * `PTR`
+	/// * `SOA`
+	/// * `NAPTR`
+	/// * `SRV`
+	/// * `DNAME`
 	#[inline(always)]
 	fn dispatch_resource_record_type<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, processing_additional_record_section: bool, have_already_seen_an_edns_opt_record: bool, is_a_response: bool) -> Result<usize, DnsProtocolError>
 	{
@@ -89,7 +140,7 @@ impl ResourceRecord
 
 				DataType::RP_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-				DataType::AFSDB_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				DataType::AFSDB_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
 				DataType::X25_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
@@ -123,7 +174,7 @@ impl ResourceRecord
 
 				DataType::ATMA_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-				DataType::NAPTR_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				DataType::NAPTR_lower => self.handle_naptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
 				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
@@ -243,9 +294,9 @@ impl ResourceRecord
 
 			0x80 => match type_lower
 			{
-				DataType::TA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				DataType::TA_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
-				DataType::DLV_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				DataType::DLV_lower => Err(ObsoleteResourceRecordType(resource_record_type)),
 
 				_ => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
 			},
@@ -254,6 +305,33 @@ impl ResourceRecord
 
 			_ => Err(ReservedRecordType(resource_record_type))
 		}
+
+		NAPTR
+			compressed labels allowed.
+		CERT*
+		DS*
+
+		NSEC
+		RRSIG*
+		DNSKEY*
+		DHCID
+		NSEC3
+		NSEC3PARAM
+
+		CDS
+		CDNSKEY
+
+		NID
+		L32
+		L64
+		LP
+
+		EUI48
+		EUI64
+
+		CAA
+		URI
+
 	}
 
 	#[inline(always)]
@@ -337,28 +415,21 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeHINFOHasTooShortALength(resource_data.len()))
 		}
 
-		let cpu = unsafe { & * (resource_data.get_unchecked(0) as *const u8 as *const TextString) };
-		let cpu_size = cpu.len() as usize;
-		if unlikely!(resource_data.len() < 1 + cpu_size + 1)
+		let character_strings_iterator = CharacterStringsIterator::new(resource_data);
+
+		let cpu = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(resource_data.len()))?;
+
+		let os = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(resource_data.len()))?;
+
+		if likely!(character_strings_iterator.is_empty())
 		{
-			return Err(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(resource_data.len()))
+			resource_record_visitor.HINFO(resource_record_name, time_to_live, record)?;
+			Ok(Self::end_of_resource_data_pointer(resource_data))
 		}
-
-		let os = unsafe { & * (resource_data.get_unchecked(1 + cpu_size) as *const u8 as *const TextString) };
-		let os_size = cpu.len() as usize;
-		if unlikely!(resource_data.len() != 1 + cpu_size + 1 + os_size)
+		else
 		{
-			return Err(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(resource_data.len()))
+			Err(ResourceDataForTypeHINFOWouldHaveUnusuedDataRemaining)
 		}
-
-		let record = HostInformation
-		{
-			cpu,
-			os,
-		};
-
-		resource_record_visitor.HINFO(resource_record_name, time_to_live, record)?;
-		Ok(Self::end_of_resource_data_pointer(resource_data))
 	}
 
 	#[inline(always)]
@@ -387,10 +458,18 @@ impl ResourceRecord
 	{
 		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
 
-		let text_strings_iterator = TextStringsIterator::new(self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?)?;
+		let text_strings_iterator = CharacterStringsIterator::new(self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?)?;
 
 		resource_record_visitor.TXT(resource_record_name, time_to_live, text_strings_iterator)?;
-		Ok(Self::end_of_resource_data_pointer(resource_data))
+
+		if likely!(text_strings_iterator.is_empty())
+		{
+			Ok(Self::end_of_resource_data_pointer(resource_data))
+		}
+		else
+		{
+			Err(DnsProtocolError::ResourceDataForTypeTXTWouldHaveUnusuedDataRemaining)
+		}
 	}
 
 	#[inline(always)]
@@ -446,6 +525,112 @@ impl ResourceRecord
 
 		resource_record_visitor.SRV(resource_record_name, time_to_live, record)?;
 		Ok(Self::end_of_resource_data_pointer(resource_data))
+	}
+
+	#[inline(always)]
+	fn handle_naptr<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	{
+		use self::DnsProtocolError::*;
+
+		let time_to_live = self.validate_class_and_get_time_to_live(end_of_name_pointer)?;
+
+		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+		let length = resource_data.len();
+		if unlikely!(length < 2 + 2 + 1 + 1 + 1 + 1)
+		{
+			return Err(ResourceDataForTypeNAPTRHasAnIncorrectLength(length))
+		}
+
+		let order = u16::from_be_bytes(unsafe { * (resource_data.get_unchecked(0) as *const u8 as *const [u8; 2]) });
+		let preference = u16::from_be_bytes(unsafe { * (resource_data.get_unchecked(2) as *const u8 as *const [u8; 2]) });
+
+
+		let character_strings_iterator = CharacterStringsIterator::new(resource_data);
+
+		let flags = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(resource_data.len()))?;
+
+		let services = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(resource_data.len()))?;
+
+		let regular_expression = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(resource_data.len()))?;
+
+		let remaining_resource_data = character_strings_iterator.remaining_resource_data();
+		let start_of_name_pointer = remaining_resource_data.as_ptr() as usize;
+		let end_of_resource_data = start_of_name_pointer + remaining_resource_data.len();
+
+		let header = NamingAuthorityPointerHeader
+		{
+			order,
+			preference,
+			flags,
+			services,
+		};
+
+		if regular_expression.is_empty()
+		{
+			let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, end_of_resource_data);
+			if unlikely!(end_of_name_pointer != end_of_resource_data)
+			{
+				return Err(ResourceDataForTypeNAPTRHasDataLeftOver)
+			}
+
+			let record = NamingAuthorityPointerWithDomainName
+			{
+				header,
+				domain_name
+			};
+
+			resource_record_visitor.NAPTR_domain_name(resource_record_name, time_to_live, record)?;
+			Ok(Self::end_of_resource_data_pointer(resource_data))
+		}
+		else
+		{
+			let end_of_name_pointer = start_of_name_pointer + 1;
+
+			if unlikely!(end_of_name_pointer != end_of_resource_data)
+			{
+				return Err(ResourceDataForTypeNAPTRHasDataLeftOver)
+			}
+
+			let domain_name_byte = unsafe { * (start_of_name_pointer as *const u8) };
+			if unlikely!(domain_name_byte != 0)
+			{
+				return Err(ResourceDataForTypeNAPTRHasBothARegularExpressionAndADomainName)
+			}
+
+			let record = NamingAuthorityPointerWithRegularExpression
+			{
+				header,
+				regular_expression
+			};
+
+			resource_record_visitor.NAPTR_regular_expression(resource_record_name, time_to_live, record)?;
+		}
+
+
+
+
+
+		if regular_expression.is_empty()
+		{
+
+		}
+		else
+		{
+
+		}
+
+		xxxx;
+
+
+
+		// order - 16-bit
+		// PREFERENCE - 16-bit
+		// flags - character-string, with values A-Z and 0-9.
+		// services - character-string, unconstrained.
+		// regexp - character-string, complex rules.
+		// domain-name.
+
+		// Either one of regexp or domain-name should be present; both is an error. Absence for a domain name is simply the presence of the root label. Absence for regexp is an empty text string.
 	}
 
 	#[inline(always)]
@@ -656,6 +841,17 @@ impl ResourceRecord
 			resource_record_visitor.SSHFP(resource_record_name, time_to_live, record)?;
 			Ok(Self::end_of_resource_data_pointer(resource_data))
 		}
+	}
+
+	#[inline(always)]
+	fn handle_ipseckey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+
+		// IPSECKEY  https://tools.ietf.org/html/rfc4025#section-2.1
+		// Name must not be compressed.
+
+
+		xxxx
 	}
 
 	#[inline(always)]

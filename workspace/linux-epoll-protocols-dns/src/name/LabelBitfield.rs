@@ -14,8 +14,8 @@ impl LabelBitfield
 	}
 
 	#[inline(always)]
-	fn length_or_offset(self) -> usize
+	fn bottom_6_bits(self) -> u8
 	{
-		(self.0 & 0b0011_1111) as usize
+		self.0 & 0b0011_1111
 	}
 }

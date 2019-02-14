@@ -19,9 +19,16 @@ impl Label
 
 	/// Actually `u6` (an inclusive maximum of 63).
 	#[inline(always)]
-	fn length_or_offset(&self) -> usize
+	fn length(&self) -> usize
 	{
-		self.bitfield.length_or_offset()
+		self.bitfield.bottom_6_bits() as usize
+	}
+
+	/// Actually `u14`.
+	#[inline(always)]
+	fn offset(&self) -> u16
+	{
+		(self.bitfield.bottom_6_bits() as u16) << 8 | (unsafe { * (self.bytes() as *const UpTo63Bytes as *const u8) }) as u16
 	}
 
 	#[inline(always)]

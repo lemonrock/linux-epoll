@@ -2,18 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[repr(C, packed)]
-struct TextString
-{
-	pub(crate) length: u8,
-	bytes: UpTo255Bytes,
-}
+use super::*;
 
-impl TextString
-{
-	#[inline(always)]
-	fn as_slice(&self, length: usize) -> &[u8]
-	{
-		unsafe { from_raw_parts((&self.bytes) as *const UpTo255Bytes as *const u8, length) }
-	}
-}
+
+include!("NamingAuthorityPointerHeader.rs");
+include!("NamingAuthorityPointerWithDomainName.rs");
+include!("NamingAuthorityPointerWithRegularExpression.rs");

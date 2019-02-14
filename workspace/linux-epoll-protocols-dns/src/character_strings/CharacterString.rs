@@ -2,32 +2,18 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+#[repr(C, packed)]
+struct CharacterString
+{
+	pub(crate) length: u8,
+	bytes: UpTo255Bytes,
+}
 
-
-/// `TLSA` and `SMIME` record support.
-pub mod dns_based_authentication_of_named_entities;
-
-
-/// `LOC` record support.
-pub mod location;
-
-
-/// `NAPTR` record support.
-pub mod naming_authority_pointer;
-
-
-/// `SSHFP` record support.
-pub mod ssh_fingerprint;
-
-
-/// `SOA` record support.
-pub mod start_of_authority;
-
-
-include!("HostInformation.rs");
-include!("KeyExchange.rs");
-include!("MailExchange.rs");
-include!("OpenPgpRfc4880TransferablePublicKey.rs");
-include!("ResourceRecordVisitor.rs");
-include!("Service.rs");
+impl CharacterString
+{
+	#[inline(always)]
+	fn as_slice(&self, length: usize) -> &[u8]
+	{
+		unsafe { from_raw_parts((&self.bytes) as *const UpTo255Bytes as *const u8, length) }
+	}
+}

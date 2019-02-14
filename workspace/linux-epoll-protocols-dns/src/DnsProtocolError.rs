@@ -64,6 +64,15 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `SRV` has an incorrect length (value in tuple).
 	ResourceDataForTypeSRVHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `NAPTR` has an incorrect length (value in tuple).
+	ResourceDataForTypeNAPTRHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `NAPTR` has data left over.
+	ResourceDataForTypeNAPTRHasDataLeftOver,
+
+	/// Resource data for resource record type `NAPTR` has both a regular expression and a domain name.
+	ResourceDataForTypeNAPTRHasBothARegularExpressionAndADomainName,
+
 	/// Resource data for resource record type `SSHFP` has an incorrect length (value in tuple).
 	ResourceDataForTypeSSHFPHasAnIncorrectLength(usize),
 
@@ -99,11 +108,17 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `HINFO` has too short a length after checking length of OS field (value in tuple).
 	ResourceDataForTypeHINFOWouldHaveOsDataOverflow(usize),
 
+	/// After parsing resource data in a record of type `HINFO`, there is unattributed data remaining.
+	ResourceDataForTypeHINFOWouldHaveUnusuedDataRemaining,
+
 	/// Resource data for resource record type `MX` has too short a length (value in tuple).
 	ResourceDataForTypeMXHasTooShortALength(usize),
 
 	/// Resource data for resource record type `TXT` has not text strings (and thus has a length of zero).
-	ResourceRecordForTypeTXTHasNoTextStrings,
+	ResourceRecordForTypeTXTHasNoCharacterStrings,
+
+	/// After parsing resource data in a record of type `TXT`, there is unattributed data remaining.
+	ResourceDataForTypeTXTWouldHaveUnusuedDataRemaining,
 
 	/// Resource data for resource record type `SOA` has an invalid length after parsing `MNAME` and `RNAME`.
 	StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME,
@@ -160,6 +175,11 @@ pub enum DnsProtocolError
 	/// The unallocated name labels are unused.
 	UnallocatedNameLabelsAreUnused,
 
+	/// Compressed name labels are disallowed in this resource record.
+	///
+	/// See RFC 3597, Section 4 for some confusing rules.
+	CompressedNameLabelsAreDisallowedInThisResourceRecord,
+
 	/// The label pointer offset does not point to a previously parsed label.
 	///
 	/// Note that this includes pointers to pointers.
@@ -172,6 +192,9 @@ pub enum DnsProtocolError
 
 	/// A label length would cause overflow (ie it is too long).
 	LabelLengthOverflows,
+
+	/// A label pointer overflows (ie there isn't another byte for bottom 8 bits).
+	LabelPointerOverflows,
 
 	/// A label pointer is beyond the current location.
 	LabelPointerOffsetPointsForwardToUnparsedData,

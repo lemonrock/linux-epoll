@@ -20,14 +20,15 @@ extern crate hashbrown;
 #[macro_use] extern crate likely;
 
 
+use self::character_strings::*;
 use self::extended_dns::*;
 use self::name::*;
 use self::resource_data::*;
 use self::resource_data::dns_based_authentication_of_named_entities::*;
 use self::resource_data::location::*;
+use self::resource_data::naming_authority_pointer::*;
 use self::resource_data::ssh_fingerprint::*;
 use self::resource_data::start_of_authority::*;
-use self::resource_data::text_strings::*;
 use ::hashbrown::HashMap;
 use ::hashbrown::hash_map::Entry;
 use ::std::cell::Cell;
@@ -43,6 +44,10 @@ use ::std::slice::from_raw_parts;
 
 /// Extended DNS (EDNS).
 pub(crate) mod extended_dns;
+
+
+/// Character strings support.
+pub mod character_strings;
 
 
 /// DNS name handling.

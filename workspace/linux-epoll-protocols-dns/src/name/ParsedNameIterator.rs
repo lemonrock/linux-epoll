@@ -35,6 +35,14 @@ impl<'a> Iterator for ParsedNameIterator<'a>
 
 impl<'a> ParsedNameIterator<'a>
 {
+	const Bytes: u8 = 0b00;
+
+	const Extended: u8 = 0b01;
+
+	const Unallocated: u8 = 0b10;
+
+	const CompressedOffsetPointer: u8 = 0b11;
+
 	#[inline(always)]
 	fn maximum_for_end_of_name_pointer(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<usize, DnsProtocolError>
 	{
@@ -43,14 +51,10 @@ impl<'a> ParsedNameIterator<'a>
 		Ok(end_of_name_data_pointer)
 	}
 
-	fn parse(parsed_labels: &mut ParsedLabels<'a>, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
+	#[inline(always)]
+	fn parse_without_compression(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
-
-		const Bytes: u8 = 0b00;
-		const Extended: u8 = 0b01;
-		const Unallocated: u8 = 0b10;
-		const CompressedOffsetPointer: u8 = 0b11;
 
 		let maximum_for_end_of_name_pointer = Self::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
 
@@ -69,9 +73,9 @@ impl<'a> ParsedNameIterator<'a>
 
 			match label.raw_kind()
 			{
-				Bytes =>
+				Self::Bytes =>
 				{
-					let length = label.length_or_offset();
+					let length = label.length();
 					let parsed_label = ParsedLabel::new(label.bytes(), length);
 
 					let next_label_starts_at_pointer = parsed_label.next_label_starts_at_pointer();
@@ -95,13 +99,76 @@ impl<'a> ParsedNameIterator<'a>
 					}
 				}
 
-				Extended => return Err(ExtendedNameLabelsAreUnused),
+				Self::Extended => return Err(ExtendedNameLabelsAreUnused),
 
-				Unallocated => return Err(UnallocatedNameLabelsAreUnused),
+				Self::Unallocated => return Err(UnallocatedNameLabelsAreUnused),
 
-				CompressedOffsetPointer =>
+				Self::CompressedOffsetPointer => return Err(CompressedNameLabelsAreDisallowedInThisResourceRecord),
+			}
+		};
+
+		Ok((Self(initial_parsed_label.next()), true_end_of_name_pointer))
+	}
+
+	fn parse(parsed_labels: &mut ParsedLabels<'a>, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
+	{
+		use self::DnsProtocolError::*;
+
+		let maximum_for_end_of_name_pointer = Self::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
+
+		let mut current_label_starts_at_pointer = start_of_name_pointer;
+		let initial_parsed_label = ParsedLabel::Fake;
+		let mut previous_parsed_label_reference = &initial_parsed_label;
+
+		let true_end_of_name_pointer = loop
+		{
+			if unlikely!(current_label_starts_at_pointer == maximum_for_end_of_name_pointer)
+			{
+				return Err(NoTerminalRootLabel)
+			}
+
+			let label = unsafe { & * (current_label_starts_at_pointer as *const Label) };
+
+			match label.raw_kind()
+			{
+				Self::Bytes =>
 				{
-					let offset = label.length_or_offset();
+					let length = label.length();
+					let parsed_label = ParsedLabel::new(label.bytes(), length);
+
+					let next_label_starts_at_pointer = parsed_label.next_label_starts_at_pointer();
+
+					if unlikely!(next_label_starts_at_pointer > maximum_for_end_of_name_pointer)
+					{
+						return Err(LabelLengthOverflows)
+					}
+
+					let parsed_label_reference = parsed_labels.insert(parsed_label);
+					previous_parsed_label_reference.set_next(parsed_label_reference);
+					previous_parsed_label_reference = parsed_label_reference;
+
+					if unlikely!(parsed_label_reference.is_terminal_root_label())
+					{
+						break next_label_starts_at_pointer
+					}
+					else
+					{
+						current_label_starts_at_pointer = next_label_starts_at_pointer
+					}
+				}
+
+				Self::Extended => return Err(ExtendedNameLabelsAreUnused),
+
+				Self::Unallocated => return Err(UnallocatedNameLabelsAreUnused),
+
+				Self::CompressedOffsetPointer =>
+				{
+					if unlikely!(current_label_starts_at_pointer + 1 > maximum_for_end_of_name_pointer)
+					{
+						return Err(LabelPointerOverflows)
+					}
+
+					let offset = label.offset();
 
 					if unlikely!(parsed_labels.start_of_message_pointer + offset >= current_label_starts_at_pointer)
 					{

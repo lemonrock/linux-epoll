@@ -29,7 +29,7 @@ pub trait ResourceRecordVisitor
 	fn HINFO<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostInformation<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `TXT`.
-	fn TXT<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: TextStringsIterator) -> Result<(), DnsProtocolError>;
+	fn TXT<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: CharacterStringsIterator) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `AAAA`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn AAAA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &Ipv6Addr) -> Result<(), DnsProtocolError>;
@@ -39,6 +39,12 @@ pub trait ResourceRecordVisitor
 
 	/// Visits a record of type `SRV`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn SRV<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Service) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `NAPTR`, which may not be aligned (this is a problem for 32-bit ARM), with a domain name.
+	fn NAPTR_domain_name<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithDomainName<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `NAPTR`, which may not be aligned (this is a problem for 32-bit ARM), with a regular expression.
+	fn NAPTR_regular_expression<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithRegularExpression<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `KX`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn KX<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: KeyExchange<'a>) -> Result<(), DnsProtocolError>;
