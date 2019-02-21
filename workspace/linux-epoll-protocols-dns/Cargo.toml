@@ -18,5 +18,6 @@ publish = true
 version = "0.1.0"
 
 [dependencies]
+arrayref = "^0.3.5"
 hashbrown = { version = "0.1.8", features = ["nightly"] }
 likely = "^0.1"

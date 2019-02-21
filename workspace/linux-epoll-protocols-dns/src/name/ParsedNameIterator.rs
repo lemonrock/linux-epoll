@@ -52,7 +52,7 @@ impl<'a> ParsedNameIterator<'a>
 	}
 
 	#[inline(always)]
-	fn parse_without_compression(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
+	pub(crate) fn parse_without_compression(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 
@@ -110,7 +110,7 @@ impl<'a> ParsedNameIterator<'a>
 		Ok((Self(initial_parsed_label.next()), true_end_of_name_pointer))
 	}
 
-	fn parse(parsed_labels: &mut ParsedLabels<'a>, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
+	pub(crate) fn parse(parsed_labels: &mut ParsedLabels<'a>, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
 		use self::DnsProtocolError::*;
 

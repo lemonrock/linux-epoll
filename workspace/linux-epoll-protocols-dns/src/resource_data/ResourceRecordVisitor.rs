@@ -55,6 +55,11 @@ pub trait ResourceRecordVisitor
 	/// Visits a record of type `SSHFP`.
 	fn SSHFP<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: PublicKeyFingerprint<'a>) -> Result<(), DnsProtocolError>;
 
+	/// Visits a record of type `IPSECKEY`.
+	///
+	/// Note that the leading bytes of the exponent and modulus are unchecked for a RSA public key.
+	fn IPSECKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: IpsecPublicKey<'a>) -> Result<(), DnsProtocolError>;
+
 	/// Visits a record of type `OPENPGPKEY`.
 	fn OPENPGPKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
 

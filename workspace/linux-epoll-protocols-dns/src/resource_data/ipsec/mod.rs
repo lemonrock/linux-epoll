@@ -5,33 +5,9 @@
 use super::*;
 
 
-/// `TLSA` and `SMIME` record support.
-pub mod dns_based_authentication_of_named_entities;
-
-
-/// `LOC` record support.
-pub mod location;
-
-
-/// `NAPTR` record support.
-pub mod naming_authority_pointer;
-
-
-/// `IPSECKEY` (and potentially the obsolete `KEY`) record support.
-pub mod ipsec;
-
-
-/// `SSHFP` record support.
-pub mod ssh_fingerprint;
-
-
-/// `SOA` record support.
-pub mod start_of_authority;
-
-
-include!("HostInformation.rs");
-include!("KeyExchange.rs");
-include!("MailExchange.rs");
-include!("OpenPgpRfc4880TransferablePublicKey.rs");
-include!("ResourceRecordVisitor.rs");
-include!("Service.rs");
+include!("DsaPublicKey.rs");
+include!("EcDsaPublicKey.rs");
+include!("Gateway.rs");
+include!("IpsecPublicKey.rs");
+include!("PublicKey.rs");
+include!("RsaPublicKey.rs");

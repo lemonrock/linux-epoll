@@ -70,6 +70,57 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `NAPTR` has data left over.
 	ResourceDataForTypeNAPTRHasDataLeftOver,
 
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALength(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForAnEmptyDomainNameGateway(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForAnInternetProtocolVersion4Gateway(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForAnInternetProtocolVersion6Gateway(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForDomainNameGateway(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an unknown gateway type (value in tuple).
+	ResourceDataForTypeIPSECKEYHasAnUnknownGatewayType(u8),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for no public key (value in tuple).
+	ResourceDataForTypeIPSECKEYHasWrongLengthForNoPublicKey(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a DSA public key (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForADSAPublicKey(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a DSA public key (value in tuple).
+	ResourceDataForTypeIPSECKEYHasWrongLengthForADSAPublicKeyOnceTIsKnown(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForRSAPublicKey(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key (value in tuple).
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForRSAPublicKeyForAThreeByteExponentLength(usize),
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
+	ResourceDataForTypeIPSECKEYHasAZeroExponentForAnRSAPublicKey,
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
+	ResourceDataForTypeIPSECKEYHasAnExponenthGreaterThan4096BitsForAnRSAPublicKey,
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
+	ResourceDataForTypeIPSECKEYHasAZeroModulusForAnRSAPublicKey,
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
+	ResourceDataForTypeIPSECKEYHasAModulusGreaterThan4096BitsForAnRSAPublicKey,
+
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
+	ResourceDataForTypeIPSECKEYHasTooShortALengthForRSAPublicKeyForExponentLength,
+
+	/// Resource data for resource record type `IPSECKEY` has an unusual length for a ECDSA public key (ie it does not seem to be for `P-256` or `P-384`).
+	ResourceDataForTypeIPSECKEYHasAUnusualLengthForAnECDSAPublicKey(usize),
+
 	/// Resource data for resource record type `NAPTR` has both a regular expression and a domain name.
 	ResourceDataForTypeNAPTRHasBothARegularExpressionAndADomainName,
 

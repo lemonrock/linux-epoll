@@ -1,0 +1,268 @@
+
+
+
+		// The NSEC RR is class independent.
+		// The RRSIG RR is class independent.
+		// The DS RR is class independent.
+		// The DNSKEY RR is class independent.
+
+
+
+
+
+		/*
+https://tools.ietf.org/html/rfc4034
+
+
+2.1.  DNSKEY RDATA Wire Format
+
+   The RDATA for a DNSKEY RR consists of a 2 octet Flags Field, a 1
+   octet Protocol Field, a 1 octet Algorithm Field, and the Public Key
+   Field.
+
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |              Flags            |    Protocol   |   Algorithm   |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                                                               /
+   /                            Public Key                         /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+
+3.1.  RRSIG RDATA Wire Format
+
+   The RDATA for an RRSIG RR consists of a 2 octet Type Covered field, a
+   1 octet Algorithm field, a 1 octet Labels field, a 4 octet Original
+   TTL field, a 4 octet Signature Expiration field, a 4 octet Signature
+   Inception field, a 2 octet Key tag, the Signer's Name field, and the
+   Signature field.
+
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |        Type Covered           |  Algorithm    |     Labels    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                         Original TTL                          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                      Signature Expiration                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                      Signature Inception                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |            Key Tag            |                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+         Signer's Name         /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                                                               /
+   /                            Signature                          /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+4.1.  NSEC RDATA Wire Format
+
+   The RDATA of the NSEC RR is as shown below:
+
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                      Next Domain Name                         /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                       Type Bit Maps                           /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+5.1.  DS RDATA Wire Format
+
+   The RDATA for a DS RR consists of a 2 octet Key Tag field, a 1 octet
+   Algorithm field, a 1 octet Digest Type field, and a Digest field.
+
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |           Key Tag             |  Algorithm    |  Digest Type  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                                                               /
+   /                            Digest                             /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+
+https://tools.ietf.org/html/rfc4701#section-3.1
+3.1.  DHCID RDATA Format
+
+   The RDATA section of a DHCID RR in transmission contains RDLENGTH
+   octets of binary data.  The format of this data and its
+   interpretation by DHCP servers and clients are described below.
+
+   DNS software should consider the RDATA section to be opaque.  DHCP
+   clients or servers use the DHCID RR to associate a DHCP client's
+   identity with a DNS name, so that multiple DHCP clients and servers
+   may deterministically perform dynamic DNS updates to the same zone.
+   From the updater's perspective, the DHCID resource record RDATA
+   consists of a 2-octet identifier type, in network byte order,
+
+
+
+Stapp, et al.               Standards Track                     [Page 3]
+
+
+RFC 4701                      The DHCID RR                  October 2006
+
+
+   followed by a 1-octet digest type, followed by one or more octets
+   representing the actual identifier:
+
+           < 2 octets >    Identifier type code
+           < 1 octet >     Digest type code
+           < n octets >    Digest (length depends on digest type)
+
+https://tools.ietf.org/html/rfc8005
+5.  HIP RR Storage Format
+
+   The RDATA for a HIP RR consists of a PK Algorithm Type, the HIT
+   length, a HIT, a PK (i.e., an HI), and optionally one or more RVSs.
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  HIT length   | PK public_key_algorithm  |          PK length            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   ~                           HIT                                 ~
+   |                                                               |
+   +                     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                     |                                         |
+   +-+-+-+-+-+-+-+-+-+-+-+                                         +
+   |                           Public Key                          |
+   ~                                                               ~
+   |                                                               |
+   +                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                               |                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
+   |                                                               |
+   ~                       Rendezvous Servers                      ~
+   |                                                               |
+   +             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             |
+   +-+-+-+-+-+-+-+
+
+   The HIT length, PK public_key_algorithm, PK length, HIT, and Public Key fields
+   are REQUIRED.  The Rendezvous Server field is OPTIONAL.
+
+
+https://tools.ietf.org/html/rfc5155
+
+3.2.  NSEC3 RDATA Wire Format
+
+   The RDATA of the NSEC3 RR is as shown below:
+
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   Hash Alg.   |     Flags     |          Iterations           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Salt Length  |                     Salt                      /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Hash Length  |             Next Hashed Owner Name            /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                         Type Bit Maps                         /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+4.2.  NSEC3PARAM RDATA Wire Format
+
+   The RDATA of the NSEC3PARAM RR is as shown below:
+
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   Hash Alg.   |     Flags     |          Iterations           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Salt Length  |                     Salt                      /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+
+https://tools.ietf.org/html/rfc7344
+3.1.  CDS Resource Record Format
+
+   The wire and presentation format of the Child DS (CDS) resource
+   record is identical to the DS record [RFC4034]. The CDNSKEY RR uses the same registries as DNSKEY for its
+   fields.
+
+
+3.2.  CDNSKEY Resource Record Format
+
+   The wire and presentation format of the CDNSKEY ("Child DNSKEY")
+   resource record is identical to the DNSKEY record. The CDS RR uses the same registries as DS for its
+   fields.
+
+
+https://tools.ietf.org/html/rfc4398
+2.  The CERT Resource Record
+
+   The CERT resource record (RR) has the structure given below.  Its RR
+   type code is 37.
+
+                       1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             type              |             key tag           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   public_key_algorithm   |                                               /
+   +---------------+            certificate or CRL                 /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+
+
+https://tools.ietf.org/html/rfc7043
+3.1.  EUI48 RDATA Wire Format
+ The EUI48 RR is class independent.
+   The RDATA for an EUI48 RR consists of a single, 6-octet Address
+   field, encoded in network (big-endian) order.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                          EUI-48 Address                       |
+      |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+4.1.  EUI64 RDATA Wire Format
+
+ The EUI64 RR is class independent.
+   The RDATA for an EUI64 RR consists of a single, 8-octet Address
+   field, encoded in network (big-endian) order.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                          EUI-64 Address                       |
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+		DS
+		NSEC
+		RRSIG
+		DNSKEY
+		DHCID
+		HIP
+		NSEC3
+		NSEC3PARAM
+		CDS
+		CDNSKEY
+		CERT
+		EUI48
+		EUI64
+
+		NID
+		L32
+		L64
+		LP
+		URI
+		CAA
+
+		*/

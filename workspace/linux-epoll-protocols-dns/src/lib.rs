@@ -16,6 +16,7 @@
 //! A simple implementation of a secure DNS client.
 
 
+#[macro_use] extern crate arrayref;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
 
