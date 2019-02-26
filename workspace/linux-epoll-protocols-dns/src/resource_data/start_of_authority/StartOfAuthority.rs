@@ -6,10 +6,14 @@
 pub struct StartOfAuthority<'a>
 {
 	/// `MNAME`.
-	pub mname: ParsedNameIterator<'a>,
+	///
+	/// This is the FQDN of the primary name server.
+	pub primary_name_server: ParsedNameIterator<'a>,
 
 	/// `RNAME`.
-	pub rname: ParsedNameIterator<'a>,
+	///
+	/// First label is the name `@`, eg `hostmaster.example.com.` is the email address `hostmaster@example.com`.
+	pub responsible_person_email_address: ParsedNameIterator<'a>,
 
 	/// All other fields.
 	///

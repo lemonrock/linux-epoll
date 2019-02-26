@@ -3,6 +3,7 @@
 
 
 include!("CertificateUsage.rs");
+include!("DnsBasedAuthenticationOfNamedEntities.rs");
+include!("DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason.rs");
 include!("MatchingType.rs");
 include!("Selector.rs");
-include!("DnsBasedAuthenticationOfNamedEntities.rs");

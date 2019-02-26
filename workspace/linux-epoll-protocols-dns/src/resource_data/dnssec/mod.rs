@@ -2,22 +2,12 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum FingerprintType
-{
-	/// SHA-1.
-	///
-	/// Defined by RFC 4255.
-	///
-	/// Digest size is 160 bits.
-	SHA_1 = 1,
+use super::*;
 
-	/// SHA-256.
-	///
-	/// Defined by RFC 6594.
-	///
-	/// Digest size is 256 bits.
-	SHA_256 = 2,
-}
+
+include!("DelegationSigner.rs");
+include!("DelegationSignerResourceRecordIgnoredBecauseReason.rs");
+include!("DigestAlgorithmRejectedBecauseReason.rs");
+include!("DnsSecDigest.rs");
+include!("SecurityAlgorithm.rs");
+include!("SecurityAlgorithmRejectedBecauseReason.rs");

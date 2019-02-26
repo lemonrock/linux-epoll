@@ -1,4 +1,38 @@
 
+DNS protocol errors VS resource records that should be ignored.
+
+Problematic things: DNSKEY; some implementation might still be returning records to be 'compatible'.
+
+These are 'soft' errors; the DNS is valid, but the resource is not.
+We should probably skip over these records, but do essential validation.
+
+
+
+Authoritative servers section
+    - contains SOA records
+        - typically in a reply, when a name was not found - (Reply code 0b0011).
+
+    - SOA records are useful for finding out the authoritative names servers (DNS servers) for a domain, eg .com, .cloudflare.com
+
+SOA records should only be present in an answer section if explicitly requested (QTYPE = SOA or ANY).
+There can only ever be one SOA record.
+Otherwise there is exactly one in the authority section.
+This implies they can NEVER be in additional data section.
+
+
+
+
+Querying for A might result in answers which contain a CNAME, and then an additional record (often in the answer section, NOT the additional section, eg dig A after12.failblog.org)
+Querying for a DNSKEY (eg blog.cloudflare.com) might return a CNAME record, a SOA record (for the host of the CNAME) and NO A / AAAA / DNSKEY record.
+eg dig +additional +authority DNSKEY blog.cloudflare.com
+
+CNAME 'chains' can also be additional sections, eg
+https://stackoverflow.com/questions/11196930/cname-record-in-additional-section
+
+dig DNSKEY cloudflare.ghost.io
+- no name not found error
+- but no records in answer section
+- but SOA record in authority section
 
 
 		// The NSEC RR is class independent.
@@ -7,6 +41,25 @@
 		// The DNSKEY RR is class independent.
 
 
+
+
+ The contents of the CDS or CDNSKEY RRset MUST contain one RR and only
+   contain the exact fields as shown below.
+
+      CDS 0 0 0 0
+
+      CDNSKEY 0 3 0 0
+
+   The keying material payload is represented by a single 0.  This
+   record is signed in the same way as regular CDS/CDNSKEY RRsets are
+   signed.
+
+   Strictly speaking, the CDS record could be "CDS X 0 X 0" as only the
+   DNSKEY algorithm is what signals the DELETE operation, but for
+   clarity, the "0 0 0 0" notation is mandated -- this is not a
+   definition of DS digest algorithm 0.  The same argument applies to
+   "CDNSKEY 0 3 0 0"; the value 3 in the second field is mandated by
+   [RFC4034], Section 2.1.2.
 
 
 
@@ -29,6 +82,18 @@ https://tools.ietf.org/html/rfc4034
    /                            Public Key                         /
    /                                                               /
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+Algos: https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
+
+DNS Security Algorithm Numbers are used for  KEY, SIG, DNSKEY, RRSIG, DS, and CERT
+
+All algorithm numbers in this registry may be used in CERT RRs.
+
+Only algorithms
+usable for zone signing may appear in DNSKEY, RRSIG, and DS RRs.
+
+Only those usable for SIG(0) and TSIG may appear in SIG and KEY RRs.
 
 
 

@@ -7,10 +7,10 @@
 pub enum Gateway<'a>
 {
 	/// As an Internet Protocol version 6 address.
-	InternetProtocolVersion4(Ipv4Addr),
+	InternetProtocolVersion4(&'a Ipv4Addr),
 
 	/// As an Internet Protocol version 6 address.
-	InternetProtocolVersion6(Ipv6Addr),
+	InternetProtocolVersion6(&'a Ipv6Addr),
 
 	/// As a domain name.
 	DomainName(ParsedNameIterator<'a>)

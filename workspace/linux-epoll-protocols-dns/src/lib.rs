@@ -17,6 +17,7 @@
 
 
 #[macro_use] extern crate arrayref;
+extern crate either;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
 
@@ -30,6 +31,7 @@ use self::resource_data::location::*;
 use self::resource_data::naming_authority_pointer::*;
 use self::resource_data::ssh_fingerprint::*;
 use self::resource_data::start_of_authority::*;
+use ::either::*;
 use ::hashbrown::HashMap;
 use ::hashbrown::hash_map::Entry;
 use ::std::cell::Cell;
@@ -81,4 +83,5 @@ include!("QuerySectionEntryFooter.rs");
 include!("QueryType.rs");
 include!("QueryTypeOrDataType.rs");
 include!("TcpMessage.rs");
+include!("TimeInSeconds.rs");
 include!("TimeToLiveInSeconds.rs");

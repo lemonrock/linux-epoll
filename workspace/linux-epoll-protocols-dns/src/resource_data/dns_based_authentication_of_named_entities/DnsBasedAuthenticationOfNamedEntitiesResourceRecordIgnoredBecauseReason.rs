@@ -2,16 +2,25 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
-pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+/// Why was a `TLSA` or `SMIMEA` record ignored?
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// The certificate usage was unassigned.
+	UnassignedCertificateUsage(u8),
 
-	/// Selector.
-	pub selector: Selector,
+	/// The certificate usage was private.
+	PrivateCertificateUsage,
 
-	/// Matching type.
-	pub matching_type: MatchingType,
+	/// The selector was unassigned.
+	UnassignedSelector(u8),
+
+	/// The selector was private.
+	PrivateSelector,
+
+	/// The matching type was unassigned.
+	UnassignedMatchingType(u8),
+
+	/// The matching type was private.
+	PrivateMatchingType,
 }

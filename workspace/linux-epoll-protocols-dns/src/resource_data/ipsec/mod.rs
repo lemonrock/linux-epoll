@@ -8,6 +8,7 @@ use super::*;
 include!("DsaPublicKey.rs");
 include!("EcDsaPublicKey.rs");
 include!("Gateway.rs");
+include!("IpsecKeyResourceRecordIgnoredBecauseReason.rs");
 include!("IpsecPublicKey.rs");
 include!("PublicKey.rs");
 include!("RsaPublicKey.rs");

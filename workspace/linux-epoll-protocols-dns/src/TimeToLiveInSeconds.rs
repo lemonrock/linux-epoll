@@ -2,9 +2,11 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// A 32 bit unsigned integer that specifies the time interval (in seconds) that a resource record (RR) may be cached before it should be discarded
+/// A 31 bit unsigned integer that specifies the time interval (in seconds) that a resource record (RR) may be cached before it should be discarded.
 ///
-/// Zero values are interpreted to mean that the RR can only be used for the transaction in progress, and should not be cached.
+/// See <https://tools.ietf.org/html/rfc2181#section-8>.
+///
+/// Zero values are interpreted to mean that the resource record can only be used for the transaction in progress, and should not be cached.
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C, packed)]
 pub struct TimeToLiveInSeconds([u8; 4]);
@@ -18,20 +20,21 @@ impl From<[u8; 4]> for TimeToLiveInSeconds
 	}
 }
 
-impl From<u32> for TimeToLiveInSeconds
-{
-	#[inline(always)]
-	fn from(seconds: u32) -> Self
-	{
-		Self(seconds.to_be_bytes())
-	}
-}
-
 impl Into<u32> for TimeToLiveInSeconds
 {
 	#[inline(always)]
 	fn into(self) -> u32
 	{
-		u32::from_be_bytes(self.0)
+		let value = u32::from_be_bytes(self.0);
+
+		// RFC 2181, Section 8; if the top bit is set, the value is zero.
+		if unlikely!(value & 0x80000000 != 0)
+		{
+			0
+		}
+		else
+		{
+			value
+		}
 	}
 }

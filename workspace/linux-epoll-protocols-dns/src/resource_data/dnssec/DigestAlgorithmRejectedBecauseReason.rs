@@ -2,16 +2,16 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
-pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+/// Why was a digest algorithm rejected ignored?
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DigestAlgorithmRejectedBecauseReason
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// SHA-1, although mandatory, is broken.
+	Sha1IsBroken,
 
-	/// Selector.
-	pub selector: Selector,
+	/// GOST R 34.11-94 may been broken; it has been replaced in Russian standards with more a modern algorithm
+	Gost94MayBeBroken,
 
-	/// Matching type.
-	pub matching_type: MatchingType,
+	/// It is impossible to use unassigned values.
+	Unassigned(u8),
 }

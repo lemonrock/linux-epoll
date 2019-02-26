@@ -106,6 +106,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "either"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "errno"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -234,6 +239,7 @@ name = "linux-epoll-protocols-dns"
 version = "0.1.0"
 dependencies = [
  "arrayref 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "either 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashbrown 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "likely 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -554,6 +560,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum cpu-affinity 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "29864c73f9cd691fb76ec558083c7af551500fd18f9ab3a5c9ff268f566a9437"
 "checksum ct-logs 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1b4660f8b07a560a88c02d76286edb9f0d5d64e495d2b0f233186155aa51be1f"
 "checksum dpdk-unix 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2c7fbb26ae2028f807a4469ea0191400f95d5a2561eb282c14a538cbcdafb2e7"
+"checksum either 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c67353c641dc847124ea1902d69bd753dee9bb3beff9aa3662ecf86c971d1fac"
 "checksum errno 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1e2b2decb0484e15560df3210cf0d78654bb0864b2c138977c07e377a1bae0e2"
 "checksum errno 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c2a071601ed01b988f896ab14b95e67335d1eeb50190932a1320f7fe3cadc84e"
 "checksum errno-dragonfly 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "14ca354e36190500e1e1fb267c647932382b54053c50b14970856c0b00a35067"

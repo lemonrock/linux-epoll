@@ -25,14 +25,29 @@ pub enum DnsProtocolError
 	/// Resource data length overflows the space available.
 	ResourceDataLengthOverflows,
 
-	/// An obsolete data type was present.
-	ObsoleteResourceRecordType(DataType),
+	/// A record type was present in the answer section which should not have been (eg it was not queried for and is not `CNAME` or `DNAME`).
+	ResourceRecordTypeIsNotValidInAnswerSection(DataType),
 
-	/// An unknown query or meta type was present.
-	UnknownQueryTypeOrMetaType(DataType),
+	/// A record type was present in the authority section which should not have been (only `SOA` records are allowed).
+	ResourceRecordTypeIsNotValidInAuthoritySection(DataType),
 
-	/// A reserved record type was present.
-	ReservedRecordType(DataType),
+	/// More than one `SOA` resource records.
+	MoreThanOneStatementOfAuthorityResourceRecord,
+
+	/// A `SOA` record type was present a section it should not have been in.
+	StartOfAuthorityResourceRecordTypeIsNotPermittedInThisSection(DataType),
+
+	/// An `OPT` record type was present a section it should not have been in.
+	ExtendedDnsOptResourceRecordTypeIsNotPermittedInThisSection(DataType),
+
+	/// A very obsolete data type was present.
+	VeryObsoleteResourceRecordType(DataType),
+
+	/// An unknown query or meta type was present; contains upper 8 bits and lower 8 bits.
+	UnknownQueryTypeOrMetaType(u8, u8),
+
+	/// A reserved record type was present; contains upper 8 bits and lower 8 bits.
+	ReservedRecordType(u8, u8),
 
 	/// Query type (`QTYPE`) `IXFR` is in a resource record.
 	QueryTypeIXFRShouldNotOccurOutsideOfAQuestionSectionEntry,
@@ -58,8 +73,11 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `LOC` has an incorrect version (value in tuple).
 	ResourceDataForTypeLOCHasAnIncorrectVersion(u8),
 
-	/// Resource data for resource record type `TLSA` has an incorrect length (value in tuple).
-	ResourceDataForTypeTLSAHasAnIncorrectLength(usize),
+	/// Resource data for resource record type `TLSA` or `SMIMEA` has an incorrect length (value in tuple).
+	ResourceDataForTypeTLSAOrSMIMEAHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `TLSA` or `SMIMEA` has an incorrect digest length (value in tuple).
+	ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType(usize),
 
 	/// Resource data for resource record type `SRV` has an incorrect length (value in tuple).
 	ResourceDataForTypeSRVHasAnIncorrectLength(usize),
@@ -85,9 +103,6 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `IPSECKEY` has an incorrect length (value in tuple).
 	ResourceDataForTypeIPSECKEYHasTooShortALengthForDomainNameGateway(usize),
 
-	/// Resource data for resource record type `IPSECKEY` has an unknown gateway type (value in tuple).
-	ResourceDataForTypeIPSECKEYHasAnUnknownGatewayType(u8),
-
 	/// Resource data for resource record type `IPSECKEY` has an incorrect length for no public key (value in tuple).
 	ResourceDataForTypeIPSECKEYHasWrongLengthForNoPublicKey(usize),
 
@@ -106,14 +121,8 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
 	ResourceDataForTypeIPSECKEYHasAZeroExponentForAnRSAPublicKey,
 
-	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
-	ResourceDataForTypeIPSECKEYHasAnExponenthGreaterThan4096BitsForAnRSAPublicKey,
-
-	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
+	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key modulus.
 	ResourceDataForTypeIPSECKEYHasAZeroModulusForAnRSAPublicKey,
-
-	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
-	ResourceDataForTypeIPSECKEYHasAModulusGreaterThan4096BitsForAnRSAPublicKey,
 
 	/// Resource data for resource record type `IPSECKEY` has an incorrect length for a RSA public key exponent.
 	ResourceDataForTypeIPSECKEYHasTooShortALengthForRSAPublicKeyForExponentLength,
@@ -124,31 +133,25 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `NAPTR` has both a regular expression and a domain name.
 	ResourceDataForTypeNAPTRHasBothARegularExpressionAndADomainName,
 
+	/// Resource data for resource record type `DS` has an incorrect length (value in tuple).
+	ResourceDataForTypeDSHasAnIncorrectLength(usize),
+
 	/// Resource data for resource record type `SSHFP` has an incorrect length (value in tuple).
 	ResourceDataForTypeSSHFPHasAnIncorrectLength(usize),
 
-	/// Resource data for resource record type `SSHFP` has an unrecognised public key algorithm (value in tuple).
-	ResourceDataForTypeSSHFPHasAnUnrecognisedPublicKeyAlgorithm(u8),
+	/// Resource data for resource record type `SSHFP` has a reserved public key algorithm.
+	ResourceDataForTypeSSHFPHasAReservedPublicKeyAlgorithm(u8),
 
-	/// Resource data for resource record type `SSHFP` has an unrecognised fingerprint type (value in tuple).
-	ResourceDataForTypeSSHFPHasAnUnrecognisedFingerprintType(u8),
+	/// Resource data for resource record type `SSHFP` has a reserved digest algorithm.
+	ResourceDataForTypeSSHFPHasAReservedDigestAlgorithm(u8),
+
+	/// Resource data for resource record type `SSHFP` has an incorrect digest length (value in tuple).
+	ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType(usize),
 
 	/// Resource data for resource record type `SSHFP` has a digest size which is incorrect for the fingerprint type.
 	///
 	/// Tuple contains the fingerprint type and the actual digest size.
 	ResourceDataForTypeSSHFPHasADigestOfIncorrectSizeForTheFingerprintType(FingerprintType, usize),
-
-	/// Resource data for resource record type `TLSA` has an unrecognised certificate usage (value in tuple).
-	ResourceDataForTypeTLSAHasAnUnrecognisedCertificateUsage(u8),
-
-	/// Resource data for resource record type `TLSA` has an unrecognised selector (value in tuple).
-	ResourceDataForTypeTLSAHasAnUnrecognisedSelector(u8),
-
-	/// Resource data for resource record type `TLSA` has an unrecognised matching type (value in tuple).
-	ResourceDataForTypeTLSAHasAnUnrecognisedMatchingType(u8),
-
-	/// Resource data for resource record type `TLSA` has an unrecognised matching type (value in tuple).
-	ResourceDataForTypeTLSAHasADigestLengthThatIsIncorrectForTheMatchingType(MatchingType, usize),
 
 	/// Resource data for resource record type `HINFO` has too short a length (value in tuple).
 	ResourceDataForTypeHINFOHasTooShortALength(usize),
@@ -171,6 +174,27 @@ pub enum DnsProtocolError
 	/// After parsing resource data in a record of type `TXT`, there is unattributed data remaining.
 	ResourceDataForTypeTXTWouldHaveUnusuedDataRemaining,
 
+	/// The security alogrithm DS-Delete should not be used for this resource record.
+	SecurityAlgorithmShouldNotBeUsedForThisResourceRecordType(u8),
+
+	/// The security alogrithm `RSA-MD5` is deprecated.
+	DeprecatedSecurityAlgorithm_RSA_MD5,
+
+	/// The security alogrithm type is reserved (number in tuple).
+	SecurityAlgorithmTypeIsReservedByRfc6725(u8),
+
+	/// A reserved security algorithm type (number in tuple).
+	SecurityAlgorithmTypeIsReservedByRfc6014(u8),
+
+	/// Reserved.
+	SecurityAlgorithmTypeIsReservedByRfc4034,
+
+	/// Reserved.
+	DigestAlgorithmTypeIsReservedByRfc3658,
+
+	/// A `DS` resource record has digest data that has an incorrect length for the digest type.
+	ResourceDataForTypeDSAHasADigestLengthThatIsIncorrectForTheDigestType(usize),
+
 	/// Resource data for resource record type `SOA` has an invalid length after parsing `MNAME` and `RNAME`.
 	StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME,
 
@@ -178,7 +202,10 @@ pub enum DnsProtocolError
 	ExtendedDnsOptRecordOutsideOfAdditionalDataSection,
 
 	/// More than one resource record of the psuedo-type `OPT` is present in the additional record section.
-	MoreThanOneExtendedDnsOptRecord,
+	MoreThanOneExtendedDnsOptResourceRecord,
+
+	/// The UDP payload size is less than 512 bytes (actual value in tuple).
+	ExtendedDnsOptRecordUdpPayloadSizeIsLessThan512Bytes(u16),
 
 	/// A resource record of the psuedo-type `OPT` is present with a name other than ''.
 	ExtendedDnsOptRecordNameTooLong,

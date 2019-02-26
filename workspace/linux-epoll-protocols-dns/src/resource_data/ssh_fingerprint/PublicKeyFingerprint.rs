@@ -7,13 +7,8 @@
 pub struct PublicKeyFingerprint<'a>
 {
 	/// Public key algorithm.
-	pub public_key_algorithm: PublicKeyAlgorithm,
+	pub public_key_algorithm: SshPublicKeyAlgorithm,
 
-	/// Digest algorithm used to produced disgest of public key.
-	pub digest_algorithm: FingerprintType,
-
-	/// Digest of public key.
-	///
-	/// Length has already been checked to make sure it is correct for the `digest_algorithm`.
-	pub digest_bytes: &'a [u8],
+	/// Public key digest.
+	pub public_key_digest: SshFingerprintDigest,
 }

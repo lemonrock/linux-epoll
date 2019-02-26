@@ -2,16 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
-pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+/// Why was a `DS` record ignored?
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DelegationSignerResourceRecordIgnoredBecauseReason
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// Security algorithm was rejected.
+	SecurityAlgorithmRejected(SecurityAlgorithmRejectedBecauseReason),
 
-	/// Selector.
-	pub selector: Selector,
-
-	/// Matching type.
-	pub matching_type: MatchingType,
+	/// Digest algorithm was rejected.
+	DigestAlgorithmRejected(DigestAlgorithmRejectedBecauseReason),
 }

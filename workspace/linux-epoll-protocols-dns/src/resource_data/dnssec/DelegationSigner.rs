@@ -2,16 +2,15 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
-pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DelegationSigner<'a>
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// Key tag.
+	pub key_tag: u16,
 
-	/// Selector.
-	pub selector: Selector,
+	/// Security algorithm.
+	pub security_algorithm: SecurityAlgorithm,
 
-	/// Matching type.
-	pub matching_type: MatchingType,
+	/// Digest.
+	pub digest: DnsSecDigest,
 }

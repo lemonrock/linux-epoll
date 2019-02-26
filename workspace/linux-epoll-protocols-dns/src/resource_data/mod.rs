@@ -9,6 +9,10 @@ use super::*;
 pub mod dns_based_authentication_of_named_entities;
 
 
+/// DNSSEC.
+pub mod dnssec;
+
+
 /// `LOC` record support.
 pub mod location;
 
@@ -35,3 +39,4 @@ include!("MailExchange.rs");
 include!("OpenPgpRfc4880TransferablePublicKey.rs");
 include!("ResourceRecordVisitor.rs");
 include!("Service.rs");
+include!("SliceExt.rs");

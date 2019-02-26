@@ -590,4 +590,10 @@ impl DataType
 	pub const DLV_higher: u8 = 0x80;
 	pub const DLV_lower: u8 = 0x01;
 	pub const DLV: Self = Self([Self::DLV_higher, Self::DLV_lower]);
+
+	#[inline(always)]
+	pub(crate) fn is(&self, (type_upper, type_lower): (u8, u8)) -> bool
+	{
+		self.0.u8(0) == type_upper && self.0.u8(1) == type_lower
+	}
 }

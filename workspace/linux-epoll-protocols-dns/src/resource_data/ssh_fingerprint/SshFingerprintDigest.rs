@@ -2,16 +2,17 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
-pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+/// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SshFingerprintDigest<'a>
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// Defined by RFC 4255.
+	///
+	/// Digest size is 160 bits.
+	Sha_1(&'a [u8; 160 / 8]),
 
-	/// Selector.
-	pub selector: Selector,
-
-	/// Matching type.
-	pub matching_type: MatchingType,
+	/// 'SHA2-256'.
+	///
+	/// Defined by RFC 6594.
+	Sha2_256(&'a [u8; 256 / 8]),
 }

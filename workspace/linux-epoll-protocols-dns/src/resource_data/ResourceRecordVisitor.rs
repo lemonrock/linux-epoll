@@ -52,13 +52,40 @@ pub trait ResourceRecordVisitor
 	/// Visits a record of type `DNAME`.
 	fn DNAME<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 
+	/// Visits a record of type `DS`.
+	fn DS<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `DS` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn DS_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DelegationSignerResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `SSHFP`.
 	fn SSHFP<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: PublicKeyFingerprint<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `SSHFP` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn SSHFP_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: SshFingerprintResourceRecordIgnoredBecauseReason)
+	{
+	}
 
 	/// Visits a record of type `IPSECKEY`.
 	///
 	/// Note that the leading bytes of the exponent and modulus are unchecked for a RSA public key.
 	fn IPSECKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: IpsecPublicKey<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `IPSECKEY` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn IPSECKEY_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: IpsecKeyResourceRecordIgnoredBecauseReason)
+	{
+	}
 
 	/// Visits a record of type `OPENPGPKEY`.
 	fn OPENPGPKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
@@ -66,14 +93,39 @@ pub trait ResourceRecordVisitor
 	/// Visits a record of type `TLSA`.
 	fn TLSA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'a>) -> Result<(), DnsProtocolError>;
 
+	/// Visits a record of type `TLSA` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn TLSA_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `SMIMEA`.
 	fn SMIMEA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `SMIMEA` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn SMIMEA_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
+	{
+	}
 
 	/// Visits an unsupported record type.
 	///
 	/// Default implementation ignores it.
 	#[inline(always)]
 	fn unsupported<'a>(&mut self, _name: ParsedNameIterator<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _parsed_labels: &mut ParsedLabels<'a>, _unsupported_resource_record_type: DataType) -> Result<(), DnsProtocolError>
+	{
+		Ok(())
+	}
+
+	/// Visits an unassigned record type.
+	///
+	/// Default implementation ignores it.
+	#[inline(always)]
+	fn unassigned<'a>(&mut self, _name: ParsedNameIterator<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _parsed_labels: &mut ParsedLabels<'a>, _unassigned_resource_record_type: DataType) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}

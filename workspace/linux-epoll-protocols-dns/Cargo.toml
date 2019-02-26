@@ -19,5 +19,6 @@ version = "0.1.0"
 
 [dependencies]
 arrayref = "^0.3.5"
+either = "^1.5.1"
 hashbrown = { version = "0.1.8", features = ["nightly"] }
 likely = "^0.1"

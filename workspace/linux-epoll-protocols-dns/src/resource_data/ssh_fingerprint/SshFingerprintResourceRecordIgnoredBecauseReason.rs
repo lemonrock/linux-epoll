@@ -2,16 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
-pub struct DnsBasedAuthenticationOfNamedEntities<'a>
+/// Why was a `SSHFP` record ignored?
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SshFingerprintResourceRecordIgnoredBecauseReason
 {
-	/// Certificate usage.
-	pub certificate_usage: CertificateUsage,
+	/// The public key algorithm was unassigned.
+	PublicKeyAlgorithmUnassigned(u8),
 
-	/// Selector.
-	pub selector: Selector,
-
-	/// Matching type.
-	pub matching_type: MatchingType,
+	/// The digest algorithm was unassigned.
+	DigestAlgorithmUnassigned(u8),
 }

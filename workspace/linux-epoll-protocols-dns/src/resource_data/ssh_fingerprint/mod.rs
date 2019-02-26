@@ -2,6 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-include!("PublicKeyAlgorithm.rs");
 include!("PublicKeyFingerprint.rs");
-include!("FingerprintType.rs");
+include!("SshPublicKeyAlgorithm.rs");
+include!("SshFingerprintDigest.rs");
+include!("SshFingerprintResourceRecordIgnoredBecauseReason.rs");
