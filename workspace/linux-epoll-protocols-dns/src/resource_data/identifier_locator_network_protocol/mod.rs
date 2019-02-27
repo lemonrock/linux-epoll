@@ -2,12 +2,10 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SshFingerprintDigest<'a>
-{
-	/// 'SHA2-256'.
-	///
-	/// Defined by RFC 6594.
-	Sha2_256(&'a [u8; 256 / 8]),
-}
+use super::*;
+
+
+include!("Locator32.rs");
+include!("Locator64.rs");
+include!("LocatorPointer.rs");
+include!("NodeIdentifier.rs");

@@ -2,12 +2,19 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
+/// Represents a `Locator` for ILNPv6 along with its preference.
+///
+/// Used in a `L32` record; similar in purpose to an `A` record.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SshFingerprintDigest<'a>
+pub struct Locator64
 {
-	/// 'SHA2-256'.
+	/// Indicates the owner name's relative preference for record among other records associated with this owner name.
 	///
-	/// Defined by RFC 6594.
-	Sha2_256(&'a [u8; 256 / 8]),
+	/// Lower preference values are preferred over higher preference values.
+	pub preference: u16,
+
+	/// `Locator64`.
+	///
+	/// Has the same syntax and semantics as a 64-bit Internet Protocol version 6 routing prefix.
+	pub locator: [u8; 8],
 }

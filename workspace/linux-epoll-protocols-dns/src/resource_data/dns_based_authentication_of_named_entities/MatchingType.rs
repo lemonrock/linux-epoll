@@ -11,7 +11,7 @@ pub enum MatchingType<'a>
 	/// No hash used; an exact match is required.
 	///
 	/// Defined by RFC 6698.
-	NoHashUsed,
+	NoHashUsed(&'a [u8]),
 
 	/// 'SHA2-256'.
 	///

@@ -165,6 +165,18 @@ pub enum DnsProtocolError
 	/// Tuple contains the fingerprint type and the actual digest size.
 	ResourceDataForTypeSSHFPHasADigestOfIncorrectSizeForTheFingerprintType(FingerprintType, usize),
 
+	/// Resource data for resource record type `NID` has an incorrect length (value in tuple).
+	ResourceDataForTypeNIDHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `L32` has an incorrect length (value in tuple).
+	ResourceDataForTypeL32HasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `L64` has an incorrect length (value in tuple).
+	ResourceDataForTypeL64HasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `LP` has too short a length (value in tuple).
+	ResourceDataForTypeLPHasTooShortALength(usize),
+
 	/// Resource data for resource record type `HINFO` has too short a length (value in tuple).
 	ResourceDataForTypeHINFOHasTooShortALength(usize),
 
@@ -205,7 +217,7 @@ pub enum DnsProtocolError
 	DigestAlgorithmTypeIsReservedByRfc3658,
 
 	/// A `DS` resource record has digest data that has an incorrect length for the digest type.
-	ResourceDataForTypeDSAHasADigestLengthThatIsIncorrectForTheDigestType(usize),
+	ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType(usize),
 
 	/// Resource data for resource record type `SOA` has an invalid length after parsing `MNAME` and `RNAME`.
 	StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME,

@@ -9,6 +9,9 @@ pub enum SshFingerprintResourceRecordIgnoredBecauseReason
 	/// The public key algorithm was unassigned.
 	PublicKeyAlgorithmUnassigned(u8),
 
+	/// The digest algorithm SHA-1 is broken.
+	DigestAlgorithmSha1IsBroken,
+
 	/// The digest algorithm was unassigned.
 	DigestAlgorithmUnassigned(u8),
 }

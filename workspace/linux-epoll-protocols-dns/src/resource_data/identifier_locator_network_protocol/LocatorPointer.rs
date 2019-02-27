@@ -2,12 +2,19 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
+/// Represents a locator pointer along with its preference.
+///
+/// Used in a `LP` record.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SshFingerprintDigest<'a>
+pub struct LocatorPointer<'a>
 {
-	/// 'SHA2-256'.
+	/// Indicates the owner name's relative preference for record among other records associated with this owner name.
 	///
-	/// Defined by RFC 6594.
-	Sha2_256(&'a [u8; 256 / 8]),
+	/// Lower preference values are preferred over higher preference values.
+	pub preference: u16,
+
+	/// `Name`.
+	///
+	/// Must not be the same as the `Name` of the resource record it is associated with (this is not validated before being passed to `ResourceRecordVisitor.LP()`).
+	pub name: ParsedNameIterator<'a>,
 }

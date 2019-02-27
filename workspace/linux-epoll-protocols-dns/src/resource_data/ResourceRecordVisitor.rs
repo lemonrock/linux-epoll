@@ -87,8 +87,16 @@ pub trait ResourceRecordVisitor
 	{
 	}
 
-	/// Visits a record of type `OPENPGPKEY`.
-	fn OPENPGPKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
+	/// Visits a record of type `DHCID`.
+	fn DHCID<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Dhcid<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `DHCID` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn DHCID_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DhcidResourceRecordIgnoredBecauseReason)
+	{
+	}
 
 	/// Visits a record of type `TLSA`.
 	fn TLSA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'a>) -> Result<(), DnsProtocolError>;
@@ -111,6 +119,21 @@ pub trait ResourceRecordVisitor
 	fn SMIMEA_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
 	{
 	}
+
+	/// Visits a record of type `OPENPGPKEY`.
+	fn OPENPGPKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `NID`.
+	fn NID<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NodeIdentifier) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `L32`.
+	fn L32<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Locator32) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `L64`.
+	fn L64<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Locator64) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `LP`.
+	fn LP<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: LocatorPointer<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits an unsupported record type.
 	///

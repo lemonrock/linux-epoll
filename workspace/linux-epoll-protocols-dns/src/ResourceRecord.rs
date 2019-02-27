@@ -2,6 +2,27 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+macro_rules! guard_hash_digest
+{
+	($resource_data: ident, $digest_offset: ident, $digest_size_in_bits: expr, $name: ident, $dns_protocol_error: ident) =>
+	{
+		{
+			let digest_data = &$resource_data[$digest_offset .. ];
+
+			let length = digest_data.len();
+
+			const BitsInAByte: usize = 8;
+
+			if unlikely!(length != $digest_size_in_bits / BitsInAByte)
+			{
+				return Err($dns_protocol_error(length))
+			}
+
+			$name(unsafe { & * (digest_data.as_ptr() as *const [u8; $digest_size_in_bits / BitsInAByte]) })
+		}
+	}
+}
+
 #[derive(Debug)]
 struct ResponseParsingState
 {
@@ -19,6 +40,10 @@ impl ResourceRecord
 	const MinimumSize: usize = Name::MinimumSize + ResourceRecordFooter::MinimumSize;
 
 	const BitsInAByte: usize = 8;
+
+	const MinimumCharacterStringSize: usize = 1;
+
+	const MinimumNameSize: usize = 1;
 
 	/// Returns `Ok(end_of_resource_data_pointer)` unless there is an error.
 	#[inline(always)]
@@ -340,7 +365,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-				DataType::CERT_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
+				DataType::CERT_lower => XXXX,
 
 				DataType::A6_lower => self.handle_very_obsolete_record_type(DataType::A6),
 
@@ -359,7 +384,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::APL_lower => self.handle_obsolete_or_very_obscure_record_type("Some legacy records may remain"),
 
-				DataType::DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::SSHFP_lower => self.handle_sshfp(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -413,13 +438,13 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::UNSPEC_lower => self.handle_very_obsolete_record_type(DataType::UNSPEC),
 
-				DataType::NID_lower => XXXX,
+				DataType::NID_lower => self.handle_nid(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::L32_lower => XXXX,
+				DataType::L32_lower => self.handle_l32(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::L64_lower => XXXX,
+				DataType::L64_lower => self.handle_l64(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::LP_lower => XXXX,
+				DataType::LP_lower => self.handle_lp(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::EUI48_lower => XXXX,
 
@@ -597,7 +622,10 @@ One very simple way to achieve this is to only accept data if it is
 
 		let length = resource_data.len();
 
-		if unlikely!(length < 1 + 1)
+		const MinimumCpuSize: usize = Self::MinimumCharacterStringSize;
+		const MinimumOsSize: usize = Self::MinimumCharacterStringSize;
+
+		if unlikely!(length < MinimumCpuSize + MinimumOsSize)
 		{
 			return Err(ResourceDataForTypeHINFOHasTooShortALength(length))
 		}
@@ -624,9 +652,12 @@ One very simple way to achieve this is to only accept data if it is
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
+		const PreferenceSize: usize = 2;
+		const MinimumMailServerNameSize: usize = Self::MinimumNameSize;
+
 		let length = resource_data.len();
 
-		if unlikely!(length < 3)
+		if unlikely!(length < PreferenceSize + MinimumMailServerNameSize)
 		{
 			return Err(DnsProtocolError::ResourceDataForTypeMXHasTooShortALength(length))
 		}
@@ -634,7 +665,7 @@ One very simple way to achieve this is to only accept data if it is
 		let record = MailExchange
 		{
 			preference: resource_data.u16(0),
-			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[2 .. ])?,
+			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[PreferenceSize .. ])?,
 		};
 
 		resource_record_visitor.MX(resource_record_name, time_to_live, record)?;
@@ -681,7 +712,7 @@ One very simple way to achieve this is to only accept data if it is
 			return Err(ResourceDataForTypeLOCHasAnIncorrectLength(length))
 		}
 
-		let location = resource_data.cast::<Location>();
+		let location = resource_data.cast::<Location>(0);
 
 		let version = location.version()?;
 		debug_assert_eq!(version, LocationVersion::Version0, "Why are we supporting a version other than 0 of LOC records?");
@@ -695,8 +726,13 @@ One very simple way to achieve this is to only accept data if it is
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
+		const PrioritySize: usize = 2;
+		const WeightSize: usize = 2;
+		const PortSize: usize = 2;
+		const MinimumTargetNameSize: usize = Self::MinimumNameSize;
+
 		let length = resource_data.len();
-		if unlikely!(length < 7)
+		if unlikely!(length < PrioritySize + WeightSize + PortSize + MinimumTargetNameSize)
 		{
 			return Err(DnsProtocolError::ResourceDataForTypeSRVHasAnIncorrectLength(length))
 		}
@@ -704,9 +740,9 @@ One very simple way to achieve this is to only accept data if it is
 		let record = Service
 		{
 			priority: resource_data.u16(0),
-			weight: resource_data.u16(2),
-			port: resource_data.u16(4),
-			target: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[6 .. ])?,
+			weight: resource_data.u16(PrioritySize),
+			port: resource_data.u16(PrioritySize + WeightSize),
+			target: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[(PrioritySize + WeightSize + PortSize) .. ])?,
 		};
 
 		resource_record_visitor.SRV(resource_record_name, time_to_live, record)?;
@@ -720,16 +756,23 @@ One very simple way to achieve this is to only accept data if it is
 
 		use self::DnsProtocolError::*;
 
+		const OrderSize: usize = 2;
+		const PreferenceSize: usize = 2;
+		const MinimumFlagsSize: usize = Self::MinimumCharacterStringSize;
+		const MinimumServicesSize: usize = Self::MinimumCharacterStringSize;
+		const MinimumRegularExpressionSize: usize = Self::MinimumCharacterStringSize;
+		const MinimumDomainNameSize: usize = Self::MinimumNameSize;
+
 		let length = resource_data.len();
-		if unlikely!(length < 2 + 2 + 1 + 1 + 1 + 1)
+		if unlikely!(length < OrderSize + PreferenceSize + MinimumFlagsSize + MinimumServicesSize + MinimumRegularExpressionSize + MinimumDomainNameSize)
 		{
 			return Err(ResourceDataForTypeNAPTRHasAnIncorrectLength(length))
 		}
 
 		let order = resource_data.u16(0);
-		let preference = resource_data.u16(2);
+		let preference = resource_data.u16(OrderSize);
 
-		let character_strings_iterator = CharacterStringsIterator::new(resource_data);
+		let character_strings_iterator = CharacterStringsIterator::new(&resource_data[(OrderSize + PreferenceSize) .. ]);
 
 		let flags = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(length))?;
 
@@ -798,7 +841,10 @@ One very simple way to achieve this is to only accept data if it is
 
 		let length = resource_data.len();
 
-		if unlikely!(length < 3)
+		const PreferenceSize: usize = 2;
+		const MinimumKeyExchangeServerNameSize: usize = Self::MinimumNameSize;
+
+		if unlikely!(length < PreferenceSize + MinimumKeyExchangeServerNameSize)
 		{
 			return Err(DnsProtocolError::ResourceDataForTypeKXHasTooShortALength(length))
 		}
@@ -806,7 +852,7 @@ One very simple way to achieve this is to only accept data if it is
 		let record = KeyExchange
 		{
 			preference: resource_data.u16(0),
-			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[2 .. ])?,
+			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[PreferenceSize .. ])?,
 		};
 
 		resource_record_visitor.KX(resource_record_name, time_to_live, record)?;
@@ -923,7 +969,7 @@ One very simple way to achieve this is to only accept data if it is
 	}
 
 	#[inline(always)]
-	fn handle_ds<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	fn handle_ds<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
@@ -932,16 +978,21 @@ One very simple way to achieve this is to only accept data if it is
 		use self::DnsSecDigest::*;
 		use self::SecurityAlgorithmRejectedBecauseReason::*;
 
+		const KeyTagSize: usize = 2;
+		const SecurityAlgorithmTypeSize: usize = 1;
+		const DigestTypeSize: usize = 1;
+		const MinimumDigestSize: usize = 0;
+
 		let length = resource_data.len();
-		if unlikely!(length < 2 + 1 + 1)
+		if unlikely!(length < KeyTagSize + SecurityAlgorithmTypeSize + DigestTypeSize + MinimumDigestSize)
 		{
 			return Err(ResourceDataForTypeDSHasAnIncorrectLength(length))
 		}
 
 		let resource_data_end_pointer = resource_data.end_pointer();
 
-		let security_algorithm_type = resource_data.u8(2);
-		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, true, false)?
+		let security_algorithm_type = resource_data.u8(KeyTagSize);
+		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, false, false)?
 		{
 			Left(security_algorithm) => security_algorithm,
 			Right(security_algorithm_rejected_because_reason) =>
@@ -951,20 +1002,7 @@ One very simple way to achieve this is to only accept data if it is
 			}
 		};
 
-		#[inline(always)]
-		fn validate_hash_digest(digest_data: &[u8], digest_size_in_bits: usize) -> Result<(), DnsProtocolError>
-		{
-			let length = digest_data.len();
-
-			if unlikely!(length != digest_size_in_bits / Self::BitsInAByte)
-			{
-				Err(ResourceDataForTypeDSAHasADigestLengthThatIsIncorrectForTheDigestType(length))
-			}
-			else
-			{
-				Ok(())
-			}
-		}
+		const DigestOffset: usize = KeyTagSize + SecurityAlgorithmTypeSize + DigestTypeSize;
 
 		let digest_type = resource_data.u8(3);
 		let digest = match digest_type
@@ -977,12 +1015,7 @@ One very simple way to achieve this is to only accept data if it is
 				return Ok(resource_data_end_pointer)
 			}
 
-			2 =>
-			{
-				let digest_data = &resource_data[4 .. ];
-				validate_hash_digest(digest_data, 256)?;
-				Sha2_256(unsafe { & * (digest_data.as_ptr() as *const [u8; 256 / Self::BitsInAByte]) })
-			}
+			2 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
 
 			3 =>
 			{
@@ -990,12 +1023,7 @@ One very simple way to achieve this is to only accept data if it is
 				return Ok(resource_data_end_pointer)
 			}
 
-			4 =>
-			{
-				let digest_data = &resource_data[4 .. ];
-				validate_hash_digest(digest_data, 384)?;
-				Sha2_384(unsafe { & * (digest_data.as_ptr() as *const [u8; 384 / Self::BitsInAByte]) })
-			}
+			4 => guard_hash_digest!(resource_data, DigestOffset, 384, Sha2_384, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
 
 			_ =>
 			{
@@ -1024,8 +1052,12 @@ One very simple way to achieve this is to only accept data if it is
 		use self::SshFingerprintDigest::*;
 		use self::SshFingerprintResourceRecordIgnoredBecauseReason::*;
 
+		const PublicKeyAlgorithmSize: usize = 1;
+		const DigestAlgorithmSize: usize = 1;
+		const MinimumDigestSize: usize = 0;
+
 		let length = resource_data.len();
-		if unlikely!(length < 2)
+		if unlikely!(length < PublicKeyAlgorithmSize + DigestAlgorithmSize + MinimumDigestSize)
 		{
 			return Err(ResourceDataForTypeSSHFPHasAnIncorrectLength(length))
 		}
@@ -1046,20 +1078,7 @@ One very simple way to achieve this is to only accept data if it is
 			}
 		};
 
-		#[inline(always)]
-		fn validate_hash_digest(digest_data: &[u8], digest_size_in_bits: usize) -> Result<(), DnsProtocolError>
-		{
-			let length = digest_data.len();
-
-			if unlikely!(length != digest_size_in_bits / Self::BitsInAByte)
-			{
-				Err(ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType(length))
-			}
-			else
-			{
-				Ok(())
-			}
-		}
+		const DigestOffset: usize = PublicKeyAlgorithmSize + DigestAlgorithmSize;
 
 		let raw_digest_algorithm = resource_data.u8(1);
 		let public_key_digest = match raw_digest_algorithm
@@ -1068,17 +1087,11 @@ One very simple way to achieve this is to only accept data if it is
 
 			1 =>
 			{
-				let digest_data = &resource_data[2 .. ];
-				validate_hash_digest(digest_data, 160)?;
-				Sha_1(unsafe { & * (digest_data.as_ptr() as *const [u8; 160 / Self::BitsInAByte]) })
+				resource_record_visitor.SSHFP_ignored(resource_record_name, DigestAlgorithmSha1IsBroken);
+				return Ok(resource_data_end_pointer)
 			}
 
-			2 =>
-			{
-				let digest_data = &resource_data[2 .. ];
-				validate_hash_digest(digest_data, 256)?;
-				Sha2_256(unsafe { & * (digest_data.as_ptr() as *const [u8; 256 / Self::BitsInAByte]) })
-			}
+			2 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType),
 
 			_ =>
 			{
@@ -1107,19 +1120,24 @@ One very simple way to achieve this is to only accept data if it is
 		use self::PublicKey::*;
 		use self::IpsecKeyResourceRecordIgnoredBecauseReason::*;
 
+		const PrecedenceSize: usize = 1;
+		const GatewayTypeSize: usize = 1;
+		const PublicKeyAlgorithmSize: usize = 1;
+		const MinimumGatewaySize: usize = 0;
+		const MinimumPublicKeySize: usize = 0;
+
+		const GatewayFieldStartsAtOffset: usize = PrecedenceSize + GatewayTypeSize + PublicKeyAlgorithmSize;
+
 		let length = resource_data.len();
 
-		if unlikely!(length < 3)
+		if unlikely!(length < PrecedenceSize + GatewayTypeSize + PublicKeyAlgorithmSize + MinimumGatewaySize + MinimumPublicKeySize)
 		{
 			return Err(ResourceDataForTypeIPSECKEYHasTooShortALength(length))
 		}
 
 		let resource_data_end_pointer = resource_data.end_pointer();
 
-		let gateway_type = resource_data.u8(1);
-
-		const GatewayFieldStartsAtOffset: usize = 3;
-
+		let gateway_type = resource_data.u8(PrecedenceSize);
 		let (public_key_starts_at_offset, gateway) = match gateway_type
 		{
 			0 => (GatewayFieldStartsAtOffset, None),
@@ -1167,7 +1185,7 @@ One very simple way to achieve this is to only accept data if it is
 			}
 		};
 
-		let public_key_algorithm_type = resource_data.u8(2);
+		let public_key_algorithm_type = resource_data.u8(PrecedenceSize + GatewayTypeSize);
 		let public_key = match public_key_algorithm_type
 		{
 			0 =>
@@ -1341,9 +1359,10 @@ One very simple way to achieve this is to only accept data if it is
 
 		const IdentifierTypeCodeSize: usize = 2;
 		const DigestTypeCodeSize: usize = 1;
+		const MinimumDigestSize: usize = 0;
 
 		let length = resource_data.len();
-		if unlikely!(length < IdentifierTypeCodeSize + DigestTypeCodeSize)
+		if unlikely!(length < IdentifierTypeCodeSize + DigestTypeCodeSize + MinimumDigestSize)
 		{
 			return Err(ResourceDataForTypeDHCIDHasAnIncorrectLength(length))
 		}
@@ -1364,32 +1383,13 @@ One very simple way to achieve this is to only accept data if it is
 			_ => return Err(ResourceDataForTypeDHCIDHasAReservedIdentifierTypeCode)
 		};
 
-		#[inline(always)]
-		fn validate_hash_digest(digest_data: &[u8], digest_size_in_bits: usize) -> Result<(), DnsProtocolError>
-		{
-			let length = digest_data.len();
-
-			if unlikely!(length != digest_size_in_bits / Self::BitsInAByte)
-			{
-				Err(ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType(length))
-			}
-			else
-			{
-				Ok(())
-			}
-		}
-
+		const DigestOffset: usize = IdentifierTypeCodeSize + DigestTypeCodeSize;
 		let digest_type_code = resource_data.u8(IdentifierTypeCodeSize);
 		let digest = match raw_digest_type_code
 		{
 			0 => return Err(ResourceDataForTypeDHCIDHasAReservedDigestTypeCode),
 
-			1 =>
-			{
-				let digest_data = &resource_data[(IdentifierTypeCodeSize + DigestTypeCodeSize) .. ];
-				validate_hash_digest(digest_data, 256)?;
-				Sha2_256(unsafe { & * (digest_data.as_ptr() as *const [u8; 256 / Self::BitsInAByte]) })
-			}
+			1 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType),
 
 			_ =>
 			{
@@ -1448,6 +1448,110 @@ One very simple way to achieve this is to only accept data if it is
 	}
 
 	#[inline(always)]
+	fn handle_nid<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsProtocolError::*;
+
+		const PreferenceSize: usize = 2;
+		const NodeIdentifierSize: usize = 8;
+
+		let length = resource_data.len();
+		if unlikely!(length != PreferenceSize + NodeIdentifierSize)
+		{
+			return Err(ResourceDataForTypeNIDHasAnIncorrectLength(length))
+		}
+
+		let record = NodeIdentifier
+		{
+			preference: resource_data.u16(0),
+			node_identifier: resource_data.u64(PreferenceSize),
+		};
+
+		resource_record_visitor.NID(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_l32<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsProtocolError::*;
+
+		const PreferenceSize: usize = 2;
+		const LocatorSize: usize = 4;
+
+		let length = resource_data.len();
+		if unlikely!(length != PreferenceSize + LocatorSize)
+		{
+			return Err(ResourceDataForTypeL32HasAnIncorrectLength(length))
+		}
+
+		let record = Locator32
+		{
+			preference: resource_data.u16(0),
+			locator: resource_data.cast::<Ipv4Addr>(PreferenceSize),
+		};
+
+		resource_record_visitor.L32(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_l64<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsProtocolError::*;
+
+		const PreferenceSize: usize = 2;
+		const LocatorSize: usize = 8;
+
+		let length = resource_data.len();
+		if unlikely!(length != PreferenceSize + LocatorSize)
+		{
+			return Err(ResourceDataForTypeL64HasAnIncorrectLength(length))
+		}
+
+		let record = Locator64
+		{
+			preference: resource_data.u16(0),
+			locator: resource_data.value::<[u8; LocatorSize]>(PreferenceSize),
+		};
+
+		resource_record_visitor.L64(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_lp<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsProtocolError::*;
+
+		const PreferenceSize: usize = 2;
+		const MinimumNameSize: usize = Self::MinimumNameSize;
+
+		let length = resource_data.len();
+		if unlikely!(length < PreferenceSize + MinimumNameSize)
+		{
+			return Err(ResourceDataForTypeLPHasTooShortALength(length))
+		}
+
+		let record = LocatorPointer
+		{
+			preference: resource_data.u16(0),
+			name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[PreferenceSize .. ])?,
+		};
+
+		resource_record_visitor.LP(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
 	fn handle_tlsa_or_smimea<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(usize, Either<(TimeToLiveInSeconds, DnsBasedAuthenticationOfNamedEntities<'a>), DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason>), DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -1455,8 +1559,13 @@ One very simple way to achieve this is to only accept data if it is
 		use self::DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason::*;
 		use self::DnsProtocolError::*;
 
+		const CertificateUsageSize: usize = 1;
+		const SelectorSize: usize = 1;
+		const MatchingTypeSize: usize = 1;
+		const MinimumDigestSize: usize = 0;
+
 		let length = resource_data.len();
-		if unlikely!(length < 3)
+		if unlikely!(length < CertificateUsageSize + SelectorSize + MatchingTypeSize + MinimumDigestSize)
 		{
 			return Err(ResourceDataForTypeTLSAOrSMIMEAHasAnIncorrectLength(length))
 		}
@@ -1473,7 +1582,7 @@ One very simple way to achieve this is to only accept data if it is
 			255 => return Ok((resource_data_end_pointer, Right(PrivateCertificateUsage))),
 		};
 
-		let raw_selector = resource_data.u8(1);
+		let raw_selector = resource_data.u8(CertificateUsageSize);
 		let selector: Selector = match raw_selector
 		{
 			0 ... 1 => unsafe { transmute(raw_selector) },
@@ -1483,40 +1592,16 @@ One very simple way to achieve this is to only accept data if it is
 			255 => return Ok((resource_data_end_pointer, Right(PrivateSelector))),
 		};
 
-		#[inline(always)]
-		fn validate_hash_digest(certificate_association_data: &[u8], digest_size_in_bits: usize) -> Result<(), DnsProtocolError>
-		{
-			let length = certificate_association_data.len();
-
-			if unlikely!(length != digest_size_in_bits / Self::BitsInAByte)
-			{
-				Err(ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType(length))
-			}
-			else
-			{
-				Ok(())
-			}
-		}
-
+		const DigestOffset: usize = CertificateUsageSize + SelectorSize + MatchingTypeSize;
 		use self::MatchingType::*;
-		let raw_matching_type = resource_data.u8(2);
+		let raw_matching_type = resource_data.u8(CertificateUsageSize + SelectorSize);
 		let matching_type = match raw_matching_type
 		{
-			0 => NoHashUsed,
+			0 => NoHashUsed(&resource_data[DigestOffset .. ]),
 
-			1 =>
-			{
-				let certificate_association_data = &resource_data[3 .. ];
-				validate_hash_digest(certificate_association_data, 256)?;
-				Sha2_256(unsafe { & * (certificate_association_data.as_ptr() as *const [u8; 256 / Self::BitsInAByte]) })
-			}
+			1 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType),
 
-			1 =>
-			{
-				let certificate_association_data = &resource_data[3 .. ];
-				validate_hash_digest(certificate_association_data, 512)?;
-				Sha2_512(unsafe { & * (certificate_association_data.as_ptr() as *const [u8; 512 / Self::BitsInAByte]) })
-			}
+			2 => guard_hash_digest!(resource_data, DigestOffset, 512, Sha2_512, ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType),
 
 			2 ... 254 => return Ok((resource_data_end_pointer, Right(UnassignedMatchingType(raw_matching_type)))),
 
@@ -1584,7 +1669,7 @@ One very simple way to achieve this is to only accept data if it is
 		}
 		else
 		{
-			let address = resource_data.cast::<Address>();
+			let address = resource_data.cast::<Address>(0);
 			Ok((time_to_live, address, resource_data.end_pointer()))
 		}
 	}

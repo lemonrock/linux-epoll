@@ -2,22 +2,32 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
+/// The security algorithm in use.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SecurityAlgorithm
 {
+	/// Only valid for `CDS` and `CDNSKEY` records.
 	Delete,
 
+	/// RSA-SHA2-256.
 	RivestShamirAdlemanSha256,
 
+	/// DSA NSEC3 SHA-1.
 	DigitalSignatureAlgorithmNsec3Sha1,
 
+	/// RSA-SHA-1 NSEC3 SHA-1.
 	RivestShamirAdlemanSha1Nsec3Sha1,
 
+	/// ECDSA with curve P-256 and SHA-256.
 	EllipticCurveDigitalSignatureAlgorithmWithCurveP256AndSha256,
 
+	/// ECDSA with curve P-384 and SHA-384.
 	EllipticCurveDigitalSignatureAlgorithmWithCurveP384AndSha384,
 
+	/// Edwards curve 25519 as defined by Daniel J Bernstein.
 	Ed25519,
 
+	/// Edwards curve 448 as defined by Daniel J Bernstein.
 	Ed448,
 }
 

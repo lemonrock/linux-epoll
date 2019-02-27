@@ -25,6 +25,12 @@ pub mod location;
 pub mod naming_authority_pointer;
 
 
+/// Identifier-Locator Network Protocol (ILNP) record support.
+///
+/// See RFC 6742.
+pub mod identifier_locator_network_protocol;
+
+
 /// `IPSECKEY` (and potentially the obsolete `KEY`) record support.
 pub mod ipsec;
 
