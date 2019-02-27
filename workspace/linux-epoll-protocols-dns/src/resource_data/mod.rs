@@ -56,3 +56,4 @@ include!("OpenPgpRfc4880TransferablePublicKey.rs");
 include!("ResourceRecordVisitor.rs");
 include!("Service.rs");
 include!("SliceExt.rs");
+include!("Uri.rs");

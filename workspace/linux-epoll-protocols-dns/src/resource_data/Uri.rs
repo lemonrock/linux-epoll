@@ -2,9 +2,11 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// A `SRV` record.
+/// An `URI` record.
+///
+/// Essentially the same as a `SRV` record, but with a URI (eg `https://myserver.com:8080/some_path`), so adding a 'path' component to a `SRV` record.
 #[derive(Debug)]
-pub struct Service<'a>
+pub struct Uri<'a>
 {
 	/// Priority.
 	///
@@ -20,11 +22,6 @@ pub struct Service<'a>
 	/// Larger weights imply less loading.
 	pub weight: u16,
 
-	/// TCP, UDP or SCTP port for the service..
-	pub port: u16,
-
-	/// Must not be an alias; should not use name compression; a value of '.' (ie Root) means the service is unavailable.
-	///
-	/// The interaction with round-robin `A` or `AAAA` records is unclear.
-	pub target: ParsedNameIterator<'a>,
+	/// Will not be empty (this is validated).
+	pub target: &'a [u8],
 }

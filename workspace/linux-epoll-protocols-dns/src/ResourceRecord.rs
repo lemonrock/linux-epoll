@@ -574,7 +574,7 @@ One very simple way to achieve this is to only accept data if it is
 
 			0x01 => match type_lower
 			{
-				DataType::URI_lower => XXXX,
+				DataType::URI_lower => self.handle_uri(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::CAA_lower => XXXX,
 
@@ -1584,6 +1584,32 @@ One very simple way to achieve this is to only accept data if it is
 		let record = resource_data.cast::<[u8; Eui64Size]>(0);
 
 		resource_record_visitor.EUI64(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_uri<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		const PrioritySize: usize = 2;
+		const WeightSize: usize = 2;
+		const MinimumTargetSize: usize = 1;
+
+		let length = resource_data.len();
+		if unlikely!(length < PrioritySize + WeightSize + MinimumTargetSize)
+		{
+			return Err(ResourceDataForTypeURIHasAnIncorrectLength(length))
+		}
+		
+		let record = Uri
+		{
+			priority: resource_data.u16(0),
+			weight: resource_data.u16(PrioritySize),
+			target: &resource_data[(PrioritySize + WeightSize) .. ],
+		};
+
+		resource_record_visitor.URI(resource_record_name, time_to_live, record)?;
 		Ok(resource_data.end_pointer())
 	}
 
