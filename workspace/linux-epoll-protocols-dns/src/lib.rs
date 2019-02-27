@@ -22,6 +22,7 @@ extern crate hashbrown;
 #[macro_use] extern crate likely;
 
 
+use self::DnsProtocolError::*;
 use self::character_strings::*;
 use self::extended_dns::*;
 use self::name::*;
@@ -29,6 +30,7 @@ use self::resource_data::*;
 use self::resource_data::dhcid::*;
 use self::resource_data::dns_based_authentication_of_named_entities::*;
 use self::resource_data::dnssec::*;
+use self::resource_data::host_identity_protocol::*;
 use self::resource_data::identifier_locator_network_protocol::*;
 use self::resource_data::ipsec::*;
 use self::resource_data::location::*;

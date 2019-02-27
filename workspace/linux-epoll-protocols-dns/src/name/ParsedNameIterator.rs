@@ -54,8 +54,6 @@ impl<'a> ParsedNameIterator<'a>
 	#[inline(always)]
 	pub(crate) fn parse_without_compression(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
-		use self::DnsProtocolError::*;
-
 		let maximum_for_end_of_name_pointer = Self::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
 
 		let mut current_label_starts_at_pointer = start_of_name_pointer;
@@ -112,8 +110,6 @@ impl<'a> ParsedNameIterator<'a>
 
 	pub(crate) fn parse(parsed_labels: &mut ParsedLabels<'a>, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
-		use self::DnsProtocolError::*;
-
 		let maximum_for_end_of_name_pointer = Self::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
 
 		let mut current_label_starts_at_pointer = start_of_name_pointer;
@@ -198,7 +194,7 @@ impl<'a> ParsedNameIterator<'a>
 
 		if unlikely!(start_of_name_pointer == end_of_data_section_containing_name_pointer)
 		{
-			return Err(DnsProtocolError::NameIsEmpty)
+			return Err(NameIsEmpty)
 		}
 
 		let unconstrained_maximum_potential_name_length = end_of_data_section_containing_name_pointer - start_of_name_pointer;

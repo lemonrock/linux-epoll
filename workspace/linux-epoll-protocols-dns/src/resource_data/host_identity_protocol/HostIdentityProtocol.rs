@@ -2,12 +2,21 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// Host Identity Protocol (`HIP`) resource record data.
+#[derive(Debug)]
+pub struct HostIdentityProtocol<'a>
+{
+	/// Host identitiy tag (HIT).
+	pub host_identity_tag: &'a [u8],
 
+	/// Public key.
+	pub public_key: Option<PublicKey<'a>>,
 
-include!("EcDsaPublicKey.rs");
-include!("Gateway.rs");
-include!("IpsecKeyResourceRecordIgnoredBecauseReason.rs");
-include!("IpsecPublicKey.rs");
-include!("PublicKey.rs");
-include!("RsaPublicKey.rs");
+	/// At least one rendezvous server is present.
+	pub first_rendezvous_server_domain_name: ParsedNameIterator<'a>,
+
+	/// May be empty.
+	///
+	/// Recipients *SHOULD* parse this to make sure the names are valid.
+	pub remaining_rendezvous_server_domain_names: &'a [u8],
+}

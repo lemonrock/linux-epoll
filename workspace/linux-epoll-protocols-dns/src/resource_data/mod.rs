@@ -25,6 +25,12 @@ pub mod location;
 pub mod naming_authority_pointer;
 
 
+/// Host Identity Protocol (HIP) record support.
+///
+/// See RFC 8005.
+pub mod host_identity_protocol;
+
+
 /// Identifier-Locator Network Protocol (ILNP) record support.
 ///
 /// See RFC 6742.

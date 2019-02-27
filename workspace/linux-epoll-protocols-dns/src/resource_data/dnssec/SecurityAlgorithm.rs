@@ -159,7 +159,6 @@ impl SecurityAlgorithm
 	#[inline(always)]
 	pub(crate) fn parse_security_algorithm(security_algorithm_type: u8, permit_delete: bool, permit_nsec3: bool) -> Result<Either<Self, SecurityAlgorithmRejectedBecauseReason>, DnsProtocolError>
 	{
-		use self::DnsProtocolError::*;
 		use self::SecurityAlgorithm::*;
 
 		match security_algorithm_type

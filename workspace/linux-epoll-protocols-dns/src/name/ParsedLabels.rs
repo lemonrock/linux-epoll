@@ -21,7 +21,7 @@ impl<'a> ParsedLabels<'a>
 
 			Ok((parsed_name_iterator, end_of_name_pointer)) => if unlikely!(end_of_name_pointer - slice.len() != slice.as_ptr() as usize)
 			{
-				Err(DnsProtocolError::NameWasNotLongEnough)
+				Err(NameWasNotLongEnough)
 			}
 			else
 			{
@@ -36,7 +36,7 @@ impl<'a> ParsedLabels<'a>
 		let length = slice.len();
 		if unlikely!(length == 0)
 		{
-			return Err(DnsProtocolError::NameIsEmpty)
+			return Err(NameIsEmpty)
 		}
 
 		let start_of_name_pointer = slice.as_ptr() as usize;
@@ -52,8 +52,6 @@ impl<'a> ParsedLabels<'a>
 	#[inline(always)]
 	fn get(&self, offset: usize, next_label_starts_at_pointer: usize) -> Result<&ParsedLabel<'a>, DnsProtocolError>
 	{
-		use self::DnsProtocolError::*;
-
 		debug_assert!(offset <= ::std::u16::MAX as usize, "offset is larger than ::std::u16::MAX");
 
 		if unlikely!(self.start_of_message_pointer + offset >= next_label_starts_at_pointer)

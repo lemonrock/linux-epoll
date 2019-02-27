@@ -28,7 +28,7 @@ impl<'a> Iterator for CharacterStringsIterator<'a>
 		let length = text_string.length as usize;
 		let result = if unlikely!(self.next_string_starts_at_pointer + length > self.end_of_resource_data_pointer)
 		{
-			Err(DnsProtocolError::TextRecordStringLengthIncorrect)
+			Err(TextRecordStringLengthIncorrect)
 		}
 		else
 		{
@@ -46,7 +46,7 @@ impl<'a> CharacterStringsIterator<'a>
 		let length = resource_data.len();
 		if unlikely!(length == 0)
 		{
-			return Err(DnsProtocolError::ResourceRecordForTypeTXTHasNoCharacterStrings)
+			return Err(ResourceRecordForTypeTXTHasNoCharacterStrings)
 		}
 
 		let next_string_starts_at_pointer = resource_data.as_ptr() as usize;

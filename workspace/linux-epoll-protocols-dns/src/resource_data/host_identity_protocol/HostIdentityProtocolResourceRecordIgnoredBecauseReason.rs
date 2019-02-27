@@ -2,12 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// Why was an `HIP` record ignored?
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum HostIdentityProtocolResourceRecordIgnoredBecauseReason
+{
+	/// The public key algorithm DSA is probably broken.
+	PublicKeyAlgorithmDSAIsProbablyBroken,
 
-
-include!("EcDsaPublicKey.rs");
-include!("Gateway.rs");
-include!("IpsecKeyResourceRecordIgnoredBecauseReason.rs");
-include!("IpsecPublicKey.rs");
-include!("PublicKey.rs");
-include!("RsaPublicKey.rs");
+	/// The public key algorithm was unassigned.
+	PublicKeyAlgorithmUnassigned(u8),
+}

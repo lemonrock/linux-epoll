@@ -120,6 +120,17 @@ pub trait ResourceRecordVisitor
 	{
 	}
 
+	/// Visits a record of type `HIP`.
+	fn HIP<'a: 'b, 'b>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a, 'b>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `HIP` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn HIP_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `OPENPGPKEY`.
 	fn OPENPGPKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
 

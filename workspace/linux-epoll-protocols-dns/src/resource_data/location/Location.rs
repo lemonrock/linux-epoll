@@ -42,7 +42,7 @@ impl Location
 		}
 		else
 		{
-			Err(DnsProtocolError::ResourceDataForTypeLOCHasAnIncorrectVersion(self.version))
+			Err(ResourceDataForTypeLOCHasAnIncorrectVersion(self.version))
 		}
 	}
 }

@@ -9,6 +9,9 @@ pub enum IpsecKeyResourceRecordIgnoredBecauseReason
 	/// Gateway type was unassigned.
 	GatewayTypeUnassigned(u8),
 
+	/// The public key algorithm DSA is probably broken.
+	PublicKeyAlgorithmDSAIsProbablyBroken,
+
 	/// The public key algorithm was unassigned.
 	PublicKeyAlgorithmUnassigned(u8),
 }

@@ -34,8 +34,6 @@ impl QuerySectionEntryFooter
 	#[inline(always)]
 	fn query_class(&self) -> Result<QueryClass, DnsProtocolError>
 	{
-		use self::DnsProtocolError::ClassIsReservedUnassignedOrObsolete;
-
 		let upper = unsafe { *self.qclass.get_unchecked(0) };
 
 		if likely!(upper == 0x00)

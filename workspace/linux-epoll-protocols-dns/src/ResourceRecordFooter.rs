@@ -31,8 +31,6 @@ impl ResourceRecordFooter
 	#[inline(always)]
 	fn resource_record_class(&self) -> Result<ResourceRecordClass, DnsProtocolError>
 	{
-		use self::DnsProtocolError::ClassIsReservedUnassignedOrObsolete;
-
 		let upper = unsafe { *self.class.get_unchecked(0) };
 
 		if likely!(upper == 0x00)

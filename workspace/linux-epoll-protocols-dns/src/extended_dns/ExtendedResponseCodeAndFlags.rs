@@ -31,7 +31,7 @@ impl ExtendedResponseCodeAndFlags
 		}
 		else
 		{
-			Err(DnsProtocolError::UnsupportedExtendedDnsVersion(version))
+			Err(UnsupportedExtendedDnsVersion(version))
 		}
 	}
 
@@ -56,7 +56,7 @@ impl ExtendedResponseCodeAndFlags
 		}
 		else
 		{
-			Err(DnsProtocolError::ExtendedDnsZFieldNotZero)
+			Err(ExtendedDnsZFieldNotZero)
 		}
 	}
 }
