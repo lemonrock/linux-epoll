@@ -29,6 +29,8 @@ use self::character_strings::*;
 use self::extended_dns::*;
 use self::name::*;
 use self::resource_data::*;
+use self::resource_data::certificate::*;
+use self::resource_data::certification_authority_authorization::*;
 use self::resource_data::dhcid::*;
 use self::resource_data::dns_based_authentication_of_named_entities::*;
 use self::resource_data::dnssec::*;

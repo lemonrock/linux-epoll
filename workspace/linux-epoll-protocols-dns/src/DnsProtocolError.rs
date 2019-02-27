@@ -195,6 +195,15 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `CAA` has a zero tag length.
 	ResourceDataForTypeCAAHasAZeroTagLength,
 
+	/// Resource data for resource record type `CERT` has too short a length (value in tuple).
+	ResourceDataForTypeCERTHasTooShortALength(usize),
+
+	/// Resource data for resource record type `CERT` uses a reserved certificate type value (value in tuple).
+	ResourceDataForTypeCERTUsesAReservedCertificateTypeValue(u16),
+
+	/// Resource data for resource record type `CERT` uses an experimental certificate type value (value in tuple).
+	ResourceDataForTypeCERTUsesAnExperimentalCertificateTypeValue(u16),
+
 	/// Resource data for resource record type `HIP` has an incorrect length (value in tuple).
 	ResourceDataForTypeHIPHasAnIncorrectLength(usize),
 

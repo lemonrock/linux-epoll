@@ -49,6 +49,17 @@ pub trait ResourceRecordVisitor
 	/// Visits a record of type `KX`, which may not be aligned (this is a problem for 32-bit ARM).
 	fn KX<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: KeyExchange<'a>) -> Result<(), DnsProtocolError>;
 
+	/// Visits a record of type `CERT`.
+	fn CERT<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Certificate<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CERT` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn CERT_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: CertificateResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `DNAME`.
 	fn DNAME<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 

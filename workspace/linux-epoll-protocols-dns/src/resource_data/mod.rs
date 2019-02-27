@@ -5,6 +5,14 @@
 use super::*;
 
 
+/// `CERT` record support.
+pub mod certificate;
+
+
+/// `CAA` record support.
+pub mod certification_authority_authorization;
+
+
 /// `DHCID` record support.
 pub mod dhcid;
 

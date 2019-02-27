@@ -468,7 +468,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-				DataType::CERT_lower => XXXX,
+				DataType::CERT_lower => self.handle_cert(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::A6_lower => self.handle_very_obsolete_record_type(DataType::A6),
 
@@ -511,7 +511,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				54 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, 54),
 
-				DataType::HIP_lower => XXXX,
+				DataType::HIP_lower => self.handle_hip(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::NINFO_lower => self.handle_obsolete_or_very_obscure_record_type("No RFC or RFC draft and probably not deployed"),
 
@@ -954,6 +954,111 @@ One very simple way to achieve this is to only accept data if it is
 
 		resource_record_visitor.KX(resource_record_name, time_to_live, record)?;
 		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_cert<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::CertificateResourceRecordIgnoredBecauseReason::*;
+		use self::CertificateType::*;
+
+		const CertificateTypeSize: usize = 2;
+		const KeyTagSize: usize = 2;
+		const AlgorithmSize: usize = 1;
+		const MinimumCertificateOrCertificateRevocationListSize: usize = 0;
+		const CertificateDataOffset: usize = CertificateTypeSize + KeyTagSize + AlgorithmSize;
+
+		let length = resource_data.len();
+
+		if unlikely!(length < CertificateTypeSize + KeyTagSize + AlgorithmSize + MinimumCertificateOrCertificateRevocationListSize)
+		{
+			return Err(ResourceDataForTypeCERTHasTooShortALength(length))
+		}
+
+		let certificate_type_value_upper = resource_data.u8(0);
+		let certificate_type_value_lower = resource_data.u8(1);
+		let certificate_type = match certificate_type_value_upper
+		{
+			0x00 => match certificate_type_value_lower
+			{
+				0 => return Err(ResourceDataForTypeCERTUsesAReservedCertificateTypeValue(0)),
+
+				1 => X509ASPerPkixCertificate(&resource_data[CertificateDataOffset .. ]),
+
+				2 => SpkiCertificate(&resource_data[CertificateDataOffset .. ]),
+
+				3 => OpenPgpPacket(&resource_data[CertificateDataOffset .. ]),
+
+				4 => UrlOfAX509DataObject(&resource_data[CertificateDataOffset .. ]),
+
+				5 => UrlOfASpkiCertificate(&resource_data[CertificateDataOffset .. ]),
+
+				6 => FingerprintAndUrlOfAnOpenPgpPacket(&resource_data[CertificateDataOffset .. ]),
+
+				7 => AttributeCertificate(&resource_data[CertificateDataOffset .. ]),
+
+				8 => UrlOfAnAttributeCertificate(&resource_data[CertificateDataOffset .. ]),
+
+				9 ... 252 =>
+				{
+					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeUnassigned(certificate_type_value_lower as u16));
+					return Ok(resource_data_end_pointer)
+				}
+
+				253 =>
+				{
+					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeUriPrivate(certificate_type_value_lower as u16));
+					return Ok(resource_data_end_pointer)
+				}
+
+				254 =>
+				{
+					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeOidPrivate(certificate_type_value_lower as u16));
+					return Ok(resource_data_end_pointer)
+				}
+
+				255 => return Err(ResourceDataForTypeCERTUsesAReservedCertificateTypeValue(255)),
+			},
+
+			0x01 ... 0xFE =>
+			{
+				resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeUnassigned((certificate_type_value_upper as u16) << 8 | (certificate_type_value_lower as u16)));
+				return Ok(resource_data_end_pointer)
+			}
+
+			0xFF => if unlikely!(certificate_type_value_lower == 0xFF)
+			{
+				return Err(ResourceDataForTypeCERTUsesAReservedCertificateTypeValue(0xFF << 8 | (certificate_type_value_lower as u16)))
+			}
+			else
+			{
+				return Err(ResourceDataForTypeCERTUsesAnExperimentalCertificateTypeValue(0xFF << 8 | (certificate_type_value_lower as u16)))
+			},
+		};
+
+		let security_algorithm_type = resource_data.u8(CertificateTypeSize + KeyTagSize);
+		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, false, false)?
+		{
+			Left(security_algorithm) => security_algorithm,
+
+			Right(security_algorithm_rejected_because_reason) =>
+			{
+				resource_record_visitor.CERT_ignored(resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
+				return Ok(resource_data_end_pointer)
+			}
+		};
+
+		let record = Certificate
+		{
+			key_tag: resource_data.u16(CertificateTypeSize),
+			security_algorithm,
+			certificate_type,
+		};
+
+		resource_record_visitor.CERT(resource_record_name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
 	}
 
 	#[inline(always)]
