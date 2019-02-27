@@ -153,7 +153,18 @@ pub trait ResourceRecordVisitor
 	fn EUI64<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &'a [u8; 8]) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `URI`.
-	fn URI<'a: 'b, 'b>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Uri<'a>) -> Result<(), DnsProtocolError>;
+	fn URI<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Uri<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CAA`.
+	fn CAA<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: CertificateAuthorityAuthorization<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CAA` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn CAA_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: CertificationAuthorityAuthorizationResourceRecordIgnoredBecauseReason<'a>)
+	{
+	}
 
 	/// Visits an unsupported record type.
 	///

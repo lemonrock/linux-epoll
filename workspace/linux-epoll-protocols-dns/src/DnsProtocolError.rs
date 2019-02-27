@@ -189,6 +189,12 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `URI` has an incorrect length (value in tuple).
 	ResourceDataForTypeURIHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `CAA` has an incorrect length (value in tuple).
+	ResourceDataForTypeCAAHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `CAA` has a zero tag length.
+	ResourceDataForTypeCAAHasAZeroTagLength,
+
 	/// Resource data for resource record type `HIP` has an incorrect length (value in tuple).
 	ResourceDataForTypeHIPHasAnIncorrectLength(usize),
 

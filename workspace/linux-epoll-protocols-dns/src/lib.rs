@@ -9,6 +9,7 @@
 #![deny(unreachable_patterns)]
 #![feature(core_intrinsics)]
 #![feature(extern_types)]
+#![feature(proc_macro_hygiene)]
 
 
 //! #linux-epoll-protocols-dns
@@ -20,6 +21,7 @@
 extern crate either;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
+extern crate phf;
 
 
 use self::DnsProtocolError::*;
@@ -40,6 +42,7 @@ use self::resource_data::start_of_authority::*;
 use ::either::*;
 use ::hashbrown::HashMap;
 use ::hashbrown::hash_map::Entry;
+use ::phf::Map;
 use ::std::cell::Cell;
 use ::std::cmp::min;
 use ::std::marker::PhantomData;

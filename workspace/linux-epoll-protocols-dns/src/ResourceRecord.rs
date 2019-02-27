@@ -576,7 +576,7 @@ One very simple way to achieve this is to only accept data if it is
 			{
 				DataType::URI_lower => self.handle_uri(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::CAA_lower => XXXX,
+				DataType::CAA_lower => self.handle_caa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::DOA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, resource_record_type),
 
@@ -1611,6 +1611,101 @@ One very simple way to achieve this is to only accept data if it is
 
 		resource_record_visitor.URI(resource_record_name, time_to_live, record)?;
 		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_caa<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::CertificateAuthorityAuthorizationPropertyTag::*;
+		use self::CertificateAuthorityAuthorizationResourceRecordIgnoredBecauseReason::*;
+
+		const FlagsSize: usize = 1;
+		const TagLengthSize: usize = 1;
+		const MinimumTagSize: usize = 1;
+		const MinimumValueSize: usize = 0;
+		const PropertyTagOffset: usize = FlagsSize + TagLengthSize;
+
+		let length = resource_data.len();
+		if unlikely!(length < FlagsSize + TagLengthSize + MinimumTagSize + MinimumValueSize)
+		{
+			return Err(ResourceDataForTypeCAAHasAnIncorrectLength(length))
+		}
+
+		let tag_length = resource_data.u8(FlagsSize);
+
+		if unlikely!(tag_length == 0)
+		{
+			return Err(ResourceDataForTypeCAAHasAZeroTagLength)
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		if unlikely!(tag_length > 15)
+		{
+			resource_record_visitor.CAA_ignored(resource_record_name, TagLengthExceeded15(tag_length));
+			return Ok(resource_data_end_pointer)
+		}
+
+		let property_value_offset = PropertyTagOffset + tag_length;
+
+		if unlikely!(property_value_offset > length)
+		{
+			return Err(ResourceDataForTypeCAAHasAnIncorrectLength(length))
+		}
+
+		let flag_bits = resource_data.u8(0);
+
+		// // See <https://www.iana.org/assignments/pkix-parameters/pkix-parameters.xhtml>; note that bit 0 is MSB, ie bits are numbered from left-to-right.
+		const IssuerCriticalFlagBit: u8 = 0b1000_0000;
+		const ReservedFlagBits: u8 = !IssuerCriticalFlagBit;
+
+		if unlikely!(flag_bits & ReservedFlagBits != 0)
+		{
+			resource_record_visitor.CAA_ignored(resource_record_name, UseOfUnassignedFlagBits);
+			return Ok(resource_data_end_pointer)
+		}
+
+		static KnownTags: Map<&'static str, Option<CertificateAuthorityAuthorizationPropertyTag>> = phf_map!
+		{
+    		b"issue" => Some(AuthorizationEntryByDomain),
+    		b"issuewild" => Some(AuthorizationEntryByWildcardDomain),
+    		b"iodef" => Some(ReportIncidentByIodefReport),
+    		b"contactemail" => Some(AuthorizedEMailContactForDomainValidation),
+    		b"auth" => None,
+    		b"path" => None,
+    		b"policy" => None,
+		};
+
+		let property_tag_bytes = &resource_data[PropertyTagOffset .. property_value_offset];
+		let property_tag = match KnownTags.get(property_tag_bytes)
+		{
+			Some(Some(property_tag)) => property_tag,
+
+			Some(None) =>
+			{
+				resource_record_visitor.CAA_ignored(resource_record_name, TagReservedByRfcErrata3547(property_tag_bytes));
+				return Ok(resource_data_end_pointer)
+			}
+
+			None =>
+			{
+				resource_record_visitor.CAA_ignored(resource_record_name, TagUnassigned(property_tag_bytes));
+				return Ok(resource_data_end_pointer)
+			}
+		};
+
+		let record = CertificationAuthorityAuthorization
+		{
+			is_issuer_critical: flags & 0b0000_0001 != 0,
+			property_tag,
+			property_value: &resource_data[property_value_offset .. ],
+		};
+
+		resource_record_visitor.CAA(resource_record_name, time_to_live, record)?;
+
+		Ok(resource_data_end_pointer)
 	}
 
 	#[inline(always)]
