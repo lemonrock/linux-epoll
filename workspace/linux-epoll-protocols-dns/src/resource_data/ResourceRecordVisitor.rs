@@ -121,7 +121,7 @@ pub trait ResourceRecordVisitor
 	}
 
 	/// Visits a record of type `HIP`.
-	fn HIP<'a: 'b, 'b>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a, 'b>) -> Result<(), DnsProtocolError>;
+	fn HIP<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `HIP` which was ignored.
 	///
@@ -151,6 +151,9 @@ pub trait ResourceRecordVisitor
 
 	/// Visits a record of type `EUI64`.
 	fn EUI64<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &'a [u8; 8]) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `URI`.
+	fn URI<'a: 'b, 'b>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Uri<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits an unsupported record type.
 	///

@@ -1601,12 +1601,12 @@ One very simple way to achieve this is to only accept data if it is
 		{
 			return Err(ResourceDataForTypeURIHasAnIncorrectLength(length))
 		}
-		
+
 		let record = Uri
 		{
 			priority: resource_data.u16(0),
 			weight: resource_data.u16(PrioritySize),
-			target: &resource_data[(PrioritySize + WeightSize) .. ],
+			target_uri: &resource_data[(PrioritySize + WeightSize) .. ],
 		};
 
 		resource_record_visitor.URI(resource_record_name, time_to_live, record)?;

@@ -23,5 +23,7 @@ pub struct Uri<'a>
 	pub weight: u16,
 
 	/// Will not be empty (this is validated).
-	pub target: &'a [u8],
+	///
+	/// This is a URI.
+	pub target_uri: &'a [u8],
 }
