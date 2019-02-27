@@ -135,6 +135,12 @@ pub trait ResourceRecordVisitor
 	/// Visits a record of type `LP`.
 	fn LP<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: LocatorPointer<'a>) -> Result<(), DnsProtocolError>;
 
+	/// Visits a record of type `EUI48`.
+	fn EUI48<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &'a [u8; 6]) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `EUI64`.
+	fn EUI64<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &'a [u8; 8]) -> Result<(), DnsProtocolError>;
+
 	/// Visits an unsupported record type.
 	///
 	/// Default implementation ignores it.

@@ -446,9 +446,9 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::LP_lower => self.handle_lp(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::EUI48_lower => XXXX,
+				DataType::EUI48_lower => self.handle_eui48(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::EUI64_lower => XXXX,
+				DataType::EUI64_lower => self.handle_eui64(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				110 ... 127 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, type_lower),
 
@@ -1548,6 +1548,48 @@ One very simple way to achieve this is to only accept data if it is
 		};
 
 		resource_record_visitor.LP(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_eui48<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsProtocolError::*;
+
+		const Eui48Size: usize = 48 / Self::BitsInAByte;
+
+		let length = resource_data.len();
+		if unlikely!(length != Eui48Size)
+		{
+			return Err(ResourceDataForTypeEUI48HasAnIncorrectLength(length))
+		}
+
+		let record = resource_data.cast::<[u8; Eui48Size]>(0);
+
+		resource_record_visitor.EUI48(resource_record_name, time_to_live, record)?;
+		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_eui64<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsProtocolError::*;
+
+		const Eui64Size: usize = 64 / Self::BitsInAByte;
+
+		let length = resource_data.len();
+		if unlikely!(length != Eui64Size)
+		{
+			return Err(ResourceDataForTypeEUI64HasAnIncorrectLength(length))
+		}
+
+		let record = resource_data.cast::<[u8; Eui64Size]>(0);
+
+		resource_record_visitor.EUI64(resource_record_name, time_to_live, record)?;
 		Ok(resource_data.end_pointer())
 	}
 
