@@ -371,7 +371,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::DNSKEY_lower => XXXX,
 
-				DataType::DHCID_lower => XXXX,
+				DataType::DHCID_lower => self.handle_dhcid(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::NSEC3_lower => XXXX,
 
@@ -1331,12 +1331,81 @@ One very simple way to achieve this is to only accept data if it is
 	}
 
 	#[inline(always)]
-	fn handle_openpgpkey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	fn handle_dhcid<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		resource_record_visitor.OPENPGPKEY(resource_record_name, time_to_live, resource_data)?;
-		Ok(resource_data.end_pointer())
+		use self::DhcidDigest::*;
+		use self::DhcidResourceRecordIgnoredBecauseReason::*;
+		use self::DnsProtocolError::*;
+
+		const IdentifierTypeCodeSize: usize = 2;
+		const DigestTypeCodeSize: usize = 1;
+
+		let length = resource_data.len();
+		if unlikely!(length < IdentifierTypeCodeSize + DigestTypeCodeSize)
+		{
+			return Err(ResourceDataForTypeDHCIDHasAnIncorrectLength(length))
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let identifier_type_code = resource_data.u16(0);
+		let identifier_type: IdentifierType = match identifier_type_code
+		{
+			0x0000 ... 0x0002 => unsafe { transmute(identifier_type_code) },
+
+			0x0003 ... 0xFFFE =>
+			{
+				resource_record_visitor.DHCID_ignored(resource_record_name, IdentifierTypeUnassigned(identifier_type_code));
+				return Ok(resource_data_end_pointer)
+			}
+
+			_ => return Err(ResourceDataForTypeDHCIDHasAReservedIdentifierTypeCode)
+		};
+
+		#[inline(always)]
+		fn validate_hash_digest(digest_data: &[u8], digest_size_in_bits: usize) -> Result<(), DnsProtocolError>
+		{
+			let length = digest_data.len();
+
+			if unlikely!(length != digest_size_in_bits / Self::BitsInAByte)
+			{
+				Err(ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType(length))
+			}
+			else
+			{
+				Ok(())
+			}
+		}
+
+		let digest_type_code = resource_data.u8(IdentifierTypeCodeSize);
+		let digest = match raw_digest_type_code
+		{
+			0 => return Err(ResourceDataForTypeDHCIDHasAReservedDigestTypeCode),
+
+			1 =>
+			{
+				let digest_data = &resource_data[(IdentifierTypeCodeSize + DigestTypeCodeSize) .. ];
+				validate_hash_digest(digest_data, 256)?;
+				Sha2_256(unsafe { & * (digest_data.as_ptr() as *const [u8; 256 / Self::BitsInAByte]) })
+			}
+
+			_ =>
+			{
+				resource_record_visitor.DHCID_ignored(resource_record_name, DigestAlgorithmUnassigned(digest_type_code));
+				return Ok(resource_data_end_pointer)
+			}
+		};
+
+		let record = Dhcid
+		{
+			identifier_type,
+			digest,
+		};
+
+		resource_record_visitor.DHCID(resource_record_name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
 	}
 
 	#[inline(always)]
@@ -1367,6 +1436,15 @@ One very simple way to achieve this is to only accept data if it is
 		}
 
 		Ok(resource_data_end_pointer)
+	}
+
+	#[inline(always)]
+	fn handle_openpgpkey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		resource_record_visitor.OPENPGPKEY(resource_record_name, time_to_live, resource_data)?;
+		Ok(resource_data.end_pointer())
 	}
 
 	#[inline(always)]

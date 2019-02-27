@@ -136,6 +136,18 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `DS` has an incorrect length (value in tuple).
 	ResourceDataForTypeDSHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `DHCID` has an incorrect length (value in tuple).
+	ResourceDataForTypeDHCIDHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `DHCID` has reserved identifier type code.
+	ResourceDataForTypeDHCIDHasAReservedIdentifierTypeCode,
+
+	/// Resource data for resource record type `DHCID` has reserved digest type code.
+	ResourceDataForTypeDHCIDHasAReservedDigestTypeCode,
+
+	/// Resource data for resource record type `DHCID` has an incorrect digest length (value in tuple).
+	ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType(usize),
+
 	/// Resource data for resource record type `SSHFP` has an incorrect length (value in tuple).
 	ResourceDataForTypeSSHFPHasAnIncorrectLength(usize),
 

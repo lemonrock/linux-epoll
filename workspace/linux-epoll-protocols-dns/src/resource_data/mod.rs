@@ -5,6 +5,10 @@
 use super::*;
 
 
+/// `DHCID` record support.
+pub mod dhcid;
+
+
 /// `TLSA` and `SMIME` record support.
 pub mod dns_based_authentication_of_named_entities;
 
