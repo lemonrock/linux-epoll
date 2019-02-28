@@ -1504,37 +1504,6 @@ One very simple way to achieve this is to only accept data if it is
 		let signature_offset = TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize + KeyTagSize + (end_of_name_pointer - remaining_data_pointer);
 		let signature = &resource_data[signature_offset .. ];
 
-		/// A resource record set signature (`RRSIG`).
-		#[derive(Debug)]
-		pub struct ResourceRecordSetSignature<a>
-		{
-			/// Type covered.
-			///
-			/// This is not validated to be a valid DataType; it could be a meta type or query type, or unassigned or reserved.
-			pub type_covered: DataType,
-
-			/// Security algorithm.
-			pub security_algorithm: SecurityAlgorithm,
-
-			/// Labels (validated to be 126 or less).
-			pub labels: u8,
-
-			/// Original time to live.
-			pub original_time_to_live: TimeToLiveInSeconds,
-
-			/// A key tag.
-			pub key_tag: KeyTag,
-
-			/// Signer's name.
-			pub signers_name: ParsedNameIterator<'a>,
-
-			// Signature.
-			pub signature: &'a [u8],
-
-			/// Required for verifying a signature.
-			pub rrsig_rdata_excluding_signature_field: &'a [u8],
-		}
-
 		let record = ResourceRecordSetSignature
 		{
 			type_covered: resource_data.value::<DataType>(0),
