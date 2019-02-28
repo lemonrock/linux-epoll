@@ -6,7 +6,7 @@
 pub struct DelegationSigner<'a>
 {
 	/// Key tag.
-	pub key_tag: u16,
+	pub key_tag: KeyTag,
 
 	/// Security algorithm.
 	pub security_algorithm: SecurityAlgorithm,

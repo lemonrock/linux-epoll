@@ -207,6 +207,12 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `DNSKEY` has an incorrect length (value in tuple).
 	ResourceDataForTypeDNSKEYHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `RRSIG` has an incorrect length (value in tuple).
+	ResourceDataForTypeRRSIGHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `RRSIG` has more than 126 labels (including root, only 127 labels are allowed and root is not allowed to be counted in this instance).
+	ResourceDataForTypeRRSIGHasMoreThan126Labels(u8),
+
 	/// Resource data for resource record type `HIP` has an incorrect length (value in tuple).
 	ResourceDataForTypeHIPHasAnIncorrectLength(usize),
 

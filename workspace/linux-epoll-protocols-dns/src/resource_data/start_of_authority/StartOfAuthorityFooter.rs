@@ -10,7 +10,7 @@ pub struct StartOfAuthorityFooter
 	/// Serial number of the zone file that is incremented each time a change is made.
 	///
 	/// Best practice is to use `YYYYMMDDnn`, where `YYYY` is the year, `MM` is the month, `DD` is the day, and `nn` is the revision number within the day.
-	pub serial: [u8; 4],
+	pub serial: SerialNumber,
 
 	/// Refresh interval
 	///

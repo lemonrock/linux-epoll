@@ -503,7 +503,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::NSEC_lower => XXXX,
 
-				DataType::RRSIG_lower => XXXX,
+				DataType::RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::DNSKEY_lower => self.handle_dnskey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -1060,7 +1060,7 @@ One very simple way to achieve this is to only accept data if it is
 
 		let record = Certificate
 		{
-			key_tag: resource_data.u16(CertificateTypeSize),
+			key_tag: resource_data.value::<KeyTag>(CertificateTypeSize),
 			security_algorithm,
 			certificate_type,
 		};
@@ -1241,7 +1241,7 @@ One very simple way to achieve this is to only accept data if it is
 
 		let record = DelegationSigner
 		{
-			key_tag: resource_data.u16(0),
+			key_tag: resource_data.value::<KeyTag>(0),
 			security_algorithm,
 			digest,
 		};
@@ -1405,6 +1405,153 @@ One very simple way to achieve this is to only accept data if it is
 	}
 
 	#[inline(always)]
+	fn handle_rrsig<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsKeyPurpose::*;
+		use self::ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason::*;
+
+		const TypeCoveredSize: usize = 2;
+		const AlgorithmSize: usize = 1;
+		const LabelsSize: usize = 1;
+		const OriginalTimeToLiveSize: usize = 4;
+		const SignatureExpirationSize: usize = 4;
+		const SignatureInceptionSize: usize = 4;
+		const KeyTagSize: usize = 2;
+		const MinimumSignersNameSize: usize = Self::MinimumNameSize;
+		const MinimumSignatureSize: usize = 0;
+
+		let length = resource_data.len();
+		if unlikely!(length < TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize + KeyTagSize + MinimumSignersNameSize + MinimumSignatureSize)
+		{
+			return Err(ResourceDataForTypeRRSIGHasAnIncorrectLength(length))
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let labels = resource_data.u8(TypeCoveredSize + AlgorithmSize);
+		if unlikely!(labels > 126)
+		{
+			return Err(ResourceDataForTypeRRSIGHasMoreThan126Labels(labels))
+		}
+
+		let security_algorithm_type = resource_data.u8(TypeCoveredSize);
+		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, false, false)?
+		{
+			Left(security_algorithm) => security_algorithm,
+			Right(security_algorithm_rejected_because_reason) =>
+			{
+				resource_record_visitor.RRSIG_ignored(resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
+				return Ok(resource_data_end_pointer)
+			}
+		};
+
+		let signature_expiration_timestamp = resource_data.value::<SignatureTimestamp>(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize);
+		let signature_inception_timestamp = resource_data.value::<SignatureTimestamp>(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize);
+		match signature_expiration.difference(signature_inception)
+		{
+			None =>
+			{
+				resource_record_visitor.RRSIG_ignored(resource_record_name, DifferenceInSignatureExpirationAndInceptionIsTooGreatForWrappingSerialNumberMathematics { signature_inception_timestamp, signature_expiration_timestamp });
+				return Ok(resource_data_end_pointer)
+			}
+
+			Some(signature_expiration_seconds, signature_inception_seconds, difference) => if unlikely!(difference <= 0)
+			{
+				resource_record_visitor.RRSIG_ignored(resource_record_name, DifferenceInSignatureInceptionAndExpirationWasNegativeOrZero { signature_inception_timestamp, signature_expiration_timestamp });
+				return Ok(resource_data_end_pointer)
+			}
+			else
+			{
+				let now = get_time();
+
+				const PeriodLengthInSeconds: i64 = ::std::u32::MAX as i64;
+
+				// TODO: Increment this to 1 after Sunday, February 7, 2106 6:28:15 AM GMT.
+				const ElapsedWrapAroundPoints: i64 = 0;
+				const LastWrapAroundPoint: i64 = PeriodLengthInSeconds * ElapsedWrapAroundPoints;
+				const NextWrapAroundPoint: i64 = LastWrapAroundPoint + PeriodLengthInSeconds;
+
+				let signature_inception_timespec = if unlikely!(signature_inception_seconds > signature_expiration_seconds)
+				{
+					Timespec::new(NextWrapAroundPoint + signature_inception_seconds as i64, 0)
+				}
+				else
+				{
+					Timespec::new(LastWrapAroundPoint + signature_inception_seconds as i64, 0)
+				};
+				if unlikely!(signature_inception_timespec > now)
+				{
+					resource_record_visitor.RRSIG_ignored(resource_record_name, InceptionIsInTheFuture { signature_inception_timestamp, signature_expiration_timestamp });
+					return Ok(resource_data_end_pointer)
+				}
+
+				let signature_expiration_timespec = Timespec::new(LastWrapAroundPoint + signature_expiration_seconds as i64);
+				if unlikely!(signature_expiration_timespec <= now)
+				{
+					resource_record_visitor.RRSIG_ignored(resource_record_name, Expired { signature_inception_timestamp, signature_expiration_timestamp });
+					return Ok(resource_data_end_pointer)
+				}
+			},
+		}
+
+		let remaining_data = &resource_data[(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize + KeyTagSize) .. ];
+		let remaining_data_pointer = remaining_data.pointer();
+
+		let (signers_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(remaining_data.pointer(), resource_data_end_pointer)?;
+
+		let signature_offset = TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize + KeyTagSize + (end_of_name_pointer - remaining_data_pointer);
+		let signature = &resource_data[signature_offset .. ];
+
+		/// A resource record set signature (`RRSIG`).
+		#[derive(Debug)]
+		pub struct ResourceRecordSetSignature<a>
+		{
+			/// Type covered.
+			///
+			/// This is not validated to be a valid DataType; it could be a meta type or query type, or unassigned or reserved.
+			pub type_covered: DataType,
+
+			/// Security algorithm.
+			pub security_algorithm: SecurityAlgorithm,
+
+			/// Labels (validated to be 126 or less).
+			pub labels: u8,
+
+			/// Original time to live.
+			pub original_time_to_live: TimeToLiveInSeconds,
+
+			/// A key tag.
+			pub key_tag: KeyTag,
+
+			/// Signer's name.
+			pub signers_name: ParsedNameIterator<'a>,
+
+			// Signature.
+			pub signature: &'a [u8],
+
+			/// Required for verifying a signature.
+			pub rrsig_rdata_excluding_signature_field: &'a [u8],
+		}
+
+		let record = ResourceRecordSetSignature
+		{
+			type_covered: resource_data.value::<DataType>(0),
+			security_algorithm,
+			labels,
+			original_time_to_live: resource_data.value::<TimeToLiveInSeconds>(TypeCoveredSize + AlgorithmSize + LabelsSize),
+			key_tag: resource_data.value::<KeyTag>(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize),
+			signers_name,
+			signature,
+			rrsig_rdata_excluding_signature_field: &resource_data[ .. signature_offset],
+		};
+
+		resource_record_visitor.RRSIG(resource_record_name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
+	}
+
+	#[inline(always)]
 	fn handle_dnskey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -1496,6 +1643,7 @@ One very simple way to achieve this is to only accept data if it is
 
 		let record = DnsKey
 		{
+			computed_key_tag: resource_data.key_tag(),
 			purpose,
 			security_algorithm,
 			public_key: &resource_data[(FlagsSize + ProtocolSize + AlgorithmSize) .. ],
@@ -1747,7 +1895,7 @@ One very simple way to achieve this is to only accept data if it is
 		let resource_data_end_pointer = resource_data.end_pointer();
 
 		let domain_name_data = &resource_data[PreferenceSize .. ];
-		let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(domain_name_data.pointer(), resource_data_end_pointer);
+		let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(domain_name_data.pointer(), resource_data_end_pointer)?;
 		if unlikely!(end_of_name_pointer != resource_data_end_pointer)
 		{
 			return Err(ResourceDataForTypeLPHasDataLeftOver)

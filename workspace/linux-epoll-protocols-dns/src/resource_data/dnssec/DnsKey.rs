@@ -6,6 +6,9 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DnsKey<'a>
 {
+	/// Computed key tag.
+	pub computed_key_tag: KeyTag,
+
 	/// DNS key purpose.
 	pub purpose: DnsKeyPurpose,
 

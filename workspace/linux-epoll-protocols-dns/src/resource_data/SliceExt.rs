@@ -8,6 +8,10 @@ pub(crate) trait SliceExt
 
 	fn end_pointer(&self) -> usize;
 
+	/// RFC 4034, Appendix B.
+	#[inline(always)]
+	fn key_tag(&self) -> u16;
+
 	#[inline(always)]
 	fn cast<T>(&self, offset: usize) -> &T
 	{
@@ -66,6 +70,40 @@ impl<'a> SliceExt for &'a [u8]
 	fn end_pointer(&self) -> usize
 	{
 		self.pointer() + self.len()
+	}
+
+	/// RFC 4034, Appendix B.
+	#[inline(always)]
+	fn key_tag(&self) -> KeyTag
+	{
+		#[inline(always)]
+		fn accumulate(data: &[u8], length: usize) -> u32
+		{
+			let mut accumulator: u32 = 0;
+
+			for index in 0 .. length
+			{
+				let value = data.u16(index) as u32;
+				accumulator += value;
+			}
+
+			accumulator
+		}
+
+		let length = self.len();
+
+		let accumulator = if length % 2 == 0
+		{
+			accumulate(data, length)
+		}
+		else
+		{
+			let last = length - 1;
+			accumulate(data, last) + self.u8(last) << 8
+		};
+
+		let accumulator = accumulator + ((accumulator >> 16) & 0xFFFF);
+		KeyTag((accumulator & 0xFFFF) as u16)
 	}
 
 	#[inline(always)]

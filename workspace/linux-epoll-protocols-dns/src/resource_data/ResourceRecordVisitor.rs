@@ -98,6 +98,17 @@ pub trait ResourceRecordVisitor
 	{
 	}
 
+	/// Visits a record of type `RRSIG`.
+	fn RRSIG<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `RRSIG` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn RRSIG_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `DNSKEY`.
 	fn DNSKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'a>) -> Result<(), DnsProtocolError>;
 

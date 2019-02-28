@@ -2,16 +2,6 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// A certificate.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Certificate<'a>
-{
-	/// Key tag.
-	pub key_tag: KeyTag,
-
-	/// Certificate algorithm.
-	pub security_algorithm: SecurityAlgorithm,
-
-	/// Certificate type and data.
-	pub certificate_type: CertificateType<'a>,
-}
+/// A key tag.
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct KeyTag(pub u16);

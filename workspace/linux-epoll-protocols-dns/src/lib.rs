@@ -22,6 +22,7 @@ extern crate either;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
 extern crate phf;
+extern crate time;
 
 
 use self::DnsProtocolError::*;
@@ -47,6 +48,8 @@ use ::hashbrown::hash_map::Entry;
 use ::phf::Map;
 use ::std::cell::Cell;
 use ::std::cmp::min;
+use ::std::cmp::Ordering;
+use ::std::cmp::PartialOrd;
 use ::std::marker::PhantomData;
 use ::std::mem::size_of;
 use ::std::mem::transmute;
@@ -54,6 +57,8 @@ use ::std::net::Ipv4Addr;
 use ::std::net::Ipv6Addr;
 use ::std::ptr::NonNull;
 use ::std::slice::from_raw_parts;
+use ::time::get_time;
+use ::time::Timespec;
 
 
 /// Extended DNS (EDNS).
@@ -84,15 +89,16 @@ include!("MessageOpcode.rs");
 include!("MessageResponseCode.rs");
 include!("MessageType.rs");
 include!("MetaType.rs");
-include!("ResourceData.rs");
-include!("ResourceRecord.rs");
-include!("ResourceRecordClass.rs");
-include!("ResourceRecordFooter.rs");
 include!("QueryClass.rs");
 include!("QuerySectionEntry.rs");
 include!("QuerySectionEntryFooter.rs");
 include!("QueryType.rs");
 include!("QueryTypeOrDataType.rs");
+include!("ResourceData.rs");
+include!("ResourceRecord.rs");
+include!("ResourceRecordClass.rs");
+include!("ResourceRecordFooter.rs");
+include!("SerialNumber.rs");
 include!("TcpMessage.rs");
 include!("TimeInSeconds.rs");
 include!("TimeToLiveInSeconds.rs");
