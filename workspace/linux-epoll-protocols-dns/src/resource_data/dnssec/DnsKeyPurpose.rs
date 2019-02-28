@@ -2,14 +2,16 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// DNS key purpose.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DnsKeyPurpose
+{
+	/// Zone Signing Key, ZSK.
+	ZoneSigningKey
+	{
+		is_secure_entry_point: bool,
+	},
 
-
-include!("DelegationSigner.rs");
-include!("DelegationSignerResourceRecordIgnoredBecauseReason.rs");
-include!("DigestAlgorithmRejectedBecauseReason.rs");
-include!("DnsKey.rs");
-include!("DnsKeyPurpose.rs");
-include!("DnsSecDigest.rs");
-include!("SecurityAlgorithm.rs");
-include!("SecurityAlgorithmRejectedBecauseReason.rs");
+	/// Key Signing Key, KSK.
+	KeySigningKey,
+}

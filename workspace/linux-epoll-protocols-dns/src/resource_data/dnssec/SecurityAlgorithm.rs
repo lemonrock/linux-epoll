@@ -172,7 +172,7 @@ impl SecurityAlgorithm
 				Err(SecurityAlgorithmShouldNotBeUsedForThisResourceRecordType(security_algorithm_type))
 			}
 
-			Self::RSAMD5 => Err(DeprecatedSecurityAlgorithm_RSA_MD5),
+			Self::RSAMD5 => Ok(Right(DeprecatedSecurityAlgorithm_RSA_MD5)),
 
 			Self::DH => Ok(Right(EffectivelyObsoleteSecurityAlgorithm_Diffie_Hellman)),
 

@@ -173,15 +173,22 @@ impl ResourceRecord
 					// TODO: x; should there only ever be one DNAME / CNAME in the answer section?
 
 					/*
-						Value of NAME field in answer section
-							A, AAAA, MX, DNSKEY, SOA, TXT, NS => should match that in query section.
+						DNS Flag Day
+							https://dnsflagday.net/
+								Starting February 1st, 2019 there will be no attempt to disable EDNS in reaction to a DNS query timeout.
 
-						Likewise for SOA in authority section
+								This effectively means that all DNS servers which do not respond at all to EDNS queries are going to be treated as dead.
 
-						Not always true
+								Please test your implementations using the ednscomp tool to make sure that you handle EDNS properly. Source code for the tool is available as well.
 
-						For example, dig blog.cloudflare.com
-							=> CNAME record matches; A / AAAA records do not (arguably these should be additional data).
+								It is important to note that EDNS is still not mandatory. If you decide not to support EDNS it is okay as long as your software replies according to EDNS standard section 7 (https://tools.ietf.org/html/rfc6891#section-7).
+
+						DNSSEC
+							- most top level domains are now signed: http://stats.research.icann.org/dns/tld_report/
+							- some second-level domains suprisingly don't, eg microsoft.com
+
+						NAMESERVERS for TLDs
+							eg https://www.iana.org/domains/root/db/com.html
 
 
 
@@ -307,8 +314,9 @@ One very simple way to achieve this is to only accept data if it is
 		let (parsed_name_iterator, end_of_name_pointer, resource_record_type) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
 		x;
-		// TODO: NSEC and RRSIG can also occur??? (interestingly, the RRSIG occurs every time - not just once).
-		//eg dig +tries=1 +rrcomments +nofail +qr +multiline +dnssec A ns8.cloudflare.com
+		// TODO: NSEC and RRSIG can also occu
+		// eg dig +tries=1 +rrcomments +nofail +qr +multiline +dnssec A ns8.cloudflare.com
+		// eg dig +dnssec DS microsoft.com
 
 		if likely!(DataType::SOA.is(resource_record_type))
 		{
@@ -497,7 +505,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::RRSIG_lower => XXXX,
 
-				DataType::DNSKEY_lower => XXXX,
+				DataType::DNSKEY_lower => self.handle_dnskey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::DHCID_lower => self.handle_dhcid(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -1196,7 +1204,7 @@ One very simple way to achieve this is to only accept data if it is
 			Left(security_algorithm) => security_algorithm,
 			Right(security_algorithm_rejected_because_reason) =>
 			{
-				resource_record_visitor.DS_ignored(resource_record_name, SecurityAlgorithmRejected(Sha1IsBroken));
+				resource_record_visitor.DS_ignored(resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
 				return Ok(resource_data_end_pointer)
 			}
 		};
@@ -1393,6 +1401,107 @@ One very simple way to achieve this is to only accept data if it is
 		};
 
 		resource_record_visitor.IPSECKEY(name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
+	}
+
+	#[inline(always)]
+	fn handle_dnskey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::DnsKeyPurpose::*;
+		use self::DnsKeyResourceRecordIgnoredBecauseReason::*;
+
+		const FlagsSize: usize = 2;
+		const ProtocolSize: usize = 1;
+		const AlgorithmSize: usize = 1;
+		const MinimumPublicKeySize: usize = 0;
+
+		let length = resource_data.len();
+		if unlikely!(length < FlagsSize + ProtocolSize)
+		{
+			return Err(ResourceDataForTypeDNSKEYHasAnIncorrectLength(length))
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let protocol = resource_data.u8(FlagsSize);
+		if unlikely!(protocol != 3)
+		{
+			resource_record_visitor.DNSKEY_ignored(resource_record_name, ProtocolWasNot3(protocol));
+			return Ok(resource_data_end_pointer)
+		}
+
+		if unlikely!(length < FlagsSize + ProtocolSize + AlgorithmSize + MinimumPublicKeySize)
+		{
+			return Err(ResourceDataForTypeDNSKEYHasAnIncorrectLength(length))
+		}
+
+		let flags = resource_data.u16_network_endian(0);
+
+		const ZONE: u16 = 7;
+		#[cfg(target_endian = "big")] const IsZoneKeyFlag: u16 = 1 << (15 - ZONE);
+		#[cfg(target_endian = "little")] const IsZoneKeyFlag: u16 = 1 << ((15 - ZONE) - 8);
+
+		const REVOKE: u16 = 8;
+		#[cfg(target_endian = "big")] const RevokedFlag: u16 = 1 << (15 - REVOKE);
+		#[cfg(target_endian = "little")] const RevokedFlag: u16 = 1 << ((15 - REVOKE) + 8);
+
+		const SEP: u16 = 15;
+		#[cfg(target_endian = "big")] const SecureEntryPointFlag: u16 = 1 << (15 - SEP);
+		#[cfg(target_endian = "little")] const SecureEntryPointFlag: u16 = 1 << ((15 - SEP) + 8);
+
+		const KnownFlags: u16 = IsZoneKeyFlag | IsZoneKeyFlag | SecureEntryPointFlag;
+
+		if unlikely!(flags & !KnownFlags != 0)
+		{
+			resource_record_visitor.DNSKEY_ignored(resource_record_name, UnassignedFlags(flags));
+			return Ok(resource_data_end_pointer)
+		}
+
+		let is_revoked = flags & RevokedFlagBit != 0;
+		if unlikely!(is_revoked)
+		{
+			resource_record_visitor.DNSKEY_ignored(resource_record_name, Revoked);
+			return Ok(resource_data_end_pointer)
+		}
+
+		let is_zone_key = flags & IsZoneKeyFlagBit != 0;
+		let is_secure_entry_point = flags & SecureEntryPointFlagBit != 0;
+
+		let purpose = if unlikely!(is_zone_key)
+		{
+			ZoneSigningKey { is_secure_entry_point }
+		}
+		else
+		{
+			if unlikely!(is_secure_entry_point)
+			{
+				resource_record_visitor.DNSKEY_ignored(resource_record_name, SecureEntryPointFlagSetButNotZoneKeyFlag);
+				return Ok(resource_data_end_pointer)
+			}
+			KeySigningKey
+		};
+
+		let security_algorithm_type = resource_data.u16(FlagsSize + ProtocolSize);
+		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, false, false)?
+		{
+			Left(security_algorithm) => security_algorithm,
+			Right(security_algorithm_rejected_because_reason) =>
+			{
+				resource_record_visitor.DNSKEY_ignored(resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
+				return Ok(resource_data_end_pointer)
+			}
+		};
+
+		let record = DnsKey
+		{
+			purpose,
+			security_algorithm,
+			public_key: &resource_data[(FlagsSize + ProtocolSize + AlgorithmSize) .. ],
+		};
+
+		resource_record_visitor.DNSKEY(resource_record_name, time_to_live, record)?;
 		Ok(resource_data_end_pointer)
 	}
 

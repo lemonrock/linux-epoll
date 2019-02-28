@@ -98,6 +98,17 @@ pub trait ResourceRecordVisitor
 	{
 	}
 
+	/// Visits a record of type `DNSKEY`.
+	fn DNSKEY<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `DNSKEY` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn DNSKEY_ignored<'a>(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DnsKeyResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `DHCID`.
 	fn DHCID<'a>(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Dhcid<'a>) -> Result<(), DnsProtocolError>;
 

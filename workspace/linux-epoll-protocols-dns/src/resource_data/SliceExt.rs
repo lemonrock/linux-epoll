@@ -39,6 +39,12 @@ pub(crate) trait SliceExt
 	}
 
 	#[inline(always)]
+	fn u16_network_endian(&self, offset: usize) -> u16
+	{
+		self.value_::<u16>(offset)
+	}
+
+	#[inline(always)]
 	fn value<T>(&self, offset: usize) -> T
 	{
 		unsafe { *self.get_::<T>(offset) }

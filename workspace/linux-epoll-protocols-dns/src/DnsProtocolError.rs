@@ -204,6 +204,9 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `CERT` uses an experimental certificate type value (value in tuple).
 	ResourceDataForTypeCERTUsesAnExperimentalCertificateTypeValue(u16),
 
+	/// Resource data for resource record type `DNSKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeDNSKEYHasAnIncorrectLength(usize),
+
 	/// Resource data for resource record type `HIP` has an incorrect length (value in tuple).
 	ResourceDataForTypeHIPHasAnIncorrectLength(usize),
 
@@ -230,9 +233,6 @@ pub enum DnsProtocolError
 
 	/// The security alogrithm DS-Delete should not be used for this resource record.
 	SecurityAlgorithmShouldNotBeUsedForThisResourceRecordType(u8),
-
-	/// The security alogrithm `RSA-MD5` is deprecated.
-	DeprecatedSecurityAlgorithm_RSA_MD5,
 
 	/// The security alogrithm type is reserved (number in tuple).
 	SecurityAlgorithmTypeIsReservedByRfc6725(u8),

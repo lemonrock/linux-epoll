@@ -6,6 +6,9 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SecurityAlgorithmRejectedBecauseReason
 {
+	/// The security alogrithm `RSA-MD5` is deprecated.
+	DeprecatedSecurityAlgorithm_RSA_MD5,
+
 	/// DH came about well before version 3 of DNSSEC and is not used.
 	EffectivelyObsoleteSecurityAlgorithm_Diffie_Hellman,
 
