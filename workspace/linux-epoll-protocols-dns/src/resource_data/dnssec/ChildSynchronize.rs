@@ -16,5 +16,5 @@ pub struct ChildSynchronize
 	pub start_of_authority_minimum: bool,
 
 	/// Type bitmaps.
-	pub type_bitmaps: x,
+	pub type_bitmaps: TypeBitmaps,
 }

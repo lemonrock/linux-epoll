@@ -856,8 +856,8 @@ impl ResourceRecord
 
 		let length = resource_data.len();
 
-		const MinimumCpuSize: usize = Self::MinimumCharacterStringSize;
-		const MinimumOsSize: usize = Self::MinimumCharacterStringSize;
+		const MinimumCpuSize: usize = ResourceRecord::MinimumCharacterStringSize;
+		const MinimumOsSize: usize = ResourceRecord::MinimumCharacterStringSize;
 
 		if unlikely!(length < MinimumCpuSize + MinimumOsSize)
 		{
@@ -887,7 +887,7 @@ impl ResourceRecord
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
 		const PreferenceSize: usize = 2;
-		const MinimumMailServerNameSize: usize = Self::MinimumNameSize;
+		const MinimumMailServerNameSize: usize = ResourceRecord::MinimumNameSize;
 
 		let length = resource_data.len();
 
@@ -961,7 +961,7 @@ impl ResourceRecord
 		const PrioritySize: usize = 2;
 		const WeightSize: usize = 2;
 		const PortSize: usize = 2;
-		const MinimumTargetNameSize: usize = Self::MinimumNameSize;
+		const MinimumTargetNameSize: usize = ResourceRecord::MinimumNameSize;
 
 		let length = resource_data.len();
 		if unlikely!(length < PrioritySize + WeightSize + PortSize + MinimumTargetNameSize)
@@ -988,10 +988,10 @@ impl ResourceRecord
 
 		const OrderSize: usize = 2;
 		const PreferenceSize: usize = 2;
-		const MinimumFlagsSize: usize = Self::MinimumCharacterStringSize;
-		const MinimumServicesSize: usize = Self::MinimumCharacterStringSize;
-		const MinimumRegularExpressionSize: usize = Self::MinimumCharacterStringSize;
-		const MinimumDomainNameSize: usize = Self::MinimumNameSize;
+		const MinimumFlagsSize: usize = ResourceRecord::MinimumCharacterStringSize;
+		const MinimumServicesSize: usize = ResourceRecord::MinimumCharacterStringSize;
+		const MinimumRegularExpressionSize: usize = ResourceRecord::MinimumCharacterStringSize;
+		const MinimumDomainNameSize: usize = ResourceRecord::MinimumNameSize;
 
 		let length = resource_data.len();
 		if unlikely!(length < OrderSize + PreferenceSize + MinimumFlagsSize + MinimumServicesSize + MinimumRegularExpressionSize + MinimumDomainNameSize)
@@ -1072,7 +1072,7 @@ impl ResourceRecord
 		let length = resource_data.len();
 
 		const PreferenceSize: usize = 2;
-		const MinimumKeyExchangeServerNameSize: usize = Self::MinimumNameSize;
+		const MinimumKeyExchangeServerNameSize: usize = ResourceRecord::MinimumNameSize;
 
 		if unlikely!(length < PreferenceSize + MinimumKeyExchangeServerNameSize)
 		{
@@ -1500,7 +1500,7 @@ impl ResourceRecord
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		const MinimumNextSecureNameSize: usize = Self::MinimumNameSize;
+		const MinimumNextSecureNameSize: usize = ResourceRecord::MinimumNameSize;
 
 		let length = resource_data.len();
 		if unlikely!(length < MinimumNextSecureNameSize + TypeBitmaps::MinimumTypeBitmapsSize)
@@ -1538,7 +1538,7 @@ impl ResourceRecord
 		const SignatureExpirationSize: usize = 4;
 		const SignatureInceptionSize: usize = 4;
 		const KeyTagSize: usize = 2;
-		const MinimumSignersNameSize: usize = Self::MinimumNameSize;
+		const MinimumSignersNameSize: usize = ResourceRecord::MinimumNameSize;
 		const MinimumSignatureSize: usize = 0;
 
 		let length = resource_data.len();
@@ -1912,7 +1912,7 @@ impl ResourceRecord
 		const PublicKeyLengthSize: usize = 2;
 		const MinimumHostIdentityTagLength: usize = 0;
 		const MinimumPublicKeyLength: usize = 0;
-		const MinimumNumberOfRendezvousServersIsOneSoMinimumNameSizeIsOne: usize = Self::MinimumNameSize;
+		const MinimumNumberOfRendezvousServersIsOneSoMinimumNameSizeIsOne: usize = ResourceRecord::MinimumNameSize;
 		const HostIdentityTagOffset: usize = HostIdentityTagLengthSize + PublicKeyAlgorithmTypeSize + PublicKeyLengthSize;
 
 		let length = resource_data.len();
@@ -2099,7 +2099,7 @@ impl ResourceRecord
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
 		const PreferenceSize: usize = 2;
-		const MinimumNameSize: usize = Self::MinimumNameSize;
+		const MinimumNameSize: usize = ResourceRecord::MinimumNameSize;
 
 		let length = resource_data.len();
 		if unlikely!(length < PreferenceSize + MinimumNameSize)
@@ -2131,7 +2131,7 @@ impl ResourceRecord
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		const Eui48Size: usize = 48 / Self::BitsInAByte;
+		const Eui48Size: usize = 48 / ResourceRecord::BitsInAByte;
 
 		let length = resource_data.len();
 		if unlikely!(length != Eui48Size)
@@ -2150,7 +2150,7 @@ impl ResourceRecord
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		const Eui64Size: usize = 64 / Self::BitsInAByte;
+		const Eui64Size: usize = 64 / ResourceRecord::BitsInAByte;
 
 		let length = resource_data.len();
 		if unlikely!(length != Eui64Size)

@@ -12,6 +12,7 @@ include!("DelegationSignerResourceRecordIgnoredBecauseReason.rs");
 include!("DigestAlgorithmRejectedBecauseReason.rs");
 include!("DnsKey.rs");
 include!("DnsKeyPurpose.rs");
+include!("DnsKeyResourceRecordIgnoredBecauseReason.rs");
 include!("DnsSecDigest.rs");
 include!("KeyTag.rs");
 include!("NextSecure.rs");
