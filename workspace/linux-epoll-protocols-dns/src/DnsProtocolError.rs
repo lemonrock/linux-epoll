@@ -158,7 +158,7 @@ pub enum DnsProtocolError
 	ResourceDataForTypeSSHFPHasAnIncorrectLength(usize),
 
 	/// Resource data for resource record type `SSHFP` has a reserved public key algorithm.
-	ResourceDataForTypeSSHFPHasAReservedPublicKeyAlgorithm(u8),
+	ResourceDataForTypeSSHFPHasAReservedPublicKeyAlgorithm,
 
 	/// Resource data for resource record type `SSHFP` has a reserved digest algorithm.
 	ResourceDataForTypeSSHFPHasAReservedDigestAlgorithm,
@@ -311,7 +311,7 @@ pub enum DnsProtocolError
 	MoreThanOneExtendedDnsOptResourceRecord,
 
 	/// The OPT extended error code bits are non-zero.
-	ExtendedDnsOptUpper8BitsOfErrorNonZero(u16),
+	ExtendedDnsOptUpper8BitsOfErrorNonZero(u8),
 
 	/// The UDP payload size is less than 512 bytes (actual value in tuple).
 	ExtendedDnsOptRecordUdpPayloadSizeIsLessThan512Bytes(u16),
@@ -334,13 +334,13 @@ pub enum DnsProtocolError
 	/// EDNS(0) Option code was in the reserved set (0, 65001-65534 and 65535); code is in tuple.
 	///
 	/// Code 4 is ignored as the draft it pertains sees occasionaly progress; it might come into being.
-	ExtendedDnsOptionCodeWasReserved(u16),
+	ExtendedDnsOptionCodeWasReserved((u8, u8)),
 
 	/// EDNS(0) Option length field indicates an option data field whose length would exceed that remaining in the resource data of the `OPT` resource record.
 	ExtendedDnsOptionDataOverflows,
 
 	/// Some EDNS(0) options must only be set in a request, or be the result of sending a request
-	ExtendedDnsOptionMustOnlyBeSetInARequest(u16),
+	ExtendedDnsOptionMustOnlyBeSetInARequest((u8, u8)),
 
 	/// The name was not long enough.
 	///

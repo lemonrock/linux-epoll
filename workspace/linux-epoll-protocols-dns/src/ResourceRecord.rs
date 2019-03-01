@@ -1142,13 +1142,13 @@ impl ResourceRecord
 
 				253 =>
 				{
-					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeUriPrivate(certificate_type_value_lower as u16));
+					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeUriPrivate);
 					return Ok(resource_data_end_pointer)
 				}
 
 				254 =>
 				{
-					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeOidPrivate(certificate_type_value_lower as u16));
+					resource_record_visitor.CERT_ignored(resource_record_name, CertificateTypeOidPrivate);
 					return Ok(resource_data_end_pointer)
 				}
 
@@ -1197,7 +1197,7 @@ impl ResourceRecord
 	#[inline(always)]
 	fn handle_opt(&self, end_of_name_pointer: usize, end_of_message_pointer: usize, response_parsing_state: &mut ResponseParsingState) -> Result<usize, DnsProtocolError>
 	{
-		if unlikely!(!response_parsing_state.have_already_seen_an_edns_opt_resource_record)
+		if unlikely!(!response_parsing_state.have_yet_to_see_an_edns_opt_resource_record)
 		{
 			return Err(MoreThanOneExtendedDnsOptResourceRecord)
 		}
@@ -1254,7 +1254,7 @@ impl ResourceRecord
 			let option_length = options.u16_as_usize(start_of_option_offset + OptionCodeSize);
 			if unlikely!(start_of_option_offset + option_length > end_of_options_offset)
 			{
-				Err(ExtendedDnsOptionDataOverflows)
+				return Err(ExtendedDnsOptionDataOverflows)
 			}
 
 			const LLQ_lower: u8 = 1;
@@ -1291,7 +1291,7 @@ impl ResourceRecord
 
 					DHU_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, DHU_lower))),
 
-					N3U_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest(0x00, N3U_lower)),
+					N3U_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, N3U_lower))),
 
 					edns_client_subnet_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, edns_client_subnet_lower))),
 

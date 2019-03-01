@@ -7,7 +7,7 @@
 pub enum CertificateResourceRecordIgnoredBecauseReason
 {
 	/// The certificate type was unassigned.
-	CertificateTypeUnassigned(u8),
+	CertificateTypeUnassigned(u16),
 
 	/// The certificate type URI was private.
 	CertificateTypeUriPrivate,
