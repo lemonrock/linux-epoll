@@ -89,27 +89,27 @@ impl TypeBitmaps
 			const MinimumBitmapSize: usize = 1;
 			if unlikely!(blocks_length < WindowSize + BitmapLengthSize + MinimumBitmapSize)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBlockLength(length))
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBlockLength(length))
 			}
 
 			let window_number = resource_data.u8(block_starts_at) as i16;
 			if unlikely!(window_number <= previous_window_number)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECHasARepeatedOrDecreasingWindowNumber)
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasARepeatedOrDecreasingWindowNumber)
 			}
 
 			let bitmap_length = resource_data.u8(block_starts_at + WindowSize) as usize;
 			if unlikely!(bitmap_length == 0)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECHasAZeroBitmapLength)
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAZeroBitmapLength)
 			}
 			if unlikely!(bitmap_length > 32)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECHasAnIncorrectBitmapLength(bitmap_length))
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnIncorrectBitmapLength(bitmap_length))
 			}
 			if unlikely!(blocks_length < WindowSize + BitmapLengthSize + bitmap_length)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBitmapLength(length))
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBitmapLength(length))
 			}
 
 			if likely!(window_number == 0x00)

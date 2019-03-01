@@ -210,32 +210,41 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `NSEC` has an incorrect length (value in tuple).
 	ResourceDataForTypeNSECHasAnIncorrectLength(usize),
 
-	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect length (value in tuple).
-	ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBlockLength(usize),
+	/// Resource data for resource record type `CSYNC`, `NSEC` or `NSEC3` has an incorrect length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBlockLength(usize),
 
-	/// Resource data for resource record type `CSYNC` or `NSEC` has a repeated or decreasing window number.
-	ResourceDataForTypeCSYNCOrNSECHasARepeatedOrDecreasingWindowNumber,
+	/// Resource data for resource record type `CSYNC`, `NSEC` or `NSEC3` has a repeated or decreasing window number.
+	ResourceDataForTypeCSYNCOrNSECOrNSEC3HasARepeatedOrDecreasingWindowNumber,
 
-	/// Resource data for resource record type `CSYNC` or `NSEC` has a zero bitmap length (value in tuple).
-	ResourceDataForTypeCSYNCONSECHasAZeroBitmapLength,
+	/// Resource data for resource record type `CSYNC`, `NSEC` or `NSEC3` has a zero bitmap length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAZeroBitmapLength,
 
-	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect bitmap length (value in tuple).
-	ResourceDataForTypeCSYNCOrNSECHasAnIncorrectBitmapLength(usize),
+	/// Resource data for resource record type `CSYNC`, `NSEC` or `NSEC3` has an incorrect bitmap length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnIncorrectBitmapLength(usize),
 
-	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect bitmap length (value in tuple).
-	ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBitmapLength(usize),
+	/// Resource data for resource record type `CSYNC`, `NSEC` or `NSEC3` has an incorrect bitmap length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBitmapLength(usize),
 
 	/// Resource data for resource record type `NSEC3` has an incorrect length (value in tuple).
 	ResourceDataForTypeNSEC3HasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `NSEC3PARAM` has an incorrect length (value in tuple).
+	ResourceDataForTypeNSEC3PARAMHasAnIncorrectLength(usize),
+
 	/// Resource data for resource record type `NSEC3` has a reserved hash algorithm.
 	ResourceDataForTypeNSEC3HasAReservedHashAlgorithm(usize),
+
+	/// Resource data for resource record type `NSEC3PARAM` has a reserved hash algorithm.
+	ResourceDataForTypeNSEC3PARAMHasAReservedHashAlgorithm(usize),
 
 	/// Resource data for resource record type `NSEC3` has an incorrect hash length for a SHA-1 hash.
 	ResourceDataForTypeNSEC3HasAnIncorrectHashLengthForASha1Hash(usize),
 
 	/// Resource data for resource record type `NSEC3` has an overflowing salt length.
 	ResourceDataForTypeNSEC3HasAnOverflowingSaltLength(usize),
+
+	/// Resource data for resource record type `NSEC3PARAM` has an overflowing salt length.
+	ResourceDataForTypeNSEC3PARAMHasAnOverflowingSaltLength(usize),
 
 	/// Resource data for resource record type `NSEC3` has an overflowing hash length.
 	ResourceDataForTypeNSEC3HasAnOverflowingHashLength(usize),

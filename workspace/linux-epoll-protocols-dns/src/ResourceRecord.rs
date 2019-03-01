@@ -536,7 +536,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::NSEC3PARAM_lower => XXXX,
+				DataType::NSEC3PARAM_lower => self.handle_nsec3param(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::TLSA_lower => self.handle_tlsa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -1734,6 +1734,7 @@ One very simple way to achieve this is to only accept data if it is
 		Ok(resource_data_end_pointer)
 	}
 
+	#[inline(always)]
 	fn handle_nsec3<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -1830,6 +1831,72 @@ One very simple way to achieve this is to only accept data if it is
 		};
 
 		resource_record_visitor.NSEC3(resource_record_name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
+	}
+
+	#[inline(always)]
+	fn handle_nsec3param<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::NextSecureVersion3ParametersResourceRecordIgnoredBecauseReason::*;
+
+		const HashAlgorithmSize: usize = 1;
+		const FlagsSize: usize = 1;
+		const IterationsSize: usize = 2;
+		const SaltLengthSize: usize = 1;
+		const MinimumSaltSize: usize = 0;
+		const SaltStartOffset: usize = HashAlgorithmSize + FlagsSize + IterationsSize + SaltLengthSize;
+
+		let length = resource_data.len();
+		if unlikely!(length < HashAlgorithmSize + FlagsSize + IterationsSize + SaltLengthSize + MinimumSaltSize)
+		{
+			return Err(ResourceDataForTypeNSEC3PARAMHasAnIncorrectLength(length))
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let salt_length = resource_data.u8_as_usize(HashAlgorithmSize + FlagsSize + IterationsSize);
+		let salt_end_offset = HashAlgorithmSize + FlagsSize + IterationsSize + SaltLengthSize + salt_length;
+
+		if unlikely!(salt_end_offset > length)
+		{
+			return Err(ResourceDataForTypeNSEC3PARAMHasAnOverflowingSaltLength(salt_length))
+		}
+		let salt = &resource_data[SaltStartOffset .. salt_end_offset];
+
+		let hash_algorithm_number = resource_data.u8(0);
+		let (next_hashed_owner_name, hash_end_offset) = match hash_algorithm_number
+		{
+			0 => return Err(ResourceDataForTypeNSEC3PARAMHasAReservedHashAlgorithm),
+
+			1 => 1,
+
+			_ =>
+			{
+				resource_record_visitor.NSEC3PARAM_ignored(UnassignedHashAlgorithm(hash_algorithm_number));
+				Ok(resource_data_end_pointer)
+			}
+		};
+
+		// We are meant to ignore the reserved flags.
+		let flags = resource_data.u8(HashAlgorithmSize);
+		if unlikely!(flags != 0)
+		{
+			resource_record_visitor.NSEC3PARAM_ignored(resource_record_name, UnassignedFlags(flags));
+			return Ok(resource_data_end_pointer)
+		}
+
+		let record = NextSecureVersion3Parameters
+		{
+			hash_algorithm_number,
+
+			iterations: resource_data.u16(HashAlgorithmSize + FlagsSize),
+
+			salt,
+		};
+
+		resource_record_visitor.NSEC3PARAM(resource_record_name, time_to_live, record)?;
 		Ok(resource_data_end_pointer)
 	}
 

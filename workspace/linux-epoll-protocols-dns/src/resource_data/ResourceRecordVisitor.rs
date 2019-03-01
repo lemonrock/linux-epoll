@@ -135,13 +135,24 @@ pub trait ResourceRecordVisitor<'a>
 	}
 
 	/// Visits a record of type `NSEC3`.
-	fn NSEC3(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>;
+	fn NSEC3(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NextSecureVersion3<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `NSEC3` which was ignored.
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
 	fn NSEC3_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: NextSecureVersion3ResourceRecordIgnoredBecauseReason)
+	{
+	}
+
+	/// Visits a record of type `NSEC3PARAM`.
+	fn NSEC3PARAM(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NextSecureVersion3Parameters<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `NSEC3PARAM` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn NSEC3PARAM_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: NextSecureVersion3ParametersResourceRecordIgnoredBecauseReason)
 	{
 	}
 
