@@ -189,6 +189,28 @@ pub trait ResourceRecordVisitor<'a>
 	{
 	}
 
+	/// Visits a record of type `CDNSKEY`.
+	fn CDNSKEY(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CDNSKEY` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn CDNSKEY_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
+	{
+	}
+
+	/// Visits a record of type `CDS`.
+	fn CDS(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CDS` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn CDS_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
+	{
+	}
+
 	/// Visits a record of type `OPENPGPKEY`.
 	fn OPENPGPKEY(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
 
