@@ -15,3 +15,8 @@ pub struct NextSecureVersion3Parameters<'a>
 	/// Salt.
 	pub salt: &'a [u8],
 }
+
+impl<'a> NextSecureVersion3Parameters<'a>
+{
+	pub const Sha1HashAlgorithmNumber: u8 = 1;
+}

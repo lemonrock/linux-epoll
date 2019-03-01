@@ -161,7 +161,7 @@ pub enum DnsProtocolError
 	ResourceDataForTypeSSHFPHasAReservedPublicKeyAlgorithm(u8),
 
 	/// Resource data for resource record type `SSHFP` has a reserved digest algorithm.
-	ResourceDataForTypeSSHFPHasAReservedDigestAlgorithm(u8),
+	ResourceDataForTypeSSHFPHasAReservedDigestAlgorithm,
 
 	/// Resource data for resource record type `SSHFP` has an incorrect digest length (value in tuple).
 	ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType(usize),
@@ -236,10 +236,10 @@ pub enum DnsProtocolError
 	ResourceDataForTypeNSEC3PARAMHasAnIncorrectLength(usize),
 
 	/// Resource data for resource record type `NSEC3` has a reserved hash algorithm.
-	ResourceDataForTypeNSEC3HasAReservedHashAlgorithm(usize),
+	ResourceDataForTypeNSEC3HasAReservedHashAlgorithm,
 
 	/// Resource data for resource record type `NSEC3PARAM` has a reserved hash algorithm.
-	ResourceDataForTypeNSEC3PARAMHasAReservedHashAlgorithm(usize),
+	ResourceDataForTypeNSEC3PARAMHasAReservedHashAlgorithm,
 
 	/// Resource data for resource record type `NSEC3` has an incorrect hash length for a SHA-1 hash.
 	ResourceDataForTypeNSEC3HasAnIncorrectHashLengthForASha1Hash(usize),

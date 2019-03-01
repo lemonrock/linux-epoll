@@ -1371,7 +1371,7 @@ impl ResourceRecord
 
 			2 =>
 			{
-				resource_record_visitor.SSHFP_ignored(resource_record_name, PublicKeyAlgorithmDsaIsEffectivelyObsolete(raw_public_key_algorithm));
+				resource_record_visitor.SSHFP_ignored(resource_record_name, PublicKeyAlgorithmDsaIsEffectivelyObsolete);
 				return Ok(resource_data_end_pointer)
 			}
 
@@ -1486,7 +1486,7 @@ impl ResourceRecord
 
 			_ =>
 			{
-				resource_record_visitor.IPSECKEY_ignored(GatewayTypeUnassigned(gateway_type));
+				resource_record_visitor.IPSECKEY_ignored(resource_record_name, GatewayTypeUnassigned(gateway_type));
 				return Ok(resource_data_end_pointer)
 			}
 		};
@@ -1587,7 +1587,7 @@ impl ResourceRecord
 				return Ok(resource_data_end_pointer)
 			}
 
-			Some(signature_expiration_seconds, signature_inception_seconds, difference) => if unlikely!(difference <= 0)
+			Some((signature_expiration_seconds, signature_inception_seconds, difference)) => if unlikely!(difference <= 0)
 			{
 				resource_record_visitor.RRSIG_ignored(resource_record_name, DifferenceInSignatureInceptionAndExpirationWasNegativeOrZero { signature_inception_timestamp, signature_expiration_timestamp });
 				return Ok(resource_data_end_pointer)
@@ -1617,7 +1617,7 @@ impl ResourceRecord
 					return Ok(resource_data_end_pointer)
 				}
 
-				let signature_expiration_timespec = Timespec::new(LastWrapAroundPoint + signature_expiration_seconds as i64);
+				let signature_expiration_timespec = Timespec::new(LastWrapAroundPoint + signature_expiration_seconds as i64, 0);
 				if unlikely!(signature_expiration_timespec <= now)
 				{
 					resource_record_visitor.RRSIG_ignored(resource_record_name, Expired { signature_inception_timestamp, signature_expiration_timestamp });
@@ -1758,7 +1758,7 @@ impl ResourceRecord
 				let hash_length = resource_data.u8_as_usize(salt_end_offset);
 
 				const DigestSizeInBits: usize = 160;
-				const DigestSize: usize = DigestSizeInBits / DigestSizeInBits;
+				const DigestSize: usize = DigestSizeInBits / ResourceRecord::BitsInAByte;
 
 				if unlikely!(hash_length != DigestSize)
 				{
@@ -1781,8 +1781,8 @@ impl ResourceRecord
 
 			_ =>
 			{
-				resource_record_visitor.NSEC3_ignored(UnassignedHashAlgorithm(hash_algorithm_number));
-				Ok(resource_data_end_pointer)
+				resource_record_visitor.NSEC3_ignored(resource_record_name, UnassignedHashAlgorithm(hash_algorithm_number));
+				return Ok(resource_data_end_pointer)
 			}
 		};
 
@@ -1846,16 +1846,15 @@ impl ResourceRecord
 		}
 		let salt = &resource_data[SaltStartOffset .. salt_end_offset];
 
-		let hash_algorithm_number = resource_data.u8(0);
-		let (next_hashed_owner_name, hash_end_offset) = match hash_algorithm_number
+		let hash_algorithm_number = match resource_data.u8(0)
 		{
 			0 => return Err(ResourceDataForTypeNSEC3PARAMHasAReservedHashAlgorithm),
 
-			1 => 1,
+			1 => NextSecureVersion3Parameters::Sha1HashAlgorithmNumber,
 
 			_ =>
 			{
-				resource_record_visitor.NSEC3PARAM_ignored(UnassignedHashAlgorithm(hash_algorithm_number));
+				resource_record_visitor.NSEC3PARAM_ignored(resource_record_name, UnassignedHashAlgorithm(hash_algorithm_number));
 				return Ok(resource_data_end_pointer)
 			}
 		};

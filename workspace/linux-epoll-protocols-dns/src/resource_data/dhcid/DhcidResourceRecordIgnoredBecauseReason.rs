@@ -7,7 +7,7 @@
 pub enum DhcidResourceRecordIgnoredBecauseReason
 {
 	/// The identifier type was unassigned.
-	IdentifierTypeUnassigned(u8),
+	IdentifierTypeUnassigned(u16),
 
 	/// The digest algorithm was unassigned.
 	DigestAlgorithmUnassigned(u8),
