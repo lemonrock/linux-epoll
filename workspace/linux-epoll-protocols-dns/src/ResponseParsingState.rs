@@ -3,10 +3,27 @@
 
 
 #[derive(Debug)]
-struct ResponseParsingState
+pub(crate) struct ResponseParsingState
 {
 	have_yet_to_see_an_answer_section_cname_resource_record: bool,
 	have_yet_to_see_an_answer_section_dname_resource_record: bool,
 	have_yet_to_see_a_soa_resource_record: bool,
 	have_yet_to_see_an_edns_opt_resource_record: bool,
+	dnssec_ok: Option<bool>,
+}
+
+impl Default for ResponseParsingState
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			have_yet_to_see_an_answer_section_cname_resource_record: true,
+			have_yet_to_see_an_answer_section_dname_resource_record: true,
+			have_yet_to_see_a_soa_resource_record: true,
+			have_yet_to_see_an_edns_opt_resource_record: true,
+			dnssec_ok: None,
+		}
+	}
 }

@@ -1223,9 +1223,11 @@ impl ResourceRecord
 		let extended_response_code_and_flags = self.extended_response_code_and_flags(end_of_name_pointer);
 
 		let upper_8_bits = extended_response_code_and_flags.extended_response_code_upper_8_bits();
-		// TODO: Any value that isn't zero is effectively an error.
-		x;
 
+		if unlikely!(upper_8_bits != 0)
+		{
+			return Err(ExtendedDnsOptUpper8BitsOfErrorNonZero(upper_8_bits))
+		}
 
 		let version = extended_response_code_and_flags.version()?;
 		debug_assert_eq!(version, ExtendedDnsVersion::Version0, "Why do we support EDNS versions other than 0?");
@@ -1234,63 +1236,95 @@ impl ResourceRecord
 
 		extended_response_code_and_flags.z()?;
 
-		let resource_data = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+		let options = self.safely_access_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		// 2-byte option code, 2-byte option length
-		let mut current_pointer = resource_data.pointer();
-		let end_of_options_pointer = current_pointer + resource_data.len();
-		while current_pointer != end_of_options_pointer
+		let mut start_of_option_offset = 0;
+		let end_of_options_offset = options.len();
+		while start_of_option_offset != end_of_options_offset
 		{
-			if unlikely!(current_pointer + 4 > end_of_options_pointer)
+			const OptionCodeSize: usize = 2;
+			const OptionLengthSize: usize = 2;
+			const MinimumOptionDataSize: usize = 2;
+
+			if unlikely!(start_of_option_offset + OptionCodeSize + OptionLengthSize + MinimumOptionDataSize > end_of_options_pointer)
 			{
 				return Err(ExtendedDnsOptionTooShort)
 			}
 
-			let option_code = u16::from_be_bytes(unsafe { * (current_pointer as *const [u8; 2]) });
-
-			#[inline(always)]
-			fn validate_raw_option_data<'a>(current_pointer: usize) -> Result<&'a [u8], DnsProtocolError>
+			let option_length = options.u16_as_usize(start_of_option_offset + OptionCodeSize);
+			if unlikely!(start_of_option_offset + option_length > end_of_options_offset)
 			{
-				let option_length = u16::from_be_bytes(unsafe { * ((current_pointer + 2) as *const [u8; 2]) }) as usize;
-				let option_data_pointer = current_pointer + 4;
-				if unlikely!(option_data_pointer + option_length > end_of_options_pointer)
-				{
-					Err(ExtendedDnsOptionDataOverflows)
-				}
-				else
-				{
-					Ok(unsafe { from_raw_parts(option_data_pointer as *const u8, option_length) })
-				}
+				Err(ExtendedDnsOptionDataOverflows)
 			}
 
-			const DAU: u16 = 5;
-			const DHU: u16 = 6;
-			const N3U: u16 = 7;
-
-			match option_code
+			const LLQ_lower: u8 = 1;
+			const UL_lower: u8 = 2;
+			const NSID_lower: u8 = 3;
+			const ReservedPendingUseAsOwnerOption_lower: u8 = 4;
+			const DAU_lower: u8 = 5;
+			const DHU_lower: u8 = 6;
+			const N3U_lower: u8 = 7;
+			const edns_client_subnet_lower: u8 = 8;
+			const EDNS_EXPIRE_lower: u8 = 9;
+			const COOKIE_lower: u8 = 10;
+			const edns_tcp_keepalive_lower: u8 = 11;
+			const Padding_lower: u8 = 12;
+			const CHAIN_lower: u8 = 13;
+			const edns_key_tag: u16 = 14;
+			let option_code_lower = options.u8(start_of_option_offset);
+			let option_code_upper = options.u8(start_of_option_offset + 1);
+			match option_code_upper
 			{
-				0 | 65001 ... 65535 => return Err(ExtendedDnsOptionCodeWasReserved(option_code)),
+				0x00 => match option_code_lower
+				{
+					0 => return Err(ExtendedDnsOptionCodeWasReserved((0x00, 0x00))),
 
-				// RFC 6975, Section 6, Paragraph 4: "Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.
-				// These values are only set in queries".
-				DAU => return Err(ExtendedDnsOptionDAUMustOnlyBeSetInARequest),
+					LLQ_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, LLQ_lower))),
 
-				// RFC 6975, Section 6, Paragraph 4: "Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.
-				// These values are only set in queries".
-				DHU => return Err(ExtendedDnsOptionDHUMustOnlyBeSetInARequest),
+					UL_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, UL_lower))),
 
-				// RFC 6975, Section 6, Paragraph 4: "Authoritative servers MUST NOT set the DAU, DHU, and/or N3U option(s) on any responses.
-				// These values are only set in queries".
-				N3U => return Err(ExtendedDnsOptionN3UMustOnlyBeSetInARequest),
+					NSID_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, NSID_lower))),
+
+					ReservedPendingUseAsOwnerOption_lower => (),
+
+					DAU_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, DAU_lower))),
+
+					DHU_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, DHU_lower))),
+
+					N3U_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest(0x00, N3U_lower)),
+
+					edns_client_subnet_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, edns_client_subnet_lower))),
+
+					EDNS_EXPIRE_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, EDNS_EXPIRE_lower))),
+
+					COOKIE_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, COOKIE_lower))),
+
+					edns_tcp_keepalive_lower => (),
+
+					Padding_lower => (),
+
+					CHAIN_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, CHAIN_lower))),
+
+					edns_key_tag_lower => return Err(ExtendedDnsOptionMustOnlyBeSetInARequest((0x00, edns_key_tag_lower))),
+				}
 
 				_ =>
 				{
-					let option_data = validate_raw_option_data(current_pointer)?;
+					let option_code = (option_code_upper as u16) << 8 | (option_code_lower as u16);
+					if unlikely!(option_code >= 65001)
+					{
+						return Err(ExtendedDnsOptionCodeWasReserved((option_code_upper, option_code_lower)))
+					}
 				}
 			}
+
+			start_of_option_offset += OptionCodeSize + OptionLengthSize + option_length;
 		}
 
 		response_parsing_state.have_yet_to_see_an_edns_opt_resource_record = false;
+		response_parsing_state.dnssec_ok = Some(dnssec_ok);
+
+		Ok(options.end_pointer())
 	}
 
 	#[inline(always)]

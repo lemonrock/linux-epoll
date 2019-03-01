@@ -315,6 +315,9 @@ pub enum DnsProtocolError
 	/// More than one resource record of the psuedo-type `OPT` is present in the additional record section.
 	MoreThanOneExtendedDnsOptResourceRecord,
 
+	/// The OPT extended error code bits are non-zero.
+	ExtendedDnsOptUpper8BitsOfErrorNonZero(u16),
+
 	/// The UDP payload size is less than 512 bytes (actual value in tuple).
 	ExtendedDnsOptRecordUdpPayloadSizeIsLessThan512Bytes(u16),
 
@@ -341,14 +344,8 @@ pub enum DnsProtocolError
 	/// EDNS(0) Option length field indicates an option data field whose length would exceed that remaining in the resource data of the `OPT` resource record.
 	ExtendedDnsOptionDataOverflows,
 
-	/// EDNS(0) Option `DAU` must only be set in a request.
-	ExtendedDnsOptionDAUMustOnlyBeSetInARequest,
-
-	/// EDNS(0) Option `DHU` must only be set in a request.
-	ExtendedDnsOptionDHUMustOnlyBeSetInARequest,
-
-	/// EDNS(0) Option `N3U` must only be set in a request.
-	ExtendedDnsOptionN3UMustOnlyBeSetInARequest,
+	/// Some EDNS(0) options must only be set in a request, or be the result of sending a request
+	ExtendedDnsOptionMustOnlyBeSetInARequest(u16),
 
 	/// The name was not long enough.
 	///

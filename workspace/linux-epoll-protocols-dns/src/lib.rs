@@ -81,6 +81,10 @@ pub mod name;
 pub mod resource_data;
 
 
+/// Zone files.
+pub mod zone_files;
+
+
 include!("DataType.rs");
 include!("DnsProtocolError.rs");
 include!("Message.rs");
