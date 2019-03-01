@@ -179,8 +179,6 @@ impl<'a> ParsedNameIterator<'a>
 				}
 
 				_ => unreachable!(),
-
-				unsupported @ _ => return Err(UnsupportedNameLabelKind(unsupported))
 			}
 		};
 

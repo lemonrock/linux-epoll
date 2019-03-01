@@ -41,5 +41,5 @@ pub enum SecurityAlgorithmRejectedBecauseReason
 	ReservedByRfc4034ForPrivateAlgorithms,
 
 	/// `PRIVATEOID`.
-	ReservedByRfc4034ForPrivateAlgorithmsOids,
+	ReservedByRfc4034ForPrivateAlgorithmOids,
 }

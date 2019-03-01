@@ -7,7 +7,7 @@
 pub enum CertificateAuthorityAuthorizationResourceRecordIgnoredBecauseReason<'a>
 {
 	/// The tag length exceeded 15.
-	TagLengthExceeded15(u8),
+	TagLengthExceeded15(usize),
 
 	/// The flag bits contained unassigned values.
 	UseOfUnassignedFlagBits(u8),

@@ -334,7 +334,7 @@ impl ResourceRecord
 	#[inline(always)]
 	pub(crate) fn parse_answer_section_resource_record_in_response<'a>(&'a self, question_q_type: DataType, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, response_parsing_state: &mut ResponseParsingState) -> Result<usize, DnsProtocolError>
 	{
-		let (parsed_name_iterator, end_of_name_pointer, resource_record_type) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
+		let (parsed_name_iterator, end_of_name_pointer, (type_upper, type_lower)) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
 		let question_q_type_upper =  question_q_type.0.u8(0);
 
@@ -368,7 +368,7 @@ impl ResourceRecord
 			}
 			else
 			{
-				self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, true, false, resource_record_type)
+				self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, true, false, (type_upper, type_lower))
 			}
 		}
 		else
@@ -1348,6 +1348,7 @@ impl ResourceRecord
 
 		use self::SshFingerprintDigest::*;
 		use self::SshFingerprintResourceRecordIgnoredBecauseReason::*;
+		use self::SshPublicKeyAlgorithm::*;
 
 		const PublicKeyAlgorithmSize: usize = 1;
 		const DigestAlgorithmSize: usize = 1;
@@ -1366,7 +1367,17 @@ impl ResourceRecord
 		{
 			0 => return Err(ResourceDataForTypeSSHFPHasAReservedPublicKeyAlgorithm),
 
-			1 ... 4 => unsafe { transmute(raw_public_key_algorithm) },
+			1 => RSA,
+
+			2 =>
+			{
+				resource_record_visitor.SSHFP_ignored(resource_record_name, PublicKeyAlgorithmDsaIsEffectivelyObsolete(raw_public_key_algorithm));
+				return Ok(resource_data_end_pointer)
+			}
+
+			3 => ECDSA,
+
+			4 => Ed25519,
 
 			_ =>
 			{
@@ -2381,12 +2392,8 @@ impl ResourceRecord
 		}
 
 		let resource_record_type = self.resource_record_type(end_of_name_pointer);
-		let resource_record_type_bytes = &resource_record_type.0;
 
-		let type_upper = resource_record_type_bytes.u8(0);
-		let type_lower = resource_record_type_bytes.u8(1);
-
-		Ok((parsed_name_iterator, end_of_name_pointer, (type_upper, type_lower)))
+		Ok((parsed_name_iterator, end_of_name_pointer, resource_record_type.upper_and_lower()))
 	}
 
 	#[inline(always)]

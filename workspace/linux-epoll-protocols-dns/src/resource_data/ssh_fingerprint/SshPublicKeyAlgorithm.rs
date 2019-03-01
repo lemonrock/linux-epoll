@@ -5,7 +5,7 @@
 /// See <https://www.iana.org/assignments/dns-sshfp-rr-parameters/dns-sshfp-rr-parameters.xhtml>
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
-pub enum PublicKeyAlgorithm
+pub enum SshPublicKeyAlgorithm
 {
 	/// RSA.
 	///

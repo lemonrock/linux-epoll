@@ -166,11 +166,6 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `SSHFP` has an incorrect digest length (value in tuple).
 	ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType(usize),
 
-	/// Resource data for resource record type `SSHFP` has a digest size which is incorrect for the fingerprint type.
-	///
-	/// Tuple contains the fingerprint type and the actual digest size.
-	ResourceDataForTypeSSHFPHasADigestOfIncorrectSizeForTheFingerprintType(FingerprintType, usize),
-
 	/// Resource data for resource record type `NID` has an incorrect length (value in tuple).
 	ResourceDataForTypeNIDHasAnIncorrectLength(usize),
 

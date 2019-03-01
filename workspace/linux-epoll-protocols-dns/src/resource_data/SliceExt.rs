@@ -106,12 +106,12 @@ impl<'a> SliceExt for &'a [u8]
 
 		let accumulator = if length % 2 == 0
 		{
-			accumulate(data, length)
+			accumulate(self, length)
 		}
 		else
 		{
 			let last = length - 1;
-			accumulate(data, last) + self.u8(last) << 8
+			accumulate(self, last) + self.u8(last) << 8
 		};
 
 		let accumulator = accumulator + ((accumulator >> 16) & 0xFFFF);

@@ -215,7 +215,7 @@ pub trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CDS_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DelegationSignedResourceRecordIgnoredBecauseReason)
+	fn CDS_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DelegationSignerResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -261,7 +261,7 @@ pub trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CAA_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: CertificationAuthorityAuthorizationResourceRecordIgnoredBecauseReason<'a>)
+	fn CAA_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: CertificateAuthorityAuthorizationResourceRecordIgnoredBecauseReason<'a>)
 	{
 	}
 

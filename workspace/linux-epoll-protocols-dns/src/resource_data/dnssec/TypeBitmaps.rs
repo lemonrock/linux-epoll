@@ -89,16 +89,16 @@ impl TypeBitmaps
 			const MinimumBitmapSize: usize = 1;
 			if unlikely!(blocks_length < WindowSize + BitmapLengthSize + MinimumBitmapSize)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBlockLength(length))
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBlockLength(blocks_length))
 			}
 
-			let window_number = resource_data.u8(block_starts_at) as i16;
+			let window_number = blocks.u8(block_starts_at) as i16;
 			if unlikely!(window_number <= previous_window_number)
 			{
 				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasARepeatedOrDecreasingWindowNumber)
 			}
 
-			let bitmap_length = resource_data.u8(block_starts_at + WindowSize) as usize;
+			let bitmap_length = blocks.u8(block_starts_at + WindowSize) as usize;
 			if unlikely!(bitmap_length == 0)
 			{
 				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAZeroBitmapLength)
@@ -109,14 +109,14 @@ impl TypeBitmaps
 			}
 			if unlikely!(blocks_length < WindowSize + BitmapLengthSize + bitmap_length)
 			{
-				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBitmapLength(length))
+				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBitmapLength(bitmap_length))
 			}
 
 			if likely!(window_number == 0x00)
 			{
 				have_seen_window_number_0 = true;
 
-				let bitmap = &resource_data[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
+				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
 
 				let length_to_copy = if likely!(bitmap_length < Self::TypeCodes0x0000To0x007FSize)
 				{
@@ -131,7 +131,7 @@ impl TypeBitmaps
 			}
 			else if likely!(window_number == 0x01)
 			{
-				let bitmap = &resource_data[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
+				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
 
 				this.type_codes_0x0100_to_0x0101 = bitmap.u8(0);
 			}

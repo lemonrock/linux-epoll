@@ -12,6 +12,9 @@ pub enum SecurityAlgorithm
 	/// RSA-SHA2-256.
 	RivestShamirAdlemanSha256,
 
+	/// RSA-SHA2-512.
+	RivestShamirAdlemanSha512,
+
 	/// DSA NSEC3 SHA-1.
 	DigitalSignatureAlgorithmNsec3Sha1,
 
@@ -160,6 +163,7 @@ impl SecurityAlgorithm
 	pub(crate) fn parse_security_algorithm(security_algorithm_type: u8, permit_delete: bool, permit_nsec3: bool) -> Result<Either<Self, SecurityAlgorithmRejectedBecauseReason>, DnsProtocolError>
 	{
 		use self::SecurityAlgorithm::*;
+		use self::SecurityAlgorithmRejectedBecauseReason::*;
 
 		match security_algorithm_type
 		{
@@ -208,7 +212,7 @@ impl SecurityAlgorithm
 
 			11 => Err(SecurityAlgorithmTypeIsReservedByRfc6725(11)),
 
-			Self::ECC_GOST => Ok(Right(ObsoleteSecurityAlgorithm_GOST_R_34_10_2001)),
+			Self::ECC_GOST => Ok(Right(EffectivelyObsoleteSecurityAlgorithm_GOST_R_34_10_2001)),
 
 			Self::ECDSAP256SHA256 => Ok(Left(EllipticCurveDigitalSignatureAlgorithmWithCurveP256AndSha256)),
 

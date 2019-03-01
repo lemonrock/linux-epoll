@@ -6,6 +6,9 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SshFingerprintResourceRecordIgnoredBecauseReason
 {
+	/// The public key algorithm DSA is effectively obsolete.
+	PublicKeyAlgorithmDsaIsEffectivelyObsolete,
+
 	/// The public key algorithm was unassigned.
 	PublicKeyAlgorithmUnassigned(u8),
 
