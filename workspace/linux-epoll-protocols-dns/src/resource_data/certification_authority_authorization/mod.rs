@@ -5,6 +5,6 @@
 use super::*;
 
 
-include!("CertificationAuthorityAuthorization.rs");
+include!("CertificateAuthorityAuthorization.rs");
 include!("CertificateAuthorityAuthorizationPropertyTag.rs");
-include!("CertificationAuthorityAuthorizationResourceRecordIgnoredBecauseReason.rs");
+include!("CertificateAuthorityAuthorizationResourceRecordIgnoredBecauseReason.rs");
