@@ -207,6 +207,24 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `DNSKEY` has an incorrect length (value in tuple).
 	ResourceDataForTypeDNSKEYHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `NSEC` has an incorrect length (value in tuple).
+	ResourceDataForTypeNSECHasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBlockLength(usize),
+
+	/// Resource data for resource record type `CSYNC` or `NSEC` has a repeated or decreasing window number.
+	ResourceDataForTypeCSYNCOrNSECHasARepeatedOrDecreasingWindowNumber,
+
+	/// Resource data for resource record type `CSYNC` or `NSEC` has a zero bitmap length (value in tuple).
+	ResourceDataForTypeCSYNCONSECHasAZeroBitmapLength,
+
+	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect bitmap length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECHasAnIncorrectBitmapLength(usize),
+
+	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect bitmap length (value in tuple).
+	ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBitmapLength(usize),
+
 	/// Resource data for resource record type `RRSIG` has an incorrect length (value in tuple).
 	ResourceDataForTypeRRSIGHasAnIncorrectLength(usize),
 

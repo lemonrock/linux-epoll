@@ -2,20 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-use super::*;
+/// Next domain name (`NSEC`).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NextDomain<'a>
+{
+	/// Next domain name.
+	pub next_domain_name: ParsedNameIterator<'a>,
 
-
-include!("DelegationSigner.rs");
-include!("DelegationSignerResourceRecordIgnoredBecauseReason.rs");
-include!("DigestAlgorithmRejectedBecauseReason.rs");
-include!("DnsKey.rs");
-include!("DnsKeyPurpose.rs");
-include!("DnsSecDigest.rs");
-include!("KeyTag.rs");
-include!("NextDomain.rs");
-include!("ResourceRecordSetSignature.rs");
-include!("ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason.rs");
-include!("SecurityAlgorithm.rs");
-include!("SecurityAlgorithmRejectedBecauseReason.rs");
-include!("SignatureTimestamp.rs");
-include!("TypeBitmaps.rs");
+	/// Type bitmaps.
+	pub type_bitmaps: TypeBitmaps,
+}

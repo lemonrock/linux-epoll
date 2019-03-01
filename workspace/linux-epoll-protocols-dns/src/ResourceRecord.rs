@@ -187,6 +187,17 @@ impl ResourceRecord
 							- most top level domains are now signed: http://stats.research.icann.org/dns/tld_report/
 							- some second-level domains suprisingly don't, eg microsoft.com
 
+							https://metebalci.com/blog/a-minimum-complete-tutorial-of-dnssec/
+
+							https://www.cloudflare.com/dns/dnssec/how-dnssec-works/
+							https://www.cloudflare.com/dns/dnssec/dnssec-complexities-and-considerations/?utm_referrer=https://duckduckgo.com/
+							https://blog.cloudflare.com/dnssec-done-right/?utm_referrer=https://duckduckgo.com/
+
+							https://tools.ietf.org/html/rfc4033
+							https://tools.ietf.org/html/rfc4034
+							https://tools.ietf.org/html/rfc4035
+
+
 						NAMESERVERS for TLDs
 							eg https://www.iana.org/domains/root/db/com.html
 
@@ -224,6 +235,20 @@ impl ResourceRecord
 						 If we do care, we have to make sure EVERY record has a NAME for which the sending server is authoritative, ie IT MUST COME FROM THE NAMESERVER FOR THAT DOMAIN.
 
 						 eg dig blog.cloudflare.com would require us to throw away all the `A` records for `cloudflare.ghost.io`
+
+/*
+https://tools.ietf.org/html/rfc6840#section-2
+
+[RFC5155] describes the use and behavior of the NSEC3 and NSEC3PARAM
+   records for hashed denial of existence.  Validator implementations
+   are strongly encouraged to include support for NSEC3 because a number
+   of highly visible zones use it.  Validators that do not support
+   validation of responses using NSEC3 will be hampered in validating
+   large portions of the DNS space.
+
+resolvers MUST ignore the DO bit in responses even if they set in in requests due to broken implementations
+
+*/
 
 
 
@@ -314,7 +339,7 @@ One very simple way to achieve this is to only accept data if it is
 		let (parsed_name_iterator, end_of_name_pointer, resource_record_type) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
 		x;
-		// TODO: NSEC and RRSIG can also occu
+		// TODO: NSEC and RRSIG can also occur
 		// eg dig +tries=1 +rrcomments +nofail +qr +multiline +dnssec A ns8.cloudflare.com
 		// eg dig +dnssec DS microsoft.com
 
@@ -501,7 +526,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::IPSECKEY_lower => self.handle_ipseckey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::NSEC_lower => XXXX,
+				DataType::NSEC_lower => self.handle_nsec(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -1405,6 +1430,35 @@ One very simple way to achieve this is to only accept data if it is
 	}
 
 	#[inline(always)]
+	fn handle_nsec<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		const MinimumNextDomainNameSize: usize = Self::MinimumNameSize;
+		const MinimumTypeBitMapsSize: usize = 0;
+
+		let length = resource_data.len();
+		if unlikely!(length < MinimumNextDomainNameSize + MinimumTypeBitMapsSize)
+		{
+			return Err(ResourceDataForTypeNSECHasAnIncorrectLength(length))
+		}
+
+		let resource_data_pointer = resource_data.pointer();
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let (next_domain_name, end_of_next_domain_name_pointer) = ParsedNameIterator::parse_without_compression(resource_data_pointer, resource_data_end_pointer)?;
+
+		let record = NextDomain
+		{
+			next_domain_name,
+			type_bitmaps: TypeBitmaps::parse_type_bitmaps(&resource_data[(end_of_next_domain_name_pointer - resource_data_pointer) .. ])?,
+		};
+
+		resource_record_visitor.NSEC(name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
+	}
+
+	#[inline(always)]
 	fn handle_rrsig<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
@@ -2115,6 +2169,7 @@ One very simple way to achieve this is to only accept data if it is
 		)
 	}
 
+
 	#[inline(always)]
 	fn validate_minimum_record_size_and_parse_name_and_resource_record_type<'a>(&'a self, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>) -> Result<(ParsedNameIterator<'a>, usize, (u8, u8)), DnsProtocolError>
 	{
@@ -2134,7 +2189,7 @@ One very simple way to achieve this is to only accept data if it is
 		}
 
 		let resource_record_type = self.resource_record_type(end_of_name_pointer);
-		let resource_record_type_bytes = resource_record_type.0;
+		let resource_record_type_bytes = &resource_record_type.0;
 
 		let type_upper = resource_record_type_bytes.u8(0);
 		let type_lower = resource_record_type_bytes.u8(1);
