@@ -10,7 +10,7 @@ pub(crate) trait SliceExt
 
 	/// RFC 4034, Appendix B.
 	#[inline(always)]
-	fn key_tag(&self) -> u16;
+	fn key_tag(&self) -> KeyTag;
 
 	#[inline(always)]
 	fn cast<T>(&self, offset: usize) -> &T

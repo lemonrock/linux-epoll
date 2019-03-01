@@ -2210,7 +2210,7 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeCAAHasAnIncorrectLength(length))
 		}
 
-		let tag_length = resource_data.u8(FlagsSize);
+		let tag_length = resource_data.u8_as_usize(FlagsSize);
 
 		if unlikely!(tag_length == 0)
 		{
@@ -2244,7 +2244,7 @@ impl ResourceRecord
 			return Ok(resource_data_end_pointer)
 		}
 
-		static KnownTags: Map<&'static str, Option<CertificateAuthorityAuthorizationPropertyTag>> = phf_map!
+		static KnownTags: Map<&'static [u8], Option<CertificateAuthorityAuthorizationPropertyTag>> = phf_map!
 		{
     		b"issue" => Some(AuthorizationEntryByDomain),
     		b"issuewild" => Some(AuthorizationEntryByWildcardDomain),

@@ -22,6 +22,7 @@ extern crate either;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
 extern crate phf;
+#[macro_use] extern crate phf_macros;
 extern crate time;
 
 

@@ -10,5 +10,5 @@ pub struct PublicKeyFingerprint<'a>
 	pub public_key_algorithm: SshPublicKeyAlgorithm,
 
 	/// Public key digest.
-	pub public_key_digest: SshFingerprintDigest,
+	pub public_key_digest: SshFingerprintDigest<'a>,
 }

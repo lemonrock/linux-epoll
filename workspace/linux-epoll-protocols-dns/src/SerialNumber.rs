@@ -15,6 +15,15 @@ impl Into<u32> for SerialNumber
 	}
 }
 
+impl<'a> Into<u32> for &'a SerialNumber
+{
+	#[inline(always)]
+	fn into(self) -> u32
+	{
+		u32::from_be_bytes(self.0)
+	}
+}
+
 impl PartialEq for SerialNumber
 {
 	#[inline(always)]
