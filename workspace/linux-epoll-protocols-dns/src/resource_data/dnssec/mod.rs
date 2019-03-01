@@ -5,6 +5,8 @@
 use super::*;
 
 
+include!("ChildSynchronize.rs");
+include!("ChildSynchronizeResourceRecordIgnoredBecauseReason.rs");
 include!("DelegationSigner.rs");
 include!("DelegationSignerResourceRecordIgnoredBecauseReason.rs");
 include!("DigestAlgorithmRejectedBecauseReason.rs");

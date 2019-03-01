@@ -207,6 +207,9 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `DNSKEY` or `CDNSKEY` has an incorrect length (value in tuple).
 	ResourceDataForTypeDNSKEYOrCDNSKEYHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `CSYNC` has an incorrect length (value in tuple).
+	ResourceDataForTypeCSYNCHasAnIncorrectLength(usize),
+
 	/// Resource data for resource record type `NSEC` has an incorrect length (value in tuple).
 	ResourceDataForTypeNSECHasAnIncorrectLength(usize),
 

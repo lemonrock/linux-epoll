@@ -190,29 +190,44 @@ pub trait ResourceRecordVisitor<'a>
 	}
 
 	/// Visits a record of type `CDNSKEY`.
-	fn CDNSKEY(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a>) -> Result<(), DnsProtocolError>;
+	///
+	/// Note that the algorithm `DS-Delete` is NOT validated.
+	fn CDNSKEY(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `CDNSKEY` which was ignored.
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CDNSKEY_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
+	fn CDNSKEY_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DnsKeyResourceRecordIgnoredBecauseReason)
 	{
 	}
 
 	/// Visits a record of type `CDS`.
-	fn CDS(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a>) -> Result<(), DnsProtocolError>;
+	///
+	/// Note that the algorithm `DS-Delete` is NOT validated.
+	fn CDS(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `CDS` which was ignored.
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CDS_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
+	fn CDS_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DelegationSignedResourceRecordIgnoredBecauseReason)
 	{
 	}
 
 	/// Visits a record of type `OPENPGPKEY`.
 	fn OPENPGPKEY(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CSYNC`.
+	fn CSYNC(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ChildSynchronize<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `CSYNC` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn CSYNC_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: ChildSynchronizeResourceRecordIgnoredBecauseReason)
+	{
+	}
 
 	/// Visits a record of type `NID`.
 	fn NID(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NodeIdentifier) -> Result<(), DnsProtocolError>;

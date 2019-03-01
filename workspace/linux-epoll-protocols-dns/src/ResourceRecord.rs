@@ -357,6 +357,31 @@ impl ResourceRecord
 					// TODO: x; should there only ever be one DNAME / CNAME in the answer section?
 
 					/*
+						CDS / CDNSKEY
+
+
+ The contents of the CDS or CDNSKEY RRset MUST contain one RR and only
+   contain the exact fields as shown below.
+
+      CDS 0 0 0 0
+
+      CDNSKEY 0 3 0 0
+
+   The keying material payload is represented by a single 0.  This
+   record is signed in the same way as regular CDS/CDNSKEY RRsets are
+   signed.
+
+   Strictly speaking, the CDS record could be "CDS X 0 X 0" as only the
+   DNSKEY algorithm is what signals the DELETE operation, but for
+   clarity, the "0 0 0 0" notation is mandated -- this is not a
+   definition of DS digest algorithm 0.  The same argument applies to
+   "CDNSKEY 0 3 0 0"; the value 3 in the second field is mandated by
+   [RFC4034], Section 2.1.2.
+
+
+   EWhat about the nsec algos?
+
+
 						DNS Flag Day
 							https://dnsflagday.net/
 								Starting February 1st, 2019 there will be no attempt to disable EDNS in reaction to a DNS query timeout.
@@ -742,7 +767,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::OPENPGPKEY_lower => self.handle_openpgpkey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::CSYNC_lower => XXXX,
+				DataType::CSYNC_lower => self.handle_csync(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::ZONEMD_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -2024,6 +2049,51 @@ One very simple way to achieve this is to only accept data if it is
 
 		resource_record_visitor.OPENPGPKEY(resource_record_name, time_to_live, resource_data)?;
 		Ok(resource_data.end_pointer())
+	}
+
+	#[inline(always)]
+	fn handle_csync<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::ChildSynchronizeResourceRecordIgnoredBecauseReason::*;
+
+		const StartOfAuthoritySize: usize = 4;
+		const FlagsSize: usize = 2;
+
+		let length = resource_data.len();
+		if unlikely!(length < StartOfAuthoritySize + FlagsSize + TypeBitmaps::MinimumTypeBitmapsSize)
+		{
+			return Err(ResourceDataForTypeCSYNCHasAnIncorrectLength(length))
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let flags = resource_data.u16(StartOfAuthoritySize);
+
+		const immediate: u16 = 0x0001;
+		const soaminimum: u16 = 0x0002;
+		const KnownFlags: u16 = immediate | soaminimum;
+
+		if unlikely!(flags & !KnownFlags != 0)
+		{
+			resource_record_visitor.CSYNC_ignored(resource_record_name, UnassignedFlags(flags));
+			return Ok(resource_data_end_pointer)
+		}
+
+		let record = ChildSynchronize
+		{
+			start_of_authority_serial: resource_data.cast::<SerialNumber>(0),
+
+			immediate: flags & immediate != 0,
+
+			start_of_authority_minimum: flags & soaminimum != 0,
+
+			type_bitmaps: TypeBitmaps::parse_type_bitmaps(&resource_data[(StartOfAuthoritySize + FlagsSize) .. ])?
+		};
+
+		resource_record_visitor.CSYNC(resource_record_name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
 	}
 
 	#[inline(always)]
