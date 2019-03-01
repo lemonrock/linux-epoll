@@ -31,6 +31,12 @@ pub enum DnsProtocolError
 	/// A record type was present in the authority section which should not have been (only `SOA` records are allowed).
 	ResourceRecordTypeIsNotValidInAuthoritySection(DataType),
 
+	/// More than one `CNAME` record exists in an answer section.
+	MoreThanOneCNAMERecordIsNotValidInAnswerSection,
+
+	/// More than one `DNAME` record exists in an answer section.
+	MoreThanOneDNAMERecordIsNotValidInAnswerSection,
+
 	/// More than one `SOA` resource records.
 	MoreThanOneStatementOfAuthorityResourceRecord,
 

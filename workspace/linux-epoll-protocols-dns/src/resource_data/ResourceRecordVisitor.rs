@@ -3,6 +3,10 @@
 
 
 /// Visits different kinds of records.
+///
+/// Needs to check:-
+///
+/// * For answer section, there is only every one `CNAME` or `DNAME` record
 pub trait ResourceRecordVisitor<'a>
 {
 	/// Visits a record of type `A`, which may not be aligned (this is a problem for 32-bit ARM).

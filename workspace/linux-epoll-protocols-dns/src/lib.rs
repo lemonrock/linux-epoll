@@ -102,6 +102,7 @@ include!("ResourceData.rs");
 include!("ResourceRecord.rs");
 include!("ResourceRecordClass.rs");
 include!("ResourceRecordFooter.rs");
+include!("ResponseParsingState.rs");
 include!("SerialNumber.rs");
 include!("TcpMessage.rs");
 include!("TimeInSeconds.rs");

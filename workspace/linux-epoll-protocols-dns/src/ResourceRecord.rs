@@ -316,13 +316,6 @@ macro_rules! guard_dns_key
 	}
 }
 
-#[derive(Debug)]
-struct ResponseParsingState
-{
-	have_yet_to_see_a_soa_resource_record: bool,
-	have_yet_to_see_an_edns_opt_resource_record: bool,
-}
-
 extern
 {
 	type ResourceRecord;
@@ -338,227 +331,125 @@ impl ResourceRecord
 
 	const MinimumNameSize: usize = 1;
 
-	/// Returns `Ok(end_of_resource_data_pointer)` unless there is an error.
 	#[inline(always)]
 	pub(crate) fn parse_answer_section_resource_record_in_response<'a>(&'a self, question_q_type: DataType, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, response_parsing_state: &mut ResponseParsingState) -> Result<usize, DnsProtocolError>
 	{
 		let (parsed_name_iterator, end_of_name_pointer, resource_record_type) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
-		if likely!(question_q_type.is(resource_record_type))
+		let question_q_type_upper =  question_q_type.0.u8(0);
+
+		if likely!(type_upper == 0x00 && type_upper == question_q_type_upper)
 		{
-			()
+			let question_q_type_lower = question_q_type.0.u8(1);
+
+			if unlikely!(type_lower == DataType::CNAME_lower && type_lower == question_q_type_lower)
+			{
+				if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
+				{
+					response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
+					self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+				}
+				else
+				{
+					Err(MoreThanOneCNAMERecordIsNotValidInAnswerSection)
+				}
+			}
+			else if unlikely!(type_lower == DataType::DNAME_lower && type_lower == question_q_type_lower)
+			{
+				if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
+				{
+					response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
+					self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+				}
+				else
+				{
+					Err(MoreThanOneCNAMERecordIsNotValidInAnswerSection)
+				}
+			}
+			else
+			{
+				self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, true, false, resource_record_type)
+			}
 		}
 		else
 		{
-			match type_upper
+			if likely!(type_upper == 0x00)
 			{
-				0x00 => match type_lower
+				match type_lower
 				{
-					// TODO: x; should there only ever be one DNAME / CNAME in the answer section?
-
-					/*
-						CDS / CDNSKEY
-
-
- The contents of the CDS or CDNSKEY RRset MUST contain one RR and only
-   contain the exact fields as shown below.
-
-      CDS 0 0 0 0
-
-      CDNSKEY 0 3 0 0
-
-   The keying material payload is represented by a single 0.  This
-   record is signed in the same way as regular CDS/CDNSKEY RRsets are
-   signed.
-
-   Strictly speaking, the CDS record could be "CDS X 0 X 0" as only the
-   DNSKEY algorithm is what signals the DELETE operation, but for
-   clarity, the "0 0 0 0" notation is mandated -- this is not a
-   definition of DS digest algorithm 0.  The same argument applies to
-   "CDNSKEY 0 3 0 0"; the value 3 in the second field is mandated by
-   [RFC4034], Section 2.1.2.
-
-
-   EWhat about the nsec algos?
-
-
-						DNS Flag Day
-							https://dnsflagday.net/
-								Starting February 1st, 2019 there will be no attempt to disable EDNS in reaction to a DNS query timeout.
-
-								This effectively means that all DNS servers which do not respond at all to EDNS queries are going to be treated as dead.
-
-								Please test your implementations using the ednscomp tool to make sure that you handle EDNS properly. Source code for the tool is available as well.
-
-								It is important to note that EDNS is still not mandatory. If you decide not to support EDNS it is okay as long as your software replies according to EDNS standard section 7 (https://tools.ietf.org/html/rfc6891#section-7).
-
-						DNSSEC
-							- most top level domains are now signed: http://stats.research.icann.org/dns/tld_report/
-							- some second-level domains suprisingly don't, eg microsoft.com
-
-							https://metebalci.com/blog/a-minimum-complete-tutorial-of-dnssec/
-
-							https://www.cloudflare.com/dns/dnssec/how-dnssec-works/
-							https://www.cloudflare.com/dns/dnssec/dnssec-complexities-and-considerations/?utm_referrer=https://duckduckgo.com/
-							https://blog.cloudflare.com/dnssec-done-right/?utm_referrer=https://duckduckgo.com/
-
-							https://tools.ietf.org/html/rfc4033
-							https://tools.ietf.org/html/rfc4034
-							https://tools.ietf.org/html/rfc4035
-
-
-						NAMESERVERS for TLDs
-							eg https://www.iana.org/domains/root/db/com.html
-
-
-
-						LOOKING UP NAMES
-							found via MX, SRV, KX, NS, SOA and the like
-							result MUST be a A / AAAA records; CNAME and DNAME are NOT ALLOWED
-
-
-						FINDING THE AUTHORITATIVE SERVER
-							So if we are to trust responses, we really need to find the authoritative server for a domain name.
-								- trust resolver to lookup NS for example.com
-								- trust resolver to lookup A for NS (no aliases allowed)
-								- now open new TCP connection to As for NS, to do actual query look up.
-
-							Slightly ?less secure?
-								- trust resolver to lookup CNAME for blog.cloudflare.com
-								- get CNAME back (OK, same domain) discard A answers; can keep the DNAME answer that created a synthetic CNAME but it's f--k all use to us, really.
-								- return to client an alias result
-								- client now does a second A or AAAA query, as desired
-
-							Or we should just blindly trust our DNS resolver, and then use all of its records, including additional data.
-
-
-
-						RFC2181
-						Unauthenticated RRs received and cached from the least trustworthy of those groupings, that is data from the additional data section, and data from the authority section of a non-authoritative answer, should not be cached in such a way that they would ever be returned as answers to a received query. They may be returned as additional information where appropriate. Ignoring this would allow the trustworthiness of relatively untrustworthy data to be increased without cause or excuse.
-
-						 However when the name sought is an alias (see section 10.1.1) only the record describing that alias is necessarily authoritative.
-						 	ie the CNAME record is OK, the A records may not be authoritative.
-
-						 Frankly, at the end of the day, do we care?
-
-						 If we do care, we have to make sure EVERY record has a NAME for which the sending server is authoritative, ie IT MUST COME FROM THE NAMESERVER FOR THAT DOMAIN.
-
-						 eg dig blog.cloudflare.com would require us to throw away all the `A` records for `cloudflare.ghost.io`
-
-/*
-https://tools.ietf.org/html/rfc6840#section-2
-
-[RFC5155] describes the use and behavior of the NSEC3 and NSEC3PARAM
-   records for hashed denial of existence.  Validator implementations
-   are strongly encouraged to include support for NSEC3 because a number
-   of highly visible zones use it.  Validators that do not support
-   validation of responses using NSEC3 will be hampered in validating
-   large portions of the DNS space.
-
-resolvers MUST ignore the DO bit in responses even if they set in in requests due to broken implementations
-
-*/
-
-
-
-
-						RFC5452
-						 Incoming responses should be verified to have a question section that
-   is equivalent to that of the outgoing query. (ID, QNAME, QCLASS, QTYPE)
-
-6.  Accepting Only In-Domain Records
-
-   Responses from authoritative nameservers often contain information
-   that is not part of the zone for which we deem it authoritative.  As
-   an example, a query for the MX record of a domain might get as its
-   responses a mail exchanger in another domain, and additionally the IP
-   address of this mail exchanger.
-
-   If accepted uncritically, the resolver stands the chance of accepting
-   data from an untrusted source.  Care must be taken to only accept
-   data if it is known that the originator is authoritative for the
-   QNAME or a parent of the QNAME.
-
-One very simple way to achieve this is to only accept data if it is
-   part of the domain for which the query was intended.
-
-
-
-   						WEIRD
-   							dig +tries=1 +rrcomments +nofail +qr +multiline AAAA blog.cloudflare.com
-
-   							- get a CNAME, no AAAA records, and a SOA in authority section for ***ghost.io*** NOT cloudflare.com; query was successful. Effectively a hint that there is no AAAA record (which there isn't).
-
-   						NOTE ON SOA
-
-							- SOA server isn't necessarily ANY of the NS servers..., eg dig SOA cloudflare.com gives a server name for which the IP address is NONE of the NS servers.
-							- Interestingly, for cloudflare, using sara.ns.cloudflare.com as a nameserver (IP of 173.245.58.144)  with   dig @173.245.58.144 +tries=1 +rrcomments +nofail +qr +multiline NS cloudflare.com
-								gives a result which includes a LOT of additional data.
-
-
-						DNSSEC Trust Anchor(s)
-
-							RFC 7958
-
-							FILES https://www.iana.org/dnssec/files
-
-							TOOL https://github.com/iana-org/get-trust-anchor
-
-							Trust Anchor XML https://data.iana.org/root-anchors/root-anchors.xml
-							<?xml version="1.0" encoding="UTF-8"?>
-							<TrustAnchor id="380DC50D-484E-40D0-A3AE-68F2B18F61C7" source="http://data.iana.org/root-anchors/root-anchors.xml">
-							<Zone>.</Zone>
-							<KeyDigest id="Kjqmt7v" validFrom="2010-07-15T00:00:00+00:00" validUntil="2019-01-11T00:00:00+00:00">
-							<KeyTag>19036</KeyTag>
-							<Algorithm>8</Algorithm>
-							<DigestType>2</DigestType>
-							<Digest>49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5</Digest>
-							</KeyDigest>
-							<KeyDigest id="Klajeyz" validFrom="2017-02-02T00:00:00+00:00">
-							<KeyTag>20326</KeyTag>
-							<Algorithm>8</Algorithm>
-							<DigestType>2</DigestType>
-							<Digest>E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D</Digest>
-							</KeyDigest>
-							</TrustAnchor>
-
-							There are two `DS` records for the above:-
-								zone: .
-
-					*/
-
-					// TODO: A, AAAA
-
-					DataType::CNAME_lower | DataType::DNAME_lower => (),
-
-					_ => return Err(ResourceRecordTypeIsNotValidInAnswerSection(resource_record_type))
-				},
-
-				_ => return Err(ResourceRecordTypeIsNotValidInAnswerSection(resource_record_type)),
+					DataType::CNAME_lower =>
+					{
+						if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
+						{
+							response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
+							self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+						}
+						else
+						{
+							Err(MoreThanOneCNAMERecordIsNotValidInAnswerSection)
+						}
+					}
+
+					DataType::DNAME_lower =>
+					{
+						if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
+						{
+							response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
+							self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+						}
+						else
+						{
+							Err(MoreThanOneDNAMERecordIsNotValidInAnswerSection)
+						}
+					}
+
+					DataType::RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+					_ => return Err(ResourceRecordTypeIsNotValidInAnswerSection(DataType([type_upper, type_lower])))
+				}
+			}
+			else
+			{
+				return Err(ResourceRecordTypeIsNotValidInAnswerSection(DataType([type_upper, type_lower])))
 			}
 		}
-
-		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, true, false, resource_record_type)
 	}
 
 	/// Returns `Ok(end_of_resource_data_pointer)` unless there is an error.
 	#[inline(always)]
 	pub(crate) fn parse_authority_section_resource_record_in_response<'a>(&'a self, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, response_parsing_state: &mut ResponseParsingState) -> Result<usize, DnsProtocolError>
 	{
-		let (parsed_name_iterator, end_of_name_pointer, resource_record_type) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
+		let (resource_record_name, end_of_name_pointer, (type_upper, type_lower)) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
-		x;
-		// TODO: NSEC and RRSIG can also occur
-		// eg dig +tries=1 +rrcomments +nofail +qr +multiline +dnssec A ns8.cloudflare.com
-		// eg dig +dnssec DS microsoft.com
-
-		if likely!(DataType::SOA.is(resource_record_type))
+		// List of type codes based on https://serverfault.com/questions/899714/can-authority-rrs-contain-anything-but-ns-and-soa-additional-rrs-anything-but-a .
+		if likely!(type_upper == 0x00)
 		{
-			self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+			match type_lower
+			{
+				// Referral.
+				NS_lower => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+				// Negative Response.
+				SOA_lower => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+				// Referral.
+				DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+				// Signing negative response or referral.
+				RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+				// Signing negative response.
+				NSEC_lower => self.handle_nsec(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+				// Signing negative response.
+				NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+
+				_ => Err(ResourceRecordTypeIsNotValidInAuthoritySection(DataType([type_upper, type_lower])))
+			}
 		}
 		else
 		{
-			Err(ResourceRecordTypeIsNotValidInAuthoritySection(resource_record_type))
+			Err(ResourceRecordTypeIsNotValidInAuthoritySection(DataType([type_upper, type_lower])))
 		}
 	}
 
@@ -566,9 +457,9 @@ One very simple way to achieve this is to only accept data if it is
 	#[inline(always)]
 	pub(crate) fn parse_additional_data_section_resource_record_in_response<'a>(&'a self, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor, response_parsing_state: &mut ResponseParsingState) -> Result<usize, DnsProtocolError>
 	{
-		let (parsed_name_iterator, end_of_name_pointer, resource_record_type) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
+		let (parsed_name_iterator, end_of_name_pointer, (type_upper, type_lower)) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
-		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, false, true, resource_record_type)
+		self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, false, true, (type_upper, type_lower))
 	}
 
 	/// Compression of names within `RDATA` is a mess.
