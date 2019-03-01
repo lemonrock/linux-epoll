@@ -7,5 +7,5 @@
 pub enum ChildSynchronizeResourceRecordIgnoredBecauseReason
 {
 	/// Unassigned flags.
-	UnassignedFlags(u8),
+	UnassignedFlags(u16),
 }

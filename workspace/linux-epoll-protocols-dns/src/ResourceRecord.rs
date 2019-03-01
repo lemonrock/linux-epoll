@@ -191,7 +191,7 @@ macro_rules! guard_delegation_signer
 
 				_ =>
 				{
-					$resource_record_visitor.$ignored_callback($resource_record_name, DigestAlgorithmRejected(Unassigned(digest_type)));
+					$resource_record_visitor.$ignored_callback($resource_record_name, DigestAlgorithmRejected(DigestAlgorithmRejectedBecauseReason::Unassigned(digest_type)));
 					return Ok(resource_data_end_pointer)
 				}
 			};
@@ -291,7 +291,7 @@ macro_rules! guard_dns_key
 				KeySigningKey
 			};
 
-			let security_algorithm_type = resource_data.u16(FlagsSize + ProtocolSize);
+			let security_algorithm_type = resource_data.u8(FlagsSize + ProtocolSize);
 			let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, $permit_delete, false)?
 			{
 				Left(security_algorithm) => security_algorithm,
@@ -2019,7 +2019,7 @@ impl ResourceRecord
 
 		let record = ChildSynchronize
 		{
-			start_of_authority_serial: resource_data.cast::<SerialNumber>(0),
+			start_of_authority_serial: resource_data.value::<SerialNumber>(0),
 
 			immediate: flags & immediate != 0,
 
@@ -2073,7 +2073,7 @@ impl ResourceRecord
 		let record = Locator32
 		{
 			preference: resource_data.u16(0),
-			locator: resource_data.cast::<Ipv4Addr>(PreferenceSize),
+			locator: resource_data.value::<Ipv4Addr>(PreferenceSize),
 		};
 
 		resource_record_visitor.L32(resource_record_name, time_to_live, record)?;
@@ -2251,7 +2251,7 @@ impl ResourceRecord
 
 		if unlikely!(flag_bits & ReservedFlagBits != 0)
 		{
-			resource_record_visitor.CAA_ignored(resource_record_name, UseOfUnassignedFlagBits);
+			resource_record_visitor.CAA_ignored(resource_record_name, UseOfUnassignedFlagBits(flag_bits));
 			return Ok(resource_data_end_pointer)
 		}
 

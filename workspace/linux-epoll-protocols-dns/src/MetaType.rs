@@ -5,22 +5,22 @@
 /// See RFC 6895, Section 3.1, paragraph 3.
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C, packed)]
-struct MetaType(pub [u8; 2]);
+pub(crate) struct MetaType(pub [u8; 2]);
 
 impl MetaType
 {
 	/// Defined in RFC 6891.
-	pub const OPT_higher: u8 = 0x00;
-	pub const OPT_lower: u8 = 0x41;
-	pub const OPT: Self = Self([Self::OPT_higher, Self::OPT_lower]);
+	pub(crate) const OPT_higher: u8 = 0x00;
+	pub(crate) const OPT_lower: u8 = 0x41;
+	pub(crate) const OPT: Self = Self([Self::OPT_higher, Self::OPT_lower]);
 
 	/// Defined in RFC 2930.
-	pub const TKEY_higher: u8 = 0x00;
-	pub const TKEY_lower: u8 = 0xF9;
-	pub const TKEY: Self = Self([Self::TKEY_higher, Self::TKEY_lower]);
+	pub(crate) const TKEY_higher: u8 = 0x00;
+	pub(crate) const TKEY_lower: u8 = 0xF9;
+	pub(crate) const TKEY: Self = Self([Self::TKEY_higher, Self::TKEY_lower]);
 
 	/// Defined in RFC 2845.
-	pub const TSIG_higher: u8 = 0x00;
-	pub const TSIG_lower: u8 = 0xFA;
-	pub const TSIG: Self = Self([Self::TSIG_higher, Self::TSIG_lower]);
+	pub(crate) const TSIG_higher: u8 = 0x00;
+	pub(crate) const TSIG_lower: u8 = 0xFA;
+	pub(crate) const TSIG: Self = Self([Self::TSIG_higher, Self::TSIG_lower]);
 }

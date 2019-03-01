@@ -179,7 +179,7 @@ pub enum DnsProtocolError
 	ResourceDataForTypeLPHasTooShortALength(usize),
 
 	/// Resource data for resource record type `LP` has data left over after parsing the domain name.
-	ResourceDataForTypeLPHasDataLeftOver(usize),
+	ResourceDataForTypeLPHasDataLeftOver,
 
 	/// Resource data for resource record type `EUI48` has an incorrect length (value in tuple).
 	ResourceDataForTypeEUI48HasAnIncorrectLength(usize),

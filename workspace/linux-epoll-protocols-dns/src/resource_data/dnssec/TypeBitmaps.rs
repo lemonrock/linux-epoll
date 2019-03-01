@@ -74,7 +74,7 @@ impl TypeBitmaps
 	/// Since type codes (0x00, 127) to (0x00, 255) are for query types and meta types, we can re-use the data occupied by them (16 bytes) for other types.
 	/// Currently, only type codes (0x01, 0) and (0x01, 1) are usefuly defined; all other blocks can be ignored.
 	#[inline(always)]
-	fn parse_type_bitmaps(blocks: &[u8]) -> Result<Self, DnsProtocolError>
+	pub(crate) fn parse_type_bitmaps(blocks: &[u8]) -> Result<Self, DnsProtocolError>
 	{
 		let mut this: Self = unsafe { uninitialized() };
 

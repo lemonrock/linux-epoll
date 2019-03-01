@@ -129,6 +129,6 @@ impl ResourceRecordFooter
 	#[inline(always)]
 	fn debug_assert_is_opt(&self)
 	{
-		debug_assert_eq!(self.type_.0 , DataType::OPT, "This is not an EDNS0 extension record")
+		debug_assert_eq!(self.type_.0 , MetaType::OPT.0, "This is not an EDNS0 extension record")
 	}
 }
