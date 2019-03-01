@@ -2,13 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// Next domain name (`NSEC`).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NextDomain<'a>
+/// Why was a `NSEC3` record ignored?
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NextSecureVersion3ResourceRecordIgnoredBecauseReason
 {
-	/// Next domain name.
-	pub next_domain_name: ParsedNameIterator<'a>,
+	/// Unassigned hash algorithm.
+	UnassignedHashAlgorithm(u8),
 
-	/// Type bitmaps.
-	pub type_bitmaps: TypeBitmaps,
+	/// Unassigned flags.
+	UnassignedFlags(u8),
 }

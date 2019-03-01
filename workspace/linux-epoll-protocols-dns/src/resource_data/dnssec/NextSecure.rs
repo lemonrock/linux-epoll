@@ -2,16 +2,13 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// A delegation signer.
+/// Next secure (`NSEC`).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DelegationSigner<'a>
+pub struct NextSecure<'a>
 {
-	/// Key tag.
-	pub key_tag: KeyTag,
+	/// Next domain name.
+	pub next_domain_name: ParsedNameIterator<'a>,
 
-	/// Security algorithm.
-	pub security_algorithm: SecurityAlgorithm,
-
-	/// Digest.
-	pub digest: DnsSecDigest,
+	/// Type bitmaps.
+	pub type_bitmaps: TypeBitmaps,
 }

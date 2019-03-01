@@ -99,7 +99,7 @@ pub trait ResourceRecordVisitor<'a>
 	}
 
 	/// Visits a record of type `NSEC`.
-	fn NSEC(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NextDomain<'a>) -> Result<(), DnsProtocolError>;
+	fn NSEC(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NextSecure<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `RRSIG`.
 	fn RRSIG(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ResourceRecordSetSignature<'a>) -> Result<(), DnsProtocolError>;
@@ -131,6 +131,17 @@ pub trait ResourceRecordVisitor<'a>
 	/// Default implementation does nothing.
 	#[inline(always)]
 	fn DHCID_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: DhcidResourceRecordIgnoredBecauseReason)
+	{
+	}
+
+	/// Visits a record of type `NSEC3`.
+	fn NSEC3(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>;
+
+	/// Visits a record of type `NSEC3` which was ignored.
+	///
+	/// Default implementation does nothing.
+	#[inline(always)]
+	fn NSEC3_ignored(&mut self, _name: ParsedNameIterator<'a>, _resource_record_ignored_because_reason: NextSecureVersion3ResourceRecordIgnoredBecauseReason)
 	{
 	}
 

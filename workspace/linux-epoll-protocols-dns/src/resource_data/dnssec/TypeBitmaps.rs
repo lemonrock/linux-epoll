@@ -16,6 +16,8 @@ impl TypeBitmaps
 {
 	const TypeCodes0x0000To0x007FSize: usize = 16;
 
+	pub(crate) const MinimumTypeBitmapsSize: usize = 0;
+
 	/// Return `None` if the data type is one that we do not track.
 	#[inline(always)]
 	pub fn is_data_type_present(&self, data_type: DataType) -> Option<bool>

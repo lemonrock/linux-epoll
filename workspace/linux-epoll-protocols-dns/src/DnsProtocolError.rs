@@ -225,6 +225,21 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `CSYNC` or `NSEC` has an incorrect bitmap length (value in tuple).
 	ResourceDataForTypeCSYNCOrNSECHasAnOverflowingBitmapLength(usize),
 
+	/// Resource data for resource record type `NSEC3` has an incorrect length (value in tuple).
+	ResourceDataForTypeNSEC3HasAnIncorrectLength(usize),
+
+	/// Resource data for resource record type `NSEC3` has a reserved hash algorithm.
+	ResourceDataForTypeNSEC3HasAReservedHashAlgorithm(usize),
+
+	/// Resource data for resource record type `NSEC3` has an incorrect hash length for a SHA-1 hash.
+	ResourceDataForTypeNSEC3HasAnIncorrectHashLengthForASha1Hash(usize),
+
+	/// Resource data for resource record type `NSEC3` has an overflowing salt length.
+	ResourceDataForTypeNSEC3HasAnOverflowingSaltLength(usize),
+
+	/// Resource data for resource record type `NSEC3` has an overflowing hash length.
+	ResourceDataForTypeNSEC3HasAnOverflowingHashLength(usize),
+
 	/// Resource data for resource record type `RRSIG` has an incorrect length (value in tuple).
 	ResourceDataForTypeRRSIGHasAnIncorrectLength(usize),
 

@@ -2,16 +2,9 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// A delegation signer.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DelegationSigner<'a>
+/// A next secure version 3 (`NSEC3`) hash.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NextSecureVersion3Hash<'a>
 {
-	/// Key tag.
-	pub key_tag: KeyTag,
-
-	/// Security algorithm.
-	pub security_algorithm: SecurityAlgorithm,
-
-	/// Digest.
-	pub digest: DnsSecDigest,
+	Sha_1(&'a [u8; 160 / 8])
 }

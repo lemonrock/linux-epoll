@@ -2,7 +2,7 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-macro_rules! guard_hash_digest
+macro_rules! guard_hash_digest_if_final_field
 {
 	($resource_data: ident, $digest_offset: ident, $digest_size_in_bits: expr, $name: ident, $dns_protocol_error: ident) =>
 	{
@@ -70,7 +70,7 @@ macro_rules! ipsec_like_public_key
 							return Err(ResourceDataForTypeIPSECKEYOrHIPHasTooShortALengthForRSAPublicKeyForAThreeByteExponentLength(length))
 						}
 
-						(&public_key_data[SizeSize .. ], public_key_data.u16(FirstByteSize) as usize)
+						(&public_key_data[SizeSize .. ], public_key_data.u16_as_usize(FirstByteSize))
 					}
 					else
 					{
@@ -534,7 +534,7 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::DHCID_lower => self.handle_dhcid(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::NSEC3_lower => XXXX,
+				DataType::NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::NSEC3PARAM_lower => XXXX,
 
@@ -1247,7 +1247,7 @@ One very simple way to achieve this is to only accept data if it is
 				return Ok(resource_data_end_pointer)
 			}
 
-			2 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
+			2 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
 
 			3 =>
 			{
@@ -1255,7 +1255,7 @@ One very simple way to achieve this is to only accept data if it is
 				return Ok(resource_data_end_pointer)
 			}
 
-			4 => guard_hash_digest!(resource_data, DigestOffset, 384, Sha2_384, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
+			4 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 384, Sha2_384, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
 
 			_ =>
 			{
@@ -1322,7 +1322,7 @@ One very simple way to achieve this is to only accept data if it is
 				return Ok(resource_data_end_pointer)
 			}
 
-			2 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType),
+			2 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeSSHFPAHasADigestLengthThatIsIncorrectForTheMatchingType),
 
 			_ =>
 			{
@@ -1434,11 +1434,10 @@ One very simple way to achieve this is to only accept data if it is
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		const MinimumNextDomainNameSize: usize = Self::MinimumNameSize;
-		const MinimumTypeBitMapsSize: usize = 0;
+		const MinimumNextSecureNameSize: usize = Self::MinimumNameSize;
 
 		let length = resource_data.len();
-		if unlikely!(length < MinimumNextDomainNameSize + MinimumTypeBitMapsSize)
+		if unlikely!(length < MinimumNextSecureNameSize + TypeBitmaps::MinimumTypeBitmapsSize)
 		{
 			return Err(ResourceDataForTypeNSECHasAnIncorrectLength(length))
 		}
@@ -1448,7 +1447,7 @@ One very simple way to achieve this is to only accept data if it is
 
 		let (next_domain_name, end_of_next_domain_name_pointer) = ParsedNameIterator::parse_without_compression(resource_data_pointer, resource_data_end_pointer)?;
 
-		let record = NextDomain
+		let record = NextSecure
 		{
 			next_domain_name,
 			type_bitmaps: TypeBitmaps::parse_type_bitmaps(&resource_data[(end_of_next_domain_name_pointer - resource_data_pointer) .. ])?,
@@ -1716,7 +1715,7 @@ One very simple way to achieve this is to only accept data if it is
 		{
 			0 => return Err(ResourceDataForTypeDHCIDHasAReservedDigestTypeCode),
 
-			1 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType),
+			1 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType),
 
 			_ =>
 			{
@@ -1732,6 +1731,105 @@ One very simple way to achieve this is to only accept data if it is
 		};
 
 		resource_record_visitor.DHCID(resource_record_name, time_to_live, record)?;
+		Ok(resource_data_end_pointer)
+	}
+
+	fn handle_nsec3<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		use self::NextSecureVersion3ResourceRecordIgnoredBecauseReason::*;
+
+		const HashAlgorithmSize: usize = 1;
+		const FlagsSize: usize = 1;
+		const IterationsSize: usize = 2;
+		const SaltLengthSize: usize = 1;
+		const MinimumSaltSize: usize = 0;
+		const HashLengthSize: usize = 1;
+		const MinimumHashSize: usize = 0;
+		const SaltStartOffset: usize = HashAlgorithmSize + FlagsSize + IterationsSize + SaltLengthSize;
+
+		let length = resource_data.len();
+		if unlikely!(length < HashAlgorithmSize + FlagsSize + IterationsSize + SaltLengthSize + MinimumSaltSize + HashLengthSize + MinimumHashSize + TypeBitmaps::MinimumTypeBitmapsSize)
+		{
+			return Err(ResourceDataForTypeNSEC3HasAnIncorrectLength(length))
+		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let salt_length = resource_data.u8_as_usize(HashAlgorithmSize + FlagsSize + IterationsSize);
+		let salt_end_offset = HashAlgorithmSize + FlagsSize + IterationsSize + SaltLengthSize + salt_length;
+
+		if unlikely!(salt_end_offset > length)
+		{
+			return Err(ResourceDataForTypeNSEC3HasAnOverflowingSaltLength(salt_length))
+		}
+		let salt = &resource_data[SaltStartOffset .. salt_end_offset];
+
+		let hash_algorithm_number = resource_data.u8(0);
+		let (next_hashed_owner_name, hash_end_offset) = match hash_algorithm_number
+		{
+			0 => return Err(ResourceDataForTypeNSEC3HasAReservedHashAlgorithm),
+
+			1 =>
+			{
+				let hash_length = resource_data.u8_as_usize(salt_end_offset);
+
+				const DigestSizeInBits: usize = 160;
+				const DigestSize: usize = DigestSizeInBits / DigestSizeInBits;
+
+				if unlikely!(hash_length != DigestSize)
+				{
+					return Err(ResourceDataForTypeNSEC3HasAnIncorrectHashLengthForASha1Hash(length))
+				}
+
+				let hash_start_offset = salt_end_offset + HashLengthSize;
+
+				let hash_end_offset = hash_start_offset + hash_length;
+
+				if unlikely!(hash_end_offset > length)
+				{
+					return Err(ResourceDataForTypeNSEC3HasAnOverflowingHashLength(hash_length))
+				}
+
+				let hash = NextSecureVersion3Hash::Sha_1(resource_data.cast::<[u8; DigestSize]>(hash_start_offset));
+
+				(hash, hash_end_offset)
+			}
+
+			_ =>
+			{
+				resource_record_visitor.NSEC3_ignored(UnassignedHashAlgorithm(hash_algorithm_number));
+				Ok(resource_data_end_pointer)
+			}
+		};
+
+		let flags = resource_data.u8(HashAlgorithmSize);
+
+		const OptOut: u8 = 7;
+		const OptOutFlag: u8 = 1 << (7 - OptOut);
+		const KnownFlags: u8 = OptOutFlag;
+
+		if unlikely!(flags & !KnownFlags != 0)
+		{
+			resource_record_visitor.NSEC3_ignored(resource_record_name, UnassignedFlags(flags));
+			return Ok(resource_data_end_pointer)
+		}
+
+		let record = NextSecureVersion3
+		{
+			opt_out: flags & OptOutFlag != 0,
+
+			iterations: resource_data.u16(HashAlgorithmSize + FlagsSize),
+
+			salt,
+
+			next_hashed_owner_name,
+
+			type_bitmaps: TypeBitmaps::parse_type_bitmaps(&resource_data[hash_end_offset .. ])?,
+		};
+
+		resource_record_visitor.NSEC3(resource_record_name, time_to_live, record)?;
 		Ok(resource_data_end_pointer)
 	}
 
@@ -1788,7 +1886,7 @@ One very simple way to achieve this is to only accept data if it is
 
 		let resource_data_end_pointer = resource_data.end_pointer();
 
-		let host_identity_tag_length = resource_data.u8(0) as usize;
+		let host_identity_tag_length = resource_data.u8_as_usize(0);
 		if unlikely!(length < HostIdentityTagOffset + host_identity_tag_length + MinimumPublicKeyLength + MinimumNumberOfRendezvousServersIsOneSoMinimumNameSizeIsOne)
 		{
 			return Err(ResourceDataForTypeHIPHasAnIncorrectLength(length))
@@ -1796,7 +1894,7 @@ One very simple way to achieve this is to only accept data if it is
 
 		let public_key_algorithm_type = resource_data.u8(HostIdentityTagLengthSize);
 		let public_key_starts_at_offset = HostIdentityTagOffset + host_identity_tag_length;
-		let public_key_length = resource_data.u16(HostIdentityTagLengthSize + PublicKeyAlgorithmTypeSize) as usize;
+		let public_key_length = resource_data.u16_as_usize(HostIdentityTagLengthSize + PublicKeyAlgorithmTypeSize);
 		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.HIP_ignored(PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.HIP_ignored(PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
 
 		let start_of_name_pointer = resource_data.pointer() + HostIdentityTagOffset + host_identity_tag_length + public_key_length;
@@ -2140,9 +2238,9 @@ One very simple way to achieve this is to only accept data if it is
 		{
 			0 => NoHashUsed(&resource_data[DigestOffset .. ]),
 
-			1 => guard_hash_digest!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType),
+			1 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType),
 
-			2 => guard_hash_digest!(resource_data, DigestOffset, 512, Sha2_512, ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType),
+			2 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 512, Sha2_512, ResourceDataForTypeTLSAOrSMIMEAHasADigestLengthThatIsIncorrectForTheMatchingType),
 
 			2 ... 254 => return Ok((resource_data_end_pointer, Right(UnassignedMatchingType(raw_matching_type)))),
 

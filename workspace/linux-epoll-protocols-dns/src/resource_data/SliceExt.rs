@@ -25,9 +25,21 @@ pub(crate) trait SliceExt
 	}
 
 	#[inline(always)]
+	fn u8_as_usize(&self, offset: usize) -> usize
+	{
+		self.u8(offset) as usize
+	}
+
+	#[inline(always)]
 	fn u16(&self, offset: usize) -> u16
 	{
 		u16::from_be_bytes(self.value_::<[u8; size_of::<u16>()]>(offset))
+	}
+
+	#[inline(always)]
+	fn u16_as_usize(&self, offset: usize) -> usize
+	{
+		self.u16(offset) as usize
 	}
 
 	#[inline(always)]
