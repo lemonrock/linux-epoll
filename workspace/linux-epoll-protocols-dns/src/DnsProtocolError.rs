@@ -133,8 +133,8 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `NAPTR` has both a regular expression and a domain name.
 	ResourceDataForTypeNAPTRHasBothARegularExpressionAndADomainName,
 
-	/// Resource data for resource record type `DS` has an incorrect length (value in tuple).
-	ResourceDataForTypeDSHasAnIncorrectLength(usize),
+	/// Resource data for resource record type `DS` or `CDS` has an incorrect length (value in tuple).
+	ResourceDataForTypeDSOrCDSHasAnIncorrectLength(usize),
 
 	/// Resource data for resource record type `DHCID` has an incorrect length (value in tuple).
 	ResourceDataForTypeDHCIDHasAnIncorrectLength(usize),
@@ -204,8 +204,8 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `CERT` uses an experimental certificate type value (value in tuple).
 	ResourceDataForTypeCERTUsesAnExperimentalCertificateTypeValue(u16),
 
-	/// Resource data for resource record type `DNSKEY` has an incorrect length (value in tuple).
-	ResourceDataForTypeDNSKEYHasAnIncorrectLength(usize),
+	/// Resource data for resource record type `DNSKEY` or `CDNSKEY` has an incorrect length (value in tuple).
+	ResourceDataForTypeDNSKEYOrCDNSKEYHasAnIncorrectLength(usize),
 
 	/// Resource data for resource record type `NSEC` has an incorrect length (value in tuple).
 	ResourceDataForTypeNSECHasAnIncorrectLength(usize),
@@ -279,7 +279,7 @@ pub enum DnsProtocolError
 	/// After parsing resource data in a record of type `TXT`, there is unattributed data remaining.
 	ResourceDataForTypeTXTWouldHaveUnusuedDataRemaining,
 
-	/// The security alogrithm DS-Delete should not be used for this resource record.
+	/// The security algorithm DS-Delete should not be used for this resource record.
 	SecurityAlgorithmShouldNotBeUsedForThisResourceRecordType(u8),
 
 	/// The security alogrithm type is reserved (number in tuple).
@@ -294,8 +294,8 @@ pub enum DnsProtocolError
 	/// Reserved.
 	DigestAlgorithmTypeIsReservedByRfc3658,
 
-	/// A `DS` resource record has digest data that has an incorrect length for the digest type.
-	ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType(usize),
+	/// A `DS` or `CDS` resource record has digest data that has an incorrect length for the digest type.
+	ResourceDataForTypeDSOrCDSHasADigestLengthThatIsIncorrectForTheDigestType(usize),
 
 	/// Resource data for resource record type `SOA` has an invalid length after parsing `MNAME` and `RNAME`.
 	StartOfAuthorityIsIncorrectSizeAfterParsingMNAMEAndRNAME,

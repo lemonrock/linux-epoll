@@ -131,6 +131,190 @@ macro_rules! ipsec_like_public_key
 	}
 }
 
+macro_rules! guard_delegation_signer
+{
+	($self: ident, $end_of_name_pointer: ident, $end_of_message_pointer: ident, $resource_record_name: ident, $resource_record_visitor: ident, $ignored_callback: ident, $visit_callback: ident, $permit_delete: expr) =>
+	{
+		{
+			let (time_to_live, resource_data) = $self.validate_class_is_internet_and_get_time_to_live_and_resource_data($end_of_name_pointer, $end_of_message_pointer)?;
+
+			use self::DelegationSignerResourceRecordIgnoredBecauseReason::*;
+			use self::DnsSecDigest::*;
+			use self::SecurityAlgorithmRejectedBecauseReason::*;
+
+			const KeyTagSize: usize = 2;
+			const SecurityAlgorithmTypeSize: usize = 1;
+			const DigestTypeSize: usize = 1;
+			const MinimumDigestSize: usize = 0;
+
+			let length = resource_data.len();
+			if unlikely!(length < KeyTagSize + SecurityAlgorithmTypeSize + DigestTypeSize + MinimumDigestSize)
+			{
+				return Err(ResourceDataForTypeDSOrCDSHasAnIncorrectLength(length))
+			}
+
+			let resource_data_end_pointer = resource_data.end_pointer();
+
+			let security_algorithm_type = resource_data.u8(KeyTagSize);
+			let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, $permit_delete, false)?
+			{
+				Left(security_algorithm) => security_algorithm,
+				Right(security_algorithm_rejected_because_reason) =>
+				{
+					$resource_record_visitor.$ignored_callback($resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
+					return Ok(resource_data_end_pointer)
+				}
+			};
+
+			const DigestOffset: usize = KeyTagSize + SecurityAlgorithmTypeSize + DigestTypeSize;
+
+			let digest_type = resource_data.u8(KeyTagSize + SecurityAlgorithmTypeSize);
+			let digest = match digest_type
+			{
+				0 => return Err(DigestAlgorithmTypeIsReservedByRfc3658),
+
+				1 =>
+				{
+					$resource_record_visitor.$ignored_callback($resource_record_name, DigestAlgorithmRejected(Sha1IsBroken));
+					return Ok(resource_data_end_pointer)
+				}
+
+				2 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDSOrCDSHasADigestLengthThatIsIncorrectForTheDigestType),
+
+				3 =>
+				{
+					$resource_record_visitor.$ignored_callback($resource_record_name, DigestAlgorithmRejected(Gost94MayBeBroken));
+					return Ok(resource_data_end_pointer)
+				}
+
+				4 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 384, Sha2_384, ResourceDataForTypeDSOrCDSHasADigestLengthThatIsIncorrectForTheDigestType),
+
+				_ =>
+				{
+					$resource_record_visitor.$ignored_callback($resource_record_name, DigestAlgorithmRejected(Unassigned(digest_type)));
+					return Ok(resource_data_end_pointer)
+				}
+			};
+
+			let record = DelegationSigner
+			{
+				key_tag: resource_data.value::<KeyTag>(0),
+				security_algorithm,
+				digest,
+			};
+
+			$resource_record_visitor.$visit_callback($resource_record_name, time_to_live, record)?;
+			Ok(resource_data_end_pointer)
+		}
+	}
+}
+
+
+macro_rules! guard_dns_key
+{
+	($self: ident, $end_of_name_pointer: ident, $end_of_message_pointer: ident, $resource_record_name: ident, $resource_record_visitor: ident, $ignored_callback: ident, $visit_callback: ident, $permit_delete: expr) =>
+	{
+		{
+			let (time_to_live, resource_data) = $self.validate_class_is_internet_and_get_time_to_live_and_resource_data($end_of_name_pointer, $end_of_message_pointer)?;
+
+			use self::DnsKeyPurpose::*;
+			use self::DnsKeyResourceRecordIgnoredBecauseReason::*;
+
+			const FlagsSize: usize = 2;
+			const ProtocolSize: usize = 1;
+			const AlgorithmSize: usize = 1;
+			const MinimumPublicKeySize: usize = 0;
+
+			let length = resource_data.len();
+			if unlikely!(length < FlagsSize + ProtocolSize)
+			{
+				return Err(ResourceDataForTypeDNSKEYOrCDNSKEYHasAnIncorrectLength(length))
+			}
+
+			let resource_data_end_pointer = resource_data.end_pointer();
+
+			let protocol = resource_data.u8(FlagsSize);
+			if unlikely!(protocol != 3)
+			{
+				$resource_record_visitor.$ignored_callback($resource_record_name, ProtocolWasNot3(protocol));
+				return Ok(resource_data_end_pointer)
+			}
+
+			if unlikely!(length < FlagsSize + ProtocolSize + AlgorithmSize + MinimumPublicKeySize)
+			{
+				return Err(ResourceDataForTypeDNSKEYOrCDNSKEYHasAnIncorrectLength(length))
+			}
+
+			let flags = resource_data.u16_network_endian(0);
+
+			const ZONE: u16 = 7;
+			#[cfg(target_endian = "big")] const IsZoneKeyFlag: u16 = 1 << (15 - ZONE);
+			#[cfg(target_endian = "little")] const IsZoneKeyFlag: u16 = 1 << ((15 - ZONE) - 8);
+
+			const REVOKE: u16 = 8;
+			#[cfg(target_endian = "big")] const RevokedFlag: u16 = 1 << (15 - REVOKE);
+			#[cfg(target_endian = "little")] const RevokedFlag: u16 = 1 << ((15 - REVOKE) + 8);
+
+			const SEP: u16 = 15;
+			#[cfg(target_endian = "big")] const SecureEntryPointFlag: u16 = 1 << (15 - SEP);
+			#[cfg(target_endian = "little")] const SecureEntryPointFlag: u16 = 1 << ((15 - SEP) + 8);
+
+			const KnownFlags: u16 = IsZoneKeyFlag | IsZoneKeyFlag | SecureEntryPointFlag;
+
+			if unlikely!(flags & !KnownFlags != 0)
+			{
+				$resource_record_visitor.$ignored_callback($resource_record_name, UnassignedFlags(flags));
+				return Ok(resource_data_end_pointer)
+			}
+
+			let is_revoked = flags & RevokedFlagBit != 0;
+			if unlikely!(is_revoked)
+			{
+				$resource_record_visitor.$ignored_callback($resource_record_name, Revoked);
+				return Ok(resource_data_end_pointer)
+			}
+
+			let is_zone_key = flags & IsZoneKeyFlagBit != 0;
+			let is_secure_entry_point = flags & SecureEntryPointFlagBit != 0;
+
+			let purpose = if unlikely!(is_zone_key)
+			{
+				ZoneSigningKey { is_secure_entry_point }
+			}
+			else
+			{
+				if unlikely!(is_secure_entry_point)
+				{
+					$resource_record_visitor.$ignored_callback($resource_record_name, SecureEntryPointFlagSetButNotZoneKeyFlag);
+					return Ok(resource_data_end_pointer)
+				}
+				KeySigningKey
+			};
+
+			let security_algorithm_type = resource_data.u16(FlagsSize + ProtocolSize);
+			let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, $permit_delete, false)?
+			{
+				Left(security_algorithm) => security_algorithm,
+				Right(security_algorithm_rejected_because_reason) =>
+				{
+					$resource_record_visitor.$ignored_callback($resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
+					return Ok(resource_data_end_pointer)
+				}
+			};
+
+			let record = DnsKey
+			{
+				computed_key_tag: resource_data.key_tag(),
+				purpose,
+				security_algorithm,
+				public_key: &resource_data[(FlagsSize + ProtocolSize + AlgorithmSize) .. ],
+			};
+
+			$resource_record_visitor.$visit_callback($resource_record_name, time_to_live, record)?;
+			Ok(resource_data_end_pointer)
+		}
+	}
+}
 
 #[derive(Debug)]
 struct ResponseParsingState
@@ -552,9 +736,9 @@ One very simple way to achieve this is to only accept data if it is
 
 				DataType::TALINK_lower => self.handle_obsolete_or_very_obscure_record_type("No RFC or RFC draft and probably not deployed"),
 
-				DataType::CDS_lower => XXXX,
+				DataType::CDS_lower => self.handle_cds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::CDNSKEY_lower => XXXX,
+				DataType::CDNSKEY_lower => self.handle_cdnskey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::OPENPGPKEY_lower => self.handle_openpgpkey(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -1204,75 +1388,7 @@ One very simple way to achieve this is to only accept data if it is
 	#[inline(always)]
 	fn handle_ds<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
-
-		use self::DelegationSignerResourceRecordIgnoredBecauseReason::*;
-		use self::DnsSecDigest::*;
-		use self::SecurityAlgorithmRejectedBecauseReason::*;
-
-		const KeyTagSize: usize = 2;
-		const SecurityAlgorithmTypeSize: usize = 1;
-		const DigestTypeSize: usize = 1;
-		const MinimumDigestSize: usize = 0;
-
-		let length = resource_data.len();
-		if unlikely!(length < KeyTagSize + SecurityAlgorithmTypeSize + DigestTypeSize + MinimumDigestSize)
-		{
-			return Err(ResourceDataForTypeDSHasAnIncorrectLength(length))
-		}
-
-		let resource_data_end_pointer = resource_data.end_pointer();
-
-		let security_algorithm_type = resource_data.u8(KeyTagSize);
-		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, false, false)?
-		{
-			Left(security_algorithm) => security_algorithm,
-			Right(security_algorithm_rejected_because_reason) =>
-			{
-				resource_record_visitor.DS_ignored(resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
-				return Ok(resource_data_end_pointer)
-			}
-		};
-
-		const DigestOffset: usize = KeyTagSize + SecurityAlgorithmTypeSize + DigestTypeSize;
-
-		let digest_type = resource_data.u8(3);
-		let digest = match digest_type
-		{
-			0 => return Err(DigestAlgorithmTypeIsReservedByRfc3658),
-
-			1 =>
-			{
-				resource_record_visitor.DS_ignored(resource_record_name, DigestAlgorithmRejected(Sha1IsBroken));
-				return Ok(resource_data_end_pointer)
-			}
-
-			2 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
-
-			3 =>
-			{
-				resource_record_visitor.DS_ignored(resource_record_name, DigestAlgorithmRejected(Gost94MayBeBroken));
-				return Ok(resource_data_end_pointer)
-			}
-
-			4 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 384, Sha2_384, ResourceDataForTypeDSHasADigestLengthThatIsIncorrectForTheDigestType),
-
-			_ =>
-			{
-				resource_record_visitor.DS_ignored(resource_record_name, DigestAlgorithmRejected(Unassigned(digest_type)));
-				return Ok(resource_data_end_pointer)
-			}
-		};
-
-		let record = DelegationSigner
-		{
-			key_tag: resource_data.value::<KeyTag>(0),
-			security_algorithm,
-			digest,
-		};
-
-		resource_record_visitor.DS(resource_record_name, time_to_live, record)?;
-		Ok(resource_data_end_pointer)
+		guard_delegation_signer!(self, end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, DS_ignored, DS, false)
 	}
 
 	#[inline(always)]
@@ -1576,103 +1692,7 @@ One very simple way to achieve this is to only accept data if it is
 	#[inline(always)]
 	fn handle_dnskey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
-
-		use self::DnsKeyPurpose::*;
-		use self::DnsKeyResourceRecordIgnoredBecauseReason::*;
-
-		const FlagsSize: usize = 2;
-		const ProtocolSize: usize = 1;
-		const AlgorithmSize: usize = 1;
-		const MinimumPublicKeySize: usize = 0;
-
-		let length = resource_data.len();
-		if unlikely!(length < FlagsSize + ProtocolSize)
-		{
-			return Err(ResourceDataForTypeDNSKEYHasAnIncorrectLength(length))
-		}
-
-		let resource_data_end_pointer = resource_data.end_pointer();
-
-		let protocol = resource_data.u8(FlagsSize);
-		if unlikely!(protocol != 3)
-		{
-			resource_record_visitor.DNSKEY_ignored(resource_record_name, ProtocolWasNot3(protocol));
-			return Ok(resource_data_end_pointer)
-		}
-
-		if unlikely!(length < FlagsSize + ProtocolSize + AlgorithmSize + MinimumPublicKeySize)
-		{
-			return Err(ResourceDataForTypeDNSKEYHasAnIncorrectLength(length))
-		}
-
-		let flags = resource_data.u16_network_endian(0);
-
-		const ZONE: u16 = 7;
-		#[cfg(target_endian = "big")] const IsZoneKeyFlag: u16 = 1 << (15 - ZONE);
-		#[cfg(target_endian = "little")] const IsZoneKeyFlag: u16 = 1 << ((15 - ZONE) - 8);
-
-		const REVOKE: u16 = 8;
-		#[cfg(target_endian = "big")] const RevokedFlag: u16 = 1 << (15 - REVOKE);
-		#[cfg(target_endian = "little")] const RevokedFlag: u16 = 1 << ((15 - REVOKE) + 8);
-
-		const SEP: u16 = 15;
-		#[cfg(target_endian = "big")] const SecureEntryPointFlag: u16 = 1 << (15 - SEP);
-		#[cfg(target_endian = "little")] const SecureEntryPointFlag: u16 = 1 << ((15 - SEP) + 8);
-
-		const KnownFlags: u16 = IsZoneKeyFlag | IsZoneKeyFlag | SecureEntryPointFlag;
-
-		if unlikely!(flags & !KnownFlags != 0)
-		{
-			resource_record_visitor.DNSKEY_ignored(resource_record_name, UnassignedFlags(flags));
-			return Ok(resource_data_end_pointer)
-		}
-
-		let is_revoked = flags & RevokedFlagBit != 0;
-		if unlikely!(is_revoked)
-		{
-			resource_record_visitor.DNSKEY_ignored(resource_record_name, Revoked);
-			return Ok(resource_data_end_pointer)
-		}
-
-		let is_zone_key = flags & IsZoneKeyFlagBit != 0;
-		let is_secure_entry_point = flags & SecureEntryPointFlagBit != 0;
-
-		let purpose = if unlikely!(is_zone_key)
-		{
-			ZoneSigningKey { is_secure_entry_point }
-		}
-		else
-		{
-			if unlikely!(is_secure_entry_point)
-			{
-				resource_record_visitor.DNSKEY_ignored(resource_record_name, SecureEntryPointFlagSetButNotZoneKeyFlag);
-				return Ok(resource_data_end_pointer)
-			}
-			KeySigningKey
-		};
-
-		let security_algorithm_type = resource_data.u16(FlagsSize + ProtocolSize);
-		let security_algorithm = match SecurityAlgorithm::parse_security_algorithm(security_algorithm_type, false, false)?
-		{
-			Left(security_algorithm) => security_algorithm,
-			Right(security_algorithm_rejected_because_reason) =>
-			{
-				resource_record_visitor.DNSKEY_ignored(resource_record_name, SecurityAlgorithmRejected(security_algorithm_rejected_because_reason));
-				return Ok(resource_data_end_pointer)
-			}
-		};
-
-		let record = DnsKey
-		{
-			computed_key_tag: resource_data.key_tag(),
-			purpose,
-			security_algorithm,
-			public_key: &resource_data[(FlagsSize + ProtocolSize + AlgorithmSize) .. ],
-		};
-
-		resource_record_visitor.DNSKEY(resource_record_name, time_to_live, record)?;
-		Ok(resource_data_end_pointer)
+		guard_dns_key!(self, end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, CDNSKEY_ignored, CDNSKEY, false)
 	}
 
 	#[inline(always)]
@@ -1983,6 +2003,18 @@ One very simple way to achieve this is to only accept data if it is
 
 		resource_record_visitor.HIP(resource_record_name, time_to_live, record)?;
 		Ok(resource_data_end_pointer)
+	}
+
+	#[inline(always)]
+	fn handle_cds<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		guard_delegation_signer!(self, end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, DS_ignored, DS, true)
+	}
+
+	#[inline(always)]
+	fn handle_cdnskey<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor) -> Result<usize, DnsProtocolError>
+	{
+		guard_dns_key!(self, end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, CDNSKEY_ignored, CDNSKEY, true)
 	}
 
 	#[inline(always)]
