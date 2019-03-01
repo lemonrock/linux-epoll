@@ -91,6 +91,15 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `NAPTR` has an incorrect length (value in tuple).
 	ResourceDataForTypeNAPTRHasAnIncorrectLength(usize),
 
+	/// Resource data for resource record type `NAPTR` is missing the flags field.
+	ResourceDataForTypeNAPTRIsMissingFlags,
+
+	/// Resource data for resource record type `NAPTR` is missing the services field.
+	ResourceDataForTypeNAPTRIsMissingServices,
+
+	/// Resource data for resource record type `NAPTR` is missing the regular expression field.
+	ResourceDataForTypeNAPTRIsMissingRegularExpression,
+
 	/// Resource data for resource record type `NAPTR` has data left over.
 	ResourceDataForTypeNAPTRHasDataLeftOver,
 

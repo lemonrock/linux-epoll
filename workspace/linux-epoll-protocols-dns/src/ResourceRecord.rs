@@ -864,11 +864,11 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeHINFOHasTooShortALength(length))
 		}
 
-		let character_strings_iterator = CharacterStringsIterator::new(resource_data);
+		let character_strings_iterator = CharacterStringsIterator::new(resource_data)?;
 
-		let cpu = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(length))?;
+		let cpu = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(length)))?;
 
-		let os = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(length))?;
+		let os = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(length)))?;
 
 		if likely!(character_strings_iterator.is_empty())
 		{
@@ -1002,13 +1002,13 @@ impl ResourceRecord
 		let order = resource_data.u16(0);
 		let preference = resource_data.u16(OrderSize);
 
-		let character_strings_iterator = CharacterStringsIterator::new(&resource_data[(OrderSize + PreferenceSize) .. ]);
+		let character_strings_iterator = CharacterStringsIterator::new(&resource_data[(OrderSize + PreferenceSize) .. ])?;
 
-		let flags = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(length))?;
+		let flags = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeNAPTRIsMissingFlags))?;
 
-		let services = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(length))?;
+		let services = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeNAPTRIsMissingServices))?;
 
-		let regular_expression = character_strings_iterator.next().ok_or(ResourceDataForTypeHINFOWouldHaveOsDataOverflow(length))?;
+		let regular_expression = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeNAPTRIsMissingRegularExpression))?;
 
 		let remaining_resource_data = character_strings_iterator.remaining_resource_data();
 		let start_of_name_pointer = remaining_resource_data.pointer();
@@ -1024,7 +1024,7 @@ impl ResourceRecord
 
 		if regular_expression.is_empty()
 		{
-			let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer);
+			let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
 			if unlikely!(end_of_name_pointer != resource_data_end_pointer)
 			{
 				return Err(ResourceDataForTypeNAPTRHasDataLeftOver)
