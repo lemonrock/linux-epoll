@@ -6,6 +6,9 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NextSecureVersion3Parameters<'a>
 {
+	// Hash algorithm number (validated).
+	pub hash_algorithm_number: u8,
+
 	/// Iteration count.
 	pub iterations: u16,
 

@@ -1493,7 +1493,7 @@ impl ResourceRecord
 
 		let public_key_algorithm_type = resource_data.u8(PrecedenceSize + GatewayTypeSize);
 		let public_key_length = length - public_key_starts_at_offset;
-		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.IPSECKEY_ignored(PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.IPSECKEY_ignored(PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
+		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.IPSECKEY_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.IPSECKEY_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
 
 		let record = IpsecPublicKey
 		{
@@ -1502,7 +1502,7 @@ impl ResourceRecord
 			public_key,
 		};
 
-		resource_record_visitor.IPSECKEY(name, time_to_live, record)?;
+		resource_record_visitor.IPSECKEY(resource_record_name, time_to_live, record)?;
 		Ok(resource_data_end_pointer)
 	}
 
@@ -1856,7 +1856,7 @@ impl ResourceRecord
 			_ =>
 			{
 				resource_record_visitor.NSEC3PARAM_ignored(UnassignedHashAlgorithm(hash_algorithm_number));
-				Ok(resource_data_end_pointer)
+				return Ok(resource_data_end_pointer)
 			}
 		};
 
@@ -1943,7 +1943,7 @@ impl ResourceRecord
 		let public_key_algorithm_type = resource_data.u8(HostIdentityTagLengthSize);
 		let public_key_starts_at_offset = HostIdentityTagOffset + host_identity_tag_length;
 		let public_key_length = resource_data.u16_as_usize(HostIdentityTagLengthSize + PublicKeyAlgorithmTypeSize);
-		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.HIP_ignored(PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.HIP_ignored(PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
+		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
 
 		let start_of_name_pointer = resource_data.pointer() + HostIdentityTagOffset + host_identity_tag_length + public_key_length;
 		let (first_rendezvous_server_domain_name, true_end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
