@@ -13,5 +13,5 @@ pub struct DelegationSigner<'a>
 	pub security_algorithm: SecurityAlgorithm,
 
 	/// Digest.
-	pub digest: DnsSecDigest,
+	pub digest: DnsSecDigest<'a>,
 }

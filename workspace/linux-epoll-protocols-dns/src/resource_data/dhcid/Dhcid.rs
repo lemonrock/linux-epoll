@@ -10,5 +10,5 @@ pub struct Dhcid<'a>
 	pub identifier_type: IdentifierType,
 
 	/// Digest.
-	pub digest: DhcidDigest,
+	pub digest: DhcidDigest<'a>,
 }

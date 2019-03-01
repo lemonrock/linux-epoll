@@ -4,7 +4,7 @@
 
 /// A resource record set signature (`RRSIG`).
 #[derive(Debug)]
-pub struct ResourceRecordSetSignature<a>
+pub struct ResourceRecordSetSignature<'a>
 {
 	/// Type covered.
 	///

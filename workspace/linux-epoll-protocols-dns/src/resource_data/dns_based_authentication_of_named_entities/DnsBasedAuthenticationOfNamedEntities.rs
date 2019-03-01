@@ -13,5 +13,5 @@ pub struct DnsBasedAuthenticationOfNamedEntities<'a>
 	pub selector: Selector,
 
 	/// Matching type.
-	pub matching_type: MatchingType,
+	pub matching_type: MatchingType<'a>,
 }

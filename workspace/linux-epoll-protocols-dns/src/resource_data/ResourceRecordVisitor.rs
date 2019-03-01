@@ -223,7 +223,7 @@ pub trait ResourceRecordVisitor<'a>
 	fn OPENPGPKEY(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `CSYNC`.
-	fn CSYNC(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ChildSynchronize<'a>) -> Result<(), DnsProtocolError>;
+	fn CSYNC(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ChildSynchronize) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `CSYNC` which was ignored.
 	///
