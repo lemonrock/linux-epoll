@@ -9,7 +9,7 @@ struct QuerySectionEntryFooter
 	/// A two octet code which specifies the type of the query.
 	///
 	/// The values for this field include all codes valid for a `TYPE` field, together with some more general codes which can match more than one type of Resource Record (RR).
-	qtype: QueryType,
+	qtype: QueryTypeOrDataType,
 
 	/// A two octet code that specifies the class of the query.
 	///

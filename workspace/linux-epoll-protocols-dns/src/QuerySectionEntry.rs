@@ -27,14 +27,14 @@ impl QuerySectionEntry
 	#[inline(always)]
 	fn query_type_or_data_type(&self) -> QueryTypeOrDataType
 	{
-		self.query_section_entry_footer().query_type()
+		self.query_section_entry_footer().query_type_or_data_type()
 	}
 
 	/// `QTYPE` field.
 	#[inline(always)]
 	fn set_query_type_or_data_type(&self, query_type_or_data_type: QueryTypeOrDataType)
 	{
-		self.query_section_entry_footer_mutable().set_query_type(query_type_or_data_type)
+		self.query_section_entry_footer_mutable().set_query_type_or_data_type(query_type_or_data_type)
 	}
 
 	/// `QCLASS` field.

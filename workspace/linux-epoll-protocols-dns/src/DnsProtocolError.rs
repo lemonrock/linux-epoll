@@ -119,7 +119,7 @@ pub enum DnsProtocolError
 	ResourceDataForTypeIPSECKEYHasTooShortALengthForDomainNameGateway(usize),
 
 	/// Resource data for resource record type `IPSECKEY` or `HIP` has an incorrect length for no public key (value in tuple).
-	ResourceDataForTypeIPSECKEYHasWrongLengthForNoPublicKey(usize),
+	ResourceDataForTypeIPSECKEYOrHIPHasWrongLengthForNoPublicKey(usize),
 
 	/// Resource data for resource record type `IPSECKEY` or `HIP` has an incorrect length for a DSA public key (value in tuple).
 	ResourceDataForTypeIPSECKEYOrHIPHasTooShortALengthForADSAPublicKey(usize),
@@ -285,6 +285,9 @@ pub enum DnsProtocolError
 
 	/// Resource data for resource record type `MX` has too short a length (value in tuple).
 	ResourceDataForTypeMXHasTooShortALength(usize),
+
+	/// Resource data for resource record type `KX` has too short a length (value in tuple).
+	ResourceDataForTypeKXHasTooShortALength(usize),
 
 	/// Resource data for resource record type `TXT` has not text strings (and thus has a length of zero).
 	ResourceRecordForTypeTXTHasNoCharacterStrings,

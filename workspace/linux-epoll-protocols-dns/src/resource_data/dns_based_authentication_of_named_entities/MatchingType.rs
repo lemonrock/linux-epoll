@@ -3,7 +3,6 @@
 
 
 /// See <https://www.iana.org/assignments/dane-parameters/dane-parameters.xhtml>
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MatchingType<'a>
 {
 	/// 'Full'.

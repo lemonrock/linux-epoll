@@ -3,7 +3,7 @@
 
 
 /// A child synchronize record (`CSYNC`).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Hash)]
 pub struct ChildSynchronize
 {
 	/// Start-of-Authority (`SOA`) serial number.

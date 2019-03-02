@@ -3,7 +3,6 @@
 
 
 /// Digest.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DnsSecDigest<'a>
 {
 	Sha2_256(&'a [u8; 256 / 8]),

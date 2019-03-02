@@ -3,7 +3,7 @@
 
 
 /// Why was a `RRSIG` record ignored?
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Hash)]
 pub enum ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason
 {
 	/// Security algorithm was rejected.

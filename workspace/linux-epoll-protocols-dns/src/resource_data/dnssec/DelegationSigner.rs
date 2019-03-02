@@ -3,7 +3,6 @@
 
 
 /// A delegation signer.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DelegationSigner<'a>
 {
 	/// Key tag.

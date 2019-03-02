@@ -21,7 +21,13 @@ pub(crate) trait SliceExt
 	#[inline(always)]
 	fn u8(&self, offset: usize) -> u8
 	{
-		self.value_::<u8>(offset)
+		self.value::<u8>(offset)
+	}
+
+	#[inline(always)]
+	fn u8_as_u32(&self, offset: usize) -> u32
+	{
+		self.u8(offset) as u32
 	}
 
 	#[inline(always)]
@@ -33,7 +39,13 @@ pub(crate) trait SliceExt
 	#[inline(always)]
 	fn u16(&self, offset: usize) -> u16
 	{
-		u16::from_be_bytes(self.value_::<[u8; size_of::<u16>()]>(offset))
+		u16::from_be_bytes(self.value::<[u8; size_of::<u16>()]>(offset))
+	}
+
+	#[inline(always)]
+	fn u16_as_u32(&self, offset: usize) -> u32
+	{
+		self.u16(offset) as u32
 	}
 
 	#[inline(always)]
@@ -45,19 +57,19 @@ pub(crate) trait SliceExt
 	#[inline(always)]
 	fn u32(&self, offset: usize) -> u32
 	{
-		u32::from_be_bytes(self.value_::<[u8; size_of::<u32>()]>(offset))
+		u32::from_be_bytes(self.value::<[u8; size_of::<u32>()]>(offset))
 	}
 
 	#[inline(always)]
 	fn u64(&self, offset: usize) -> u64
 	{
-		u64::from_be_bytes(self.value_::<[u8; size_of::<u64>()]>(offset))
+		u64::from_be_bytes(self.value::<[u8; size_of::<u64>()]>(offset))
 	}
 
 	#[inline(always)]
 	fn u16_network_endian(&self, offset: usize) -> u16
 	{
-		self.value_::<u16>(offset)
+		self.value::<u16>(offset)
 	}
 
 	#[inline(always)]
@@ -95,7 +107,7 @@ impl<'a> SliceExt for &'a [u8]
 
 			for index in 0 .. length
 			{
-				let value = data.u16(index) as u32;
+				let value = data.u16_as_u32(index);
 				accumulator += value;
 			}
 
@@ -111,7 +123,7 @@ impl<'a> SliceExt for &'a [u8]
 		else
 		{
 			let last = length - 1;
-			accumulate(self, last) + self.u8(last) << 8
+			accumulate(self, last) + self.u8_as_u32(last) << 8
 		};
 
 		let accumulator = accumulator + ((accumulator >> 16) & 0xFFFF);
@@ -121,6 +133,6 @@ impl<'a> SliceExt for &'a [u8]
 	#[inline(always)]
 	fn get_<T>(&self, offset: usize) -> *const T
 	{
-		(unsafe { self.get_unchecked(offset) }) as *const T
+		(unsafe { self.get_unchecked(offset) }) as *const u8 as *const T
 	}
 }

@@ -67,7 +67,7 @@ macro_rules! ipsec_like_public_key
 
 						if unlikely!(public_key_data.len() < SizeSize)
 						{
-							return Err(ResourceDataForTypeIPSECKEYOrHIPHasTooShortALengthForRSAPublicKeyForAThreeByteExponentLength(length))
+							return Err(ResourceDataForTypeIPSECKEYOrHIPHasTooShortALengthForRSAPublicKeyForAThreeByteExponentLength($public_key_length))
 						}
 
 						(&public_key_data[SizeSize .. ], public_key_data.u16_as_usize(FirstByteSize))
@@ -139,8 +139,8 @@ macro_rules! guard_delegation_signer
 			let (time_to_live, resource_data) = $self.validate_class_is_internet_and_get_time_to_live_and_resource_data($end_of_name_pointer, $end_of_message_pointer)?;
 
 			use self::DelegationSignerResourceRecordIgnoredBecauseReason::*;
+			use self::DigestAlgorithmRejectedBecauseReason::*;
 			use self::DnsSecDigest::*;
-			use self::SecurityAlgorithmRejectedBecauseReason::*;
 
 			const KeyTagSize: usize = 2;
 			const SecurityAlgorithmTypeSize: usize = 1;
@@ -267,15 +267,15 @@ macro_rules! guard_dns_key
 				return Ok(resource_data_end_pointer)
 			}
 
-			let is_revoked = flags & RevokedFlagBit != 0;
+			let is_revoked = flags & RevokedFlag != 0;
 			if unlikely!(is_revoked)
 			{
 				$resource_record_visitor.$ignored_callback($resource_record_name, Revoked);
 				return Ok(resource_data_end_pointer)
 			}
 
-			let is_zone_key = flags & IsZoneKeyFlagBit != 0;
-			let is_secure_entry_point = flags & SecureEntryPointFlagBit != 0;
+			let is_zone_key = flags & IsZoneKeyFlag != 0;
+			let is_secure_entry_point = flags & SecureEntryPointFlag != 0;
 
 			let purpose = if unlikely!(is_zone_key)
 			{
@@ -336,12 +336,10 @@ impl ResourceRecord
 	{
 		let (parsed_name_iterator, end_of_name_pointer, (type_upper, type_lower)) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
-		let question_q_type_upper =  question_q_type.0.u8(0);
+		let (question_q_type_upper, question_q_type_lower) =  question_q_type.upper_and_lower();
 
 		if likely!(type_upper == 0x00 && type_upper == question_q_type_upper)
 		{
-			let question_q_type_lower = question_q_type.0.u8(1);
-
 			if unlikely!(type_lower == DataType::CNAME_lower && type_lower == question_q_type_lower)
 			{
 				if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
@@ -872,6 +870,12 @@ impl ResourceRecord
 
 		if likely!(character_strings_iterator.is_empty())
 		{
+			let record = HostInformation
+			{
+				cpu,
+				os,
+			};
+
 			resource_record_visitor.HINFO(resource_record_name, time_to_live, record)?;
 			Ok(resource_data.end_pointer())
 		}
@@ -1109,6 +1113,8 @@ impl ResourceRecord
 		{
 			return Err(ResourceDataForTypeCERTHasTooShortALength(length))
 		}
+
+		let resource_data_end_pointer = resource_data.end_pointer();
 
 		let certificate_type_value_upper = resource_data.u8(0);
 		let certificate_type_value_lower = resource_data.u8(1);
@@ -1450,24 +1456,24 @@ impl ResourceRecord
 
 			1 =>
 			{
-				if unlikely!(length < GatewayFieldStartsAtOffset + size_of::<IpAddrV4>())
+				if unlikely!(length < GatewayFieldStartsAtOffset + size_of::<Ipv4Addr>())
 				{
 					return Err(ResourceDataForTypeIPSECKEYHasTooShortALengthForAnInternetProtocolVersion4Gateway(length))
 				}
-				let gateway = resource_data.cast::<IpAddrV4>(GatewayFieldStartsAtOffset);
+				let gateway = resource_data.cast::<Ipv4Addr>(GatewayFieldStartsAtOffset);
 
-				(GatewayFieldStartsAtOffset + size_of::<IpAddrV4>(), Some(InternetProtocolVersion4(gateway)))
+				(GatewayFieldStartsAtOffset + size_of::<Ipv4Addr>(), Some(InternetProtocolVersion4(gateway)))
 			}
 
 			2 =>
 			{
-				if unlikely!(length < GatewayFieldStartsAtOffset + size_of::<IpAddrV6>())
+				if unlikely!(length < GatewayFieldStartsAtOffset + size_of::<Ipv6Addr>())
 				{
 					return Err(ResourceDataForTypeIPSECKEYHasTooShortALengthForAnInternetProtocolVersion6Gateway(length))
 				}
-				let gateway = resource_data.cast::<IpAddrV6>(GatewayFieldStartsAtOffset);
+				let gateway = resource_data.cast::<Ipv6Addr>(GatewayFieldStartsAtOffset);
 
-				(GatewayFieldStartsAtOffset + size_of::<IpAddrV6>(), Some(InternetProtocolVersion6(gateway)))
+				(GatewayFieldStartsAtOffset + size_of::<Ipv6Addr>(), Some(InternetProtocolVersion6(gateway)))
 			}
 
 			3 =>
@@ -1493,7 +1499,7 @@ impl ResourceRecord
 
 		let public_key_algorithm_type = resource_data.u8(PrecedenceSize + GatewayTypeSize);
 		let public_key_length = length - public_key_starts_at_offset;
-		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.IPSECKEY_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.IPSECKEY_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
+		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.IPSECKEY_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.IPSECKEY_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) });
 
 		let record = IpsecPublicKey
 		{
@@ -1530,7 +1536,7 @@ impl ResourceRecord
 			type_bitmaps: TypeBitmaps::parse_type_bitmaps(&resource_data[(end_of_next_domain_name_pointer - resource_data_pointer) .. ])?,
 		};
 
-		resource_record_visitor.NSEC(name, time_to_live, record)?;
+		resource_record_visitor.NSEC(resource_record_name, time_to_live, record)?;
 		Ok(resource_data_end_pointer)
 	}
 
@@ -1539,7 +1545,6 @@ impl ResourceRecord
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		use self::DnsKeyPurpose::*;
 		use self::ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason::*;
 
 		const TypeCoveredSize: usize = 2;
@@ -1691,14 +1696,13 @@ impl ResourceRecord
 		};
 
 		const DigestOffset: usize = IdentifierTypeCodeSize + DigestTypeCodeSize;
-		let digest_type_code = resource_data.u8(IdentifierTypeCodeSize);
-		let digest = match raw_digest_type_code
+		let digest = match resource_data.u8(IdentifierTypeCodeSize)
 		{
 			0 => return Err(ResourceDataForTypeDHCIDHasAReservedDigestTypeCode),
 
 			1 => guard_hash_digest_if_final_field!(resource_data, DigestOffset, 256, Sha2_256, ResourceDataForTypeDHCIDHasADigestLengthThatIsIncorrectForTheMatchingType),
 
-			_ =>
+			digest_type_code @ _ =>
 			{
 				resource_record_visitor.DHCID_ignored(resource_record_name, DigestAlgorithmUnassigned(digest_type_code));
 				return Ok(resource_data_end_pointer)
@@ -1852,7 +1856,7 @@ impl ResourceRecord
 
 			1 => NextSecureVersion3Parameters::Sha1HashAlgorithmNumber,
 
-			_ =>
+			hash_algorithm_number @ _ =>
 			{
 				resource_record_visitor.NSEC3PARAM_ignored(resource_record_name, UnassignedHashAlgorithm(hash_algorithm_number));
 				return Ok(resource_data_end_pointer)
@@ -1942,7 +1946,7 @@ impl ResourceRecord
 		let public_key_algorithm_type = resource_data.u8(HostIdentityTagLengthSize);
 		let public_key_starts_at_offset = HostIdentityTagOffset + host_identity_tag_length;
 		let public_key_length = resource_data.u16_as_usize(HostIdentityTagLengthSize + PublicKeyAlgorithmTypeSize);
-		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) })?;
+		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) });
 
 		let start_of_name_pointer = resource_data.pointer() + HostIdentityTagOffset + host_identity_tag_length + public_key_length;
 		let (first_rendezvous_server_domain_name, true_end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
@@ -2242,15 +2246,15 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeCAAHasAnIncorrectLength(length))
 		}
 
-		let flag_bits = resource_data.u8(0);
+		let flags = resource_data.u8(0);
 
 		// // See <https://www.iana.org/assignments/pkix-parameters/pkix-parameters.xhtml>; note that bit 0 is MSB, ie bits are numbered from left-to-right.
 		const IssuerCriticalFlagBit: u8 = 0b1000_0000;
 		const ReservedFlagBits: u8 = !IssuerCriticalFlagBit;
 
-		if unlikely!(flag_bits & ReservedFlagBits != 0)
+		if unlikely!(flags & ReservedFlagBits != 0)
 		{
-			resource_record_visitor.CAA_ignored(resource_record_name, UseOfUnassignedFlagBits(flag_bits));
+			resource_record_visitor.CAA_ignored(resource_record_name, UseOfUnassignedFlagBits(flags));
 			return Ok(resource_data_end_pointer)
 		}
 
@@ -2268,7 +2272,7 @@ impl ResourceRecord
 		let property_tag_bytes = &resource_data[PropertyTagOffset .. property_value_offset];
 		let property_tag = match KnownTags.get(property_tag_bytes)
 		{
-			Some(Some(property_tag)) => property_tag,
+			Some(Some(property_tag)) => *property_tag,
 
 			Some(None) =>
 			{
@@ -2283,7 +2287,7 @@ impl ResourceRecord
 			}
 		};
 
-		let record = CertificationAuthorityAuthorization
+		let record = CertificateAuthorityAuthorization
 		{
 			is_issuer_critical: flags & 0b0000_0001 != 0,
 			property_tag,

@@ -22,26 +22,25 @@ impl TypeBitmaps
 	#[inline(always)]
 	pub fn is_data_type_present(&self, data_type: DataType) -> Option<bool>
 	{
-		let data_type_bytes = &data_type.0;
+		let (data_type_upper, data_type_lower) = data_type.upper_and_lower();
 
 		#[inline(always)]
 		const fn is_bit_set_in_byte(byte: u8, network_bit_number: u8) -> Option<bool>
 		{
-			let normal_bit_number = (7 - network_bit_number);
+			let normal_bit_number = 7 - network_bit_number;
 			let bitmask = 1 << normal_bit_number;
 			Some(byte & bitmask != 0)
 		}
 
-		match data_type_bytes.u8(0)
+		match data_type_upper
 		{
 			0x00 =>
 			{
-				let data_type_lower = data_type_bytes.u8(1);
 				if likely!(data_type_lower <= 0x7F)
 				{
-					let network_byte_number = data_type_lower >> 3;
+					let network_byte_number = (data_type_lower >> 3) as usize;
 					let network_bit_number = data_type_lower & 0b111;
-					is_bit_set_in_byte(self.type_codes_0x0000_to_0x007F.u8(network_byte_number), network_bit_number)
+					is_bit_set_in_byte((&self.type_codes_0x0000_to_0x007F[..]).u8(network_byte_number), network_bit_number)
 				}
 				else
 				{
@@ -51,7 +50,6 @@ impl TypeBitmaps
 
 			0x01 =>
 			{
-				let data_type_lower = data_type_bytes.u8(1);
 				if likely!(data_type_lower <= 0x07)
 				{
 					is_bit_set_in_byte(self.type_codes_0x0100_to_0x0107, data_type_lower)
@@ -127,13 +125,13 @@ impl TypeBitmaps
 				{
 					Self::TypeCodes0x0000To0x007FSize
 				};
-				unsafe { copy_nonoverlapping(bitmap.ptr(), this.type_codes_0x0000_to_0x007F.as_mut_ptr(), length_to_copy) };
+				unsafe { copy_nonoverlapping(bitmap.as_ptr(), this.type_codes_0x0000_to_0x007F.as_mut_ptr(), length_to_copy) };
 			}
 			else if likely!(window_number == 0x01)
 			{
 				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
 
-				this.type_codes_0x0100_to_0x0101 = bitmap.u8(0);
+				this.type_codes_0x0100_to_0x0107 = bitmap.u8(0);
 			}
 			else
 			{

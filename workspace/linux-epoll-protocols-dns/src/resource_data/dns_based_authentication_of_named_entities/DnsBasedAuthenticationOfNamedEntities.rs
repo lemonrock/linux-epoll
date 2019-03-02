@@ -3,7 +3,6 @@
 
 
 /// DNS-based Authentication of Named Entities (DANE) record data.
-#[derive(Debug)]
 pub struct DnsBasedAuthenticationOfNamedEntities<'a>
 {
 	/// Certificate usage.

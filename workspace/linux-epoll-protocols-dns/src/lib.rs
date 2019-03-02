@@ -17,7 +17,6 @@
 //! A simple implementation of a secure DNS client.
 
 
-#[macro_use] extern crate arrayref;
 extern crate either;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
@@ -51,6 +50,11 @@ use ::std::cell::Cell;
 use ::std::cmp::min;
 use ::std::cmp::Ordering;
 use ::std::cmp::PartialOrd;
+use ::std::fmt;
+use ::std::fmt::Debug;
+use ::std::fmt::Formatter;
+use ::std::hash::Hash;
+use ::std::hash::Hasher;
 use ::std::marker::PhantomData;
 use ::std::mem::size_of;
 use ::std::mem::transmute;

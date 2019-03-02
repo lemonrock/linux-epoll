@@ -164,7 +164,7 @@ impl<'a> ParsedNameIterator<'a>
 						return Err(LabelPointerOverflows)
 					}
 
-					let offset = label.offset();
+					let offset = label.offset() as usize;
 
 					if unlikely!(parsed_labels.start_of_message_pointer + offset >= current_label_starts_at_pointer)
 					{

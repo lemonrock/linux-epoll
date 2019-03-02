@@ -8,4 +8,54 @@ union QueryTypeOrDataType
 {
 	query_type: QueryType,
 	resource_record_data_type: DataType,
+	bytes: [u8; 2],
+}
+
+impl Debug for QueryTypeOrDataType
+{
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result
+	{
+		unsafe { self.bytes.fmt(f) }
+	}
+}
+
+impl PartialEq for QueryTypeOrDataType
+{
+	#[inline(always)]
+	fn eq(&self, other: &Self) -> bool
+	{
+		unsafe { self.bytes == other.bytes }
+	}
+}
+
+impl Eq for QueryTypeOrDataType
+{
+}
+
+impl PartialOrd for QueryTypeOrDataType
+{
+	#[inline(always)]
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering>
+	{
+		unsafe { self.bytes.partial_cmp(&other.bytes) }
+	}
+}
+
+impl Ord for QueryTypeOrDataType
+{
+	#[inline(always)]
+	fn cmp(&self, other: &Self) -> Ordering
+	{
+		unsafe { self.bytes.cmp(&other.bytes) }
+	}
+}
+
+impl Hash for QueryTypeOrDataType
+{
+	#[inline(always)]
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		unsafe { self.bytes.hash(state) }
+	}
 }
