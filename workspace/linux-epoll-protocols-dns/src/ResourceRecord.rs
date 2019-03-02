@@ -1584,7 +1584,7 @@ impl ResourceRecord
 
 		let signature_expiration_timestamp = resource_data.value::<SignatureTimestamp>(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize);
 		let signature_inception_timestamp = resource_data.value::<SignatureTimestamp>(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize);
-		match signature_expiration.difference(signature_inception)
+		match signature_expiration_timestamp.difference(&signature_inception_timestamp)
 		{
 			None =>
 			{
