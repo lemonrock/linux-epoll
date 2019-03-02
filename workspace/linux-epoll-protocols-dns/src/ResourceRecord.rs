@@ -347,7 +347,7 @@ impl ResourceRecord
 				if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
 				{
 					response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
-					self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+					self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels)
 				}
 				else
 				{
@@ -359,7 +359,7 @@ impl ResourceRecord
 				if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
 				{
 					response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
-					self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+					self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels)
 				}
 				else
 				{
@@ -382,7 +382,7 @@ impl ResourceRecord
 						if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
 						{
 							response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
-							self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+							self.handle_cname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels)
 						}
 						else
 						{
@@ -395,7 +395,7 @@ impl ResourceRecord
 						if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
 						{
 							response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
-							self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state)
+							self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels)
 						}
 						else
 						{
@@ -403,7 +403,7 @@ impl ResourceRecord
 						}
 					}
 
-					DataType::RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+					DataType::RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 					_ => return Err(ResourceRecordTypeIsNotValidInAnswerSection(DataType([type_upper, type_lower])))
 				}
@@ -427,22 +427,22 @@ impl ResourceRecord
 			match type_lower
 			{
 				// Referral.
-				NS_lower => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+				NS_lower => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
 				// Negative Response.
 				SOA_lower => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
 
 				// Referral.
-				DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+				DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				// Signing negative response or referral.
-				RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+				RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				// Signing negative response.
-				NSEC_lower => self.handle_nsec(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+				NSEC_lower => self.handle_nsec(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				// Signing negative response.
-				NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+				NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				_ => Err(ResourceRecordTypeIsNotValidInAuthoritySection(DataType([type_upper, type_lower])))
 			}
@@ -520,7 +520,7 @@ impl ResourceRecord
 		{
 			0x00 => match type_lower
 			{
-				DataType::SIG0_lower => self.handle_sig0(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::SIG0_lower => self.handle_obsolete_meta_type(end_of_name_pointer, end_of_message_pointer, "Only really useful for updates, which, frankly, are probably better done out-of-band than using DNS; regardless, when using DNS over TLS a client certificate is much more useful"),
 
 				DataType::A_lower => self.handle_a(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -642,7 +642,7 @@ impl ResourceRecord
 
 				DataType::SMIMEA_lower => self.handle_smimea(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				54 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, 54),
+				54 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, 54),
 
 				DataType::HIP_lower => self.handle_hip(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -660,9 +660,9 @@ impl ResourceRecord
 
 				DataType::CSYNC_lower => self.handle_csync(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::ZONEMD_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::ZONEMD_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, type_lower),
 
-				64 ... 98 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, type_lower),
+				64 ... 98 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, type_lower),
 
 				DataType::SPF_lower => self.handle_obsolete_or_very_obscure_record_type(end_of_name_pointer, end_of_message_pointer, "RFC 7208 deprecated this record type; some legacy records may remain"),
 
@@ -1090,7 +1090,7 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn handle_cert<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	fn handle_cert<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 

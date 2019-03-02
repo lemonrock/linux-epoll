@@ -41,10 +41,10 @@ pub enum DnsProtocolError
 	MoreThanOneStatementOfAuthorityResourceRecord,
 
 	/// A `SOA` record type was present a section it should not have been in.
-	StartOfAuthorityResourceRecordTypeIsNotPermittedInThisSection(DataType),
+	StartOfAuthorityResourceRecordTypeIsNotPermittedInThisSection,
 
 	/// An `OPT` record type was present a section it should not have been in.
-	ExtendedDnsOptResourceRecordTypeIsNotPermittedInThisSection(DataType),
+	ExtendedDnsOptResourceRecordTypeIsNotPermittedInThisSection,
 
 	/// A very obsolete data type was present.
 	VeryObsoleteResourceRecordType(DataType),
