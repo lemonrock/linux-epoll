@@ -1046,7 +1046,7 @@ impl ResourceRecord
 		{
 			let end_of_name_pointer = start_of_name_pointer + 1;
 
-			if unlikely!(end_of_name_pointer != end_of_resource_data)
+			if unlikely!(end_of_name_pointer != resource_data_end_pointer)
 			{
 				return Err(ResourceDataForTypeNAPTRHasDataLeftOver)
 			}
@@ -1252,7 +1252,7 @@ impl ResourceRecord
 			const OptionLengthSize: usize = 2;
 			const MinimumOptionDataSize: usize = 2;
 
-			if unlikely!(start_of_option_offset + OptionCodeSize + OptionLengthSize + MinimumOptionDataSize > end_of_options_pointer)
+			if unlikely!(start_of_option_offset + OptionCodeSize + OptionLengthSize + MinimumOptionDataSize > end_of_options_offset)
 			{
 				return Err(ExtendedDnsOptionTooShort)
 			}
