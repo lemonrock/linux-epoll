@@ -334,7 +334,7 @@ impl ResourceRecord
 	#[inline(always)]
 	pub(crate) fn parse_answer_section_resource_record_in_response<'a>(&'a self, question_q_type: DataType, end_of_message_pointer: usize, parsed_labels: &mut ParsedLabels<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, response_parsing_state: &mut ResponseParsingState) -> Result<usize, DnsProtocolError>
 	{
-		let (parsed_name_iterator, end_of_name_pointer, (type_upper, type_lower)) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
+		let (resource_record_name, end_of_name_pointer, (type_upper, type_lower)) = self.validate_minimum_record_size_and_parse_name_and_resource_record_type(end_of_message_pointer, parsed_labels)?;
 
 		let (question_q_type_upper, question_q_type_lower) =  question_q_type.upper_and_lower();
 
@@ -366,7 +366,7 @@ impl ResourceRecord
 			}
 			else
 			{
-				self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, parsed_name_iterator, parsed_labels, resource_record_visitor, response_parsing_state, true, false, (type_upper, type_lower))
+				self.dispatch_resource_record_type(end_of_name_pointer, end_of_message_pointer, resource_record_name, parsed_labels, resource_record_visitor, response_parsing_state, true, false, (type_upper, type_lower))
 			}
 		}
 		else
