@@ -110,11 +110,13 @@ impl TypeBitmaps
 				return Err(ResourceDataForTypeCSYNCOrNSECOrNSEC3HasAnOverflowingBitmapLength(bitmap_length))
 			}
 
+			let block_ends_at = block_starts_at + WindowSize + BitmapLengthSize + bitmap_length;
+
 			if likely!(window_number == 0x00)
 			{
 				have_seen_window_number_0 = true;
 
-				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
+				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_ends_at)];
 
 				let length_to_copy = if likely!(bitmap_length < Self::TypeCodes0x0000To0x007FSize)
 				{
@@ -129,7 +131,7 @@ impl TypeBitmaps
 			}
 			else if likely!(window_number == 0x01)
 			{
-				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_starts_at + WindowSize + BitmapLengthSize + bitmap_length)];
+				let bitmap = &blocks[(block_starts_at + WindowSize + BitmapLengthSize) .. (block_ends_at)];
 
 				this.type_codes_0x0100_to_0x0107 = bitmap.u8(0);
 			}
@@ -138,6 +140,7 @@ impl TypeBitmaps
 				// Deliberately ignore other type bit maps as they are very rarely present or interesting at all; only `TA` and `DLV` are even registered, and they are obsolete.
 			}
 
+			block_starts_at = block_ends_at;
 			previous_window_number = window_number;
 		}
 

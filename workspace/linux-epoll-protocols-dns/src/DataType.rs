@@ -454,7 +454,7 @@ impl DataType
     ///
     /// Defined in RFC 7477.
 	pub(crate) const CSYNC_higher: u8 = 0x00;
-	pub(crate) const CSYNC_lower: u8 = 61;
+	pub(crate) const CSYNC_lower: u8 = 62;
 	pub(crate) const CSYNC: Self = Self([Self::CSYNC_higher, Self::CSYNC_lower]);
 
     /// Message Digest for DNS Zone.
@@ -541,14 +541,14 @@ impl DataType
 	///
 	/// Defined in RFC 7043.
 	pub(crate) const EUI48_higher: u8 = 0x00;
-	pub(crate) const EUI48_lower: u8 = 107;
+	pub(crate) const EUI48_lower: u8 = 108;
 	pub(crate) const EUI48: Self = Self([Self::EUI48_higher, Self::EUI48_lower]);
 
 	/// An EUI-64 address.
 	///
 	/// Defined in RFC 7043.
 	pub(crate) const EUI64_higher: u8 = 0x00;
-	pub(crate) const EUI64_lower: u8 = 107;
+	pub(crate) const EUI64_lower: u8 = 109;
 	pub(crate) const EUI64: Self = Self([Self::EUI64_higher, Self::EUI64_lower]);
 
     /// URI.

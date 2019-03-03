@@ -13,7 +13,7 @@ pub(crate) trait SliceExt
 	fn key_tag(&self) -> KeyTag;
 
 	#[inline(always)]
-	fn cast<T>(&self, offset: usize) -> &T
+	fn cast<'a, T>(&self, offset: usize) -> &'a T
 	{
 		unsafe { & * (self.get_::<T>(offset)) }
 	}
@@ -73,7 +73,7 @@ pub(crate) trait SliceExt
 	}
 
 	#[inline(always)]
-	fn value<T>(&self, offset: usize) -> T
+	fn value<T: Copy>(&self, offset: usize) -> T
 	{
 		unsafe { *self.get_::<T>(offset) }
 	}

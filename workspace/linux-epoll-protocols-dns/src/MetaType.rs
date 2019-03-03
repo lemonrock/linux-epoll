@@ -11,16 +11,16 @@ impl MetaType
 {
 	/// Defined in RFC 6891.
 	pub(crate) const OPT_higher: u8 = 0x00;
-	pub(crate) const OPT_lower: u8 = 0x41;
+	pub(crate) const OPT_lower: u8 = 41;
 	pub(crate) const OPT: Self = Self([Self::OPT_higher, Self::OPT_lower]);
 
 	/// Defined in RFC 2930.
 	pub(crate) const TKEY_higher: u8 = 0x00;
-	pub(crate) const TKEY_lower: u8 = 0xF9;
+	pub(crate) const TKEY_lower: u8 = 249;
 	pub(crate) const TKEY: Self = Self([Self::TKEY_higher, Self::TKEY_lower]);
 
 	/// Defined in RFC 2845.
 	pub(crate) const TSIG_higher: u8 = 0x00;
-	pub(crate) const TSIG_lower: u8 = 0xFA;
+	pub(crate) const TSIG_lower: u8 = 250;
 	pub(crate) const TSIG: Self = Self([Self::TSIG_higher, Self::TSIG_lower]);
 }

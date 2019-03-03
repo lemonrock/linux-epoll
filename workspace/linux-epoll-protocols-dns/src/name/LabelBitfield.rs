@@ -8,9 +8,9 @@ pub struct LabelBitfield(u8);
 impl LabelBitfield
 {
 	#[inline(always)]
-	fn raw_kind(self) -> u8
+	fn raw_kind(self) -> LabelKind
 	{
-		self.0 >> 6
+		unsafe { transmute(self.0 >> 6) }
 	}
 
 	#[inline(always)]

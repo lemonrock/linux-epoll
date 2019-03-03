@@ -64,9 +64,10 @@ impl<'a> WithoutCompressionParsedNameIterator<'a>
 
 			let label = ParsedNameIterator::label(current_label_starts_at_pointer);
 
+			use self::LabelKind::*;
 			match label.raw_kind()
 			{
-				ParsedNameIterator::Bytes =>
+				Bytes =>
 				{
 					let length = label.length();
 
@@ -85,11 +86,11 @@ impl<'a> WithoutCompressionParsedNameIterator<'a>
 					current_label_starts_at_pointer = next_label_starts_at_pointer
 				}
 
-				ParsedNameIterator::Extended => return Err(ExtendedNameLabelsAreUnused),
+				Extended => return Err(ExtendedNameLabelsAreUnused),
 
-				ParsedNameIterator::Unallocated => return Err(UnallocatedNameLabelsAreUnused),
+				Unallocated => return Err(UnallocatedNameLabelsAreUnused),
 
-				ParsedNameIterator::CompressedOffsetPointer => return Err(CompressedNameLabelsAreDisallowedInThisResourceRecord),
+				CompressedOffsetPointer => return Err(CompressedNameLabelsAreDisallowedInThisResourceRecord),
 			}
 		};
 

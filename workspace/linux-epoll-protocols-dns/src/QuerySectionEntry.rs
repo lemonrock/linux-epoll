@@ -32,7 +32,7 @@ impl QuerySectionEntry
 
 	/// `QTYPE` field.
 	#[inline(always)]
-	fn set_query_type_or_data_type(&self, query_type_or_data_type: QueryTypeOrDataType)
+	fn set_query_type_or_data_type(&mut self, query_type_or_data_type: QueryTypeOrDataType)
 	{
 		self.query_section_entry_footer_mutable().set_query_type_or_data_type(query_type_or_data_type)
 	}
@@ -46,7 +46,7 @@ impl QuerySectionEntry
 
 	/// `QCLASS` field.
 	#[inline(always)]
-	fn set_query_class(&self, query_class: QueryClass)
+	fn set_query_class(&mut self, query_class: QueryClass)
 	{
 		self.query_section_entry_footer_mutable().set_query_class(query_class)
 	}

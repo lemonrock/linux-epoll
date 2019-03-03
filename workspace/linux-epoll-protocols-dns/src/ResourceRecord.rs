@@ -425,22 +425,22 @@ impl ResourceRecord
 			match type_lower
 			{
 				// Referral.
-				NS_lower => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::NS_lower => self.handle_ns(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
 				// Negative Response.
-				SOA_lower => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
+				DataType::SOA_lower => self.handle_soa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, response_parsing_state),
 
 				// Referral.
-				DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::DS_lower => self.handle_ds(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				// Signing negative response or referral.
-				RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::RRSIG_lower => self.handle_rrsig(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				// Signing negative response.
-				NSEC_lower => self.handle_nsec(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::NSEC_lower => self.handle_nsec(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				// Signing negative response.
-				NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
+				DataType::NSEC3_lower => self.handle_nsec3(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				_ => Err(ResourceRecordTypeIsNotValidInAuthoritySection(DataType([type_upper, type_lower])))
 			}
@@ -595,7 +595,7 @@ impl ResourceRecord
 
 				DataType::ATMA_lower => self.handle_very_obsolete_record_type(DataType::ATMA),
 
-				DataType::NAPTR_lower => self.handle_naptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::NAPTR_lower => self.handle_naptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -640,7 +640,7 @@ impl ResourceRecord
 
 				DataType::SMIMEA_lower => self.handle_smimea(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				54 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, 54),
+				54 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, 54),
 
 				DataType::HIP_lower => self.handle_hip(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
@@ -658,9 +658,9 @@ impl ResourceRecord
 
 				DataType::CSYNC_lower => self.handle_csync(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::ZONEMD_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, type_lower),
+				DataType::ZONEMD_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, type_lower),
 
-				64 ... 98 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, type_lower),
+				64 ... 98 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, type_lower),
 
 				DataType::SPF_lower => self.handle_obsolete_or_very_obscure_record_type(end_of_name_pointer, end_of_message_pointer, "RFC 7208 deprecated this record type; some legacy records may remain"),
 
@@ -684,7 +684,7 @@ impl ResourceRecord
 
 				DataType::EUI64_lower => self.handle_eui64(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				110 ... 127 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x00, type_lower),
+				110 ... 127 => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x00, type_lower),
 
 				128 ... 248 => Err(UnknownQueryTypeOrMetaType(0x00, type_lower)),
 
@@ -709,14 +709,14 @@ impl ResourceRecord
 
 				DataType::CAA_lower => self.handle_caa(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
-				DataType::DOA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x01, type_lower),
+				DataType::DOA_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x01, type_lower),
 
-				DataType::AMTRELAY_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x01, type_lower),
+				DataType::AMTRELAY_lower => self.handle_unsupported(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x01, type_lower),
 				
-				_ => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x01, type_lower),
+				_ => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x01, type_lower),
 			},
 
-			0x02 ... 0x7F => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, type_upper, type_lower),
+			0x02 ... 0x7F => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, type_upper, type_lower),
 
 			0x80 => match type_lower
 			{
@@ -724,10 +724,10 @@ impl ResourceRecord
 
 				DataType::DLV_lower => self.handle_obsolete_or_very_obscure_record_type(end_of_name_pointer, end_of_message_pointer, "DNSSEC Lookaside Validation is not longer supported now that all root nameservers support DNSSEC; some legacy records may remain"),
 
-				_ => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, 0x80, type_lower),
+				_ => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, 0x80, type_lower),
 			},
 
-			0x81 ... 0xEF => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels, type_upper, type_lower),
+			0x81 ... 0xEF => self.handle_unassigned(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, type_upper, type_lower),
 
 			_ => Err(ReservedRecordType(type_upper, type_lower))
 		}
@@ -760,21 +760,21 @@ impl ResourceRecord
 
 	/// Data types that are draft RFCs or similar and may need to be supported by clients of this library.
 	#[inline(always)]
-	fn handle_unsupported<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, parsed_labels: &mut ParsedLabels<'a>, type_upper: u8, type_lower: u8) -> Result<usize, DnsProtocolError>
+	fn handle_unsupported<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, type_upper: u8, type_lower: u8) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		resource_record_visitor.unsupported(resource_record_name, time_to_live, resource_data, parsed_labels, DataType([type_upper, type_lower]))?;
+		resource_record_visitor.unsupported(resource_record_name, time_to_live, resource_data, DataType([type_upper, type_lower]))?;
 		Ok(resource_data.end_pointer())
 	}
 
 	/// Data types that aren't officially registered with IANA.
 	#[inline(always)]
-	fn handle_unassigned<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, parsed_labels: &mut ParsedLabels<'a>, type_upper: u8, type_lower: u8) -> Result<usize, DnsProtocolError>
+	fn handle_unassigned<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, type_upper: u8, type_lower: u8) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
-		resource_record_visitor.unassigned(resource_record_name, time_to_live, resource_data, parsed_labels, DataType([type_upper, type_lower]))?;
+		resource_record_visitor.unassigned(resource_record_name, time_to_live, resource_data, DataType([type_upper, type_lower]))?;
 		Ok(resource_data.end_pointer())
 	}
 
@@ -862,7 +862,7 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeHINFOHasTooShortALength(length))
 		}
 
-		let character_strings_iterator = CharacterStringsIterator::new(resource_data)?;
+		let mut character_strings_iterator = CharacterStringsIterator::new(resource_data)?;
 
 		let cpu = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeHINFOWouldHaveCpuDataOverflow(length)))?;
 
@@ -986,7 +986,7 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn handle_naptr<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	fn handle_naptr<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
@@ -1006,7 +1006,7 @@ impl ResourceRecord
 		let order = resource_data.u16(0);
 		let preference = resource_data.u16(OrderSize);
 
-		let character_strings_iterator = CharacterStringsIterator::new(&resource_data[(OrderSize + PreferenceSize) .. ])?;
+		let mut character_strings_iterator = CharacterStringsIterator::new(&resource_data[(OrderSize + PreferenceSize) .. ])?;
 
 		let flags = character_strings_iterator.next().unwrap_or(Err(ResourceDataForTypeNAPTRIsMissingFlags))?;
 
@@ -1488,7 +1488,7 @@ impl ResourceRecord
 				{
 					return Err(ResourceDataForTypeIPSECKEYHasTooShortALengthForAnInternetProtocolVersion4Gateway(length))
 				}
-				let gateway = resource_data.cast::<Ipv4Addr>(GatewayFieldStartsAtOffset);
+				let gateway = resource_data.value::<Ipv4Addr>(GatewayFieldStartsAtOffset);
 
 				(GatewayFieldStartsAtOffset + size_of::<Ipv4Addr>(), Some(InternetProtocolVersion4(gateway)))
 			}
@@ -1499,7 +1499,7 @@ impl ResourceRecord
 				{
 					return Err(ResourceDataForTypeIPSECKEYHasTooShortALengthForAnInternetProtocolVersion6Gateway(length))
 				}
-				let gateway = resource_data.cast::<Ipv6Addr>(GatewayFieldStartsAtOffset);
+				let gateway = resource_data.value::<Ipv6Addr>(GatewayFieldStartsAtOffset);
 
 				(GatewayFieldStartsAtOffset + size_of::<Ipv6Addr>(), Some(InternetProtocolVersion6(gateway)))
 			}
@@ -2181,7 +2181,7 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeEUI48HasAnIncorrectLength(length))
 		}
 
-		let record = resource_data.cast::<[u8; Eui48Size]>(0);
+		let record = resource_data.value::<[u8; Eui48Size]>(0);
 
 		resource_record_visitor.EUI48(resource_record_name, time_to_live, record)?;
 		Ok(resource_data.end_pointer())
@@ -2200,7 +2200,7 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeEUI64HasAnIncorrectLength(length))
 		}
 
-		let record = resource_data.cast::<[u8; Eui64Size]>(0);
+		let record = resource_data.value::<[u8; Eui64Size]>(0);
 
 		resource_record_visitor.EUI64(resource_record_name, time_to_live, record)?;
 		Ok(resource_data.end_pointer())
@@ -2428,7 +2428,7 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn parse_internet_protocol_address_only<'a, Address: 'a + Sized>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(TimeToLiveInSeconds, &'a Address, usize), DnsProtocolError>
+	fn parse_internet_protocol_address_only<Address: Copy>(&self, end_of_name_pointer: usize, end_of_message_pointer: usize) -> Result<(TimeToLiveInSeconds, Address, usize), DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
@@ -2439,7 +2439,7 @@ impl ResourceRecord
 		}
 		else
 		{
-			let address = resource_data.cast::<Address>(0);
+			let address = resource_data.value::<Address>(0);
 			Ok((time_to_live, address, resource_data.end_pointer()))
 		}
 	}

@@ -44,13 +44,18 @@ impl ExtendedResponseCodeAndFlags
 	#[inline(always)]
 	pub(crate) fn dnssec_ok(&self) -> bool
 	{
-		(unsafe { *self.0.get_unchecked(2) }) & 0b1000_0000 != 0
+		(unsafe { *self.0.get_unchecked(2) }) & Self::DnsSecFlagUpper != 0
 	}
+
+	const DnsSecFlagUpper: u8 = 0b1000_0000;
+	const KnownExtendedFlagsUpper: u8 = Self::DnsSecFlagUpper;
 
 	#[inline(always)]
 	pub(crate) fn z(&self) -> Result<(), DnsProtocolError>
 	{
-		if likely!((unsafe { *self.0.get_unchecked(2) }) | 0b0111_1111 == 0 && (unsafe { *self.0.get_unchecked(3) }) == 0)
+		let upper_flag_bits = unsafe { *self.0.get_unchecked(2) };
+		let lower_flag_bits = unsafe { *self.0.get_unchecked(3) };
+		if likely!(upper_flag_bits | !Self::KnownExtendedFlagsUpper == 0 && lower_flag_bits == 0)
 		{
 			Ok(())
 		}

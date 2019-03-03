@@ -12,7 +12,7 @@ impl Label
 {
 	/// Two bits, `u2`.
 	#[inline(always)]
-	fn raw_kind(&self) -> u8
+	fn raw_kind(&self) -> LabelKind
 	{
 		self.bitfield.raw_kind()
 	}

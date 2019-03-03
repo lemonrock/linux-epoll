@@ -2,9 +2,15 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-enum LabelKind
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub(crate) enum LabelKind
 {
-	Label,
+	Bytes = 0b00,
 
-	Pointer,
+	Extended = 0b01,
+
+	Unallocated = 0b10,
+
+	CompressedOffsetPointer = 0b11,
 }

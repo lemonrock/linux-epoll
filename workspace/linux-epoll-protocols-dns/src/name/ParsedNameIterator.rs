@@ -35,14 +35,6 @@ impl<'a> Iterator for ParsedNameIterator<'a>
 
 impl<'a> ParsedNameIterator<'a>
 {
-	const Bytes: u8 = 0b00;
-
-	const Extended: u8 = 0b01;
-
-	const Unallocated: u8 = 0b10;
-
-	const CompressedOffsetPointer: u8 = 0b11;
-
 	#[inline(always)]
 	fn maximum_for_end_of_name_pointer(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<usize, DnsProtocolError>
 	{
@@ -74,9 +66,10 @@ impl<'a> ParsedNameIterator<'a>
 
 			let label = Self::label(current_label_starts_at_pointer);
 
+			use self::LabelKind::*;
 			match label.raw_kind()
 			{
-				Self::Bytes =>
+				Bytes =>
 				{
 					let length = label.length();
 					let parsed_label = ParsedLabel::new(label.bytes(), length);
@@ -102,11 +95,11 @@ impl<'a> ParsedNameIterator<'a>
 					}
 				}
 
-				Self::Extended => return Err(ExtendedNameLabelsAreUnused),
+				Extended => return Err(ExtendedNameLabelsAreUnused),
 
-				Self::Unallocated => return Err(UnallocatedNameLabelsAreUnused),
+				Unallocated => return Err(UnallocatedNameLabelsAreUnused),
 
-				Self::CompressedOffsetPointer =>
+				CompressedOffsetPointer =>
 				{
 					if unlikely!(current_label_starts_at_pointer + 1 > maximum_for_end_of_name_pointer)
 					{
@@ -126,8 +119,6 @@ impl<'a> ParsedNameIterator<'a>
 
 					break current_label_starts_at_pointer + 1
 				}
-
-				_ => unreachable!(),
 			}
 		};
 
