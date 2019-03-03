@@ -9,22 +9,22 @@
 /// * For answer section, there is only every one `CNAME` or `DNAME` record
 pub trait ResourceRecordVisitor<'a>
 {
-	/// Visits a record of type `A`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `A`.
 	fn A(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &Ipv4Addr) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `NS`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `NS`.
 	fn NS(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `SOA`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `SOA`.
 	fn SOA(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: StartOfAuthority<'a>) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `CNAME`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `CNAME`.
 	fn CNAME(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `PTR`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `PTR`.
 	fn PTR(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `MX`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `MX`.
 	fn MX(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: MailExchange<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `HINFO`, which may not be aligned (this is a problem for 32-bit ARM).
@@ -35,22 +35,22 @@ pub trait ResourceRecordVisitor<'a>
 	/// Visits a record of type `TXT`.
 	fn TXT(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: CharacterStringsIterator) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `AAAA`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `AAAA`.
 	fn AAAA(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &Ipv6Addr) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `LOC`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `LOC`.
 	fn LOC(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: &Location) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `SRV`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `SRV`.
 	fn SRV(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: Service) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `NAPTR`, which may not be aligned (this is a problem for 32-bit ARM), with a domain name.
+	/// Visits a record of type `NAPTR`., with a domain name.
 	fn NAPTR_domain_name(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithDomainName<'a>) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `NAPTR`, which may not be aligned (this is a problem for 32-bit ARM), with a regular expression.
+	/// Visits a record of type `NAPTR`., with a regular expression.
 	fn NAPTR_regular_expression(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithRegularExpression<'a>) -> Result<(), DnsProtocolError>;
 
-	/// Visits a record of type `KX`, which may not be aligned (this is a problem for 32-bit ARM).
+	/// Visits a record of type `KX`.
 	fn KX(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: KeyExchange<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `CERT`.
@@ -65,7 +65,7 @@ pub trait ResourceRecordVisitor<'a>
 	}
 
 	/// Visits a record of type `DNAME`.
-	fn DNAME(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: ParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
+	fn DNAME(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: WithoutCompressionParsedNameIterator<'a>) -> Result<(), DnsProtocolError>;
 
 	/// Visits a record of type `DS`.
 	fn DS(&mut self, name: ParsedNameIterator<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>;

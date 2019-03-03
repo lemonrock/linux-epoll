@@ -16,5 +16,5 @@ pub struct LocatorPointer<'a>
 	/// `Name`.
 	///
 	/// Must not be the same as the `Name` of the resource record it is associated with (this is not validated before being passed to `ResourceRecordVisitor.LP()`).
-	pub domain_name: ParsedNameIterator<'a>,
+	pub domain_name: WithoutCompressionParsedNameIterator<'a>,
 }

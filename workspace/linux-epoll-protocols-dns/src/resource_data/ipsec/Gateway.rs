@@ -13,5 +13,5 @@ pub enum Gateway<'a>
 	InternetProtocolVersion6(&'a Ipv6Addr),
 
 	/// As a domain name.
-	DomainName(ParsedNameIterator<'a>)
+	DomainName(WithoutCompressionParsedNameIterator<'a>)
 }

@@ -7,7 +7,7 @@
 pub struct NextSecure<'a>
 {
 	/// Next domain name.
-	pub next_domain_name: ParsedNameIterator<'a>,
+	pub next_domain_name: WithoutCompressionParsedNameIterator<'a>,
 
 	/// Type bitmaps.
 	pub type_bitmaps: TypeBitmaps,

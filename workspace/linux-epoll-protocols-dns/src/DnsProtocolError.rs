@@ -289,7 +289,16 @@ pub enum DnsProtocolError
 	/// Resource data for resource record type `KX` has too short a length (value in tuple).
 	ResourceDataForTypeKXHasTooShortALength(usize),
 
-	/// Resource data for resource record type `TXT` has not text strings (and thus has a length of zero).
+	/// Resource data for resource record type `DNAME` has too short a length (value in tuple).
+	ResourceDataForTypeDNAMEHasTooShortALength(usize),
+
+	/// Resource data for resource record type `KX` has data remaining after the key exchange server name.
+	ResourceDataForTypeKXDataRemainingAfterKeyExchangeServerName,
+
+	/// Resource data for resource record type `DNAME` has data remaining after the key exchange server name.
+	ResourceDataForTypeDNAMEDataRemainingAfterDName,
+
+	/// Resource data for resource record type `TXT` has no text strings (and thus has a length of zero).
 	ResourceRecordForTypeTXTHasNoCharacterStrings,
 
 	/// After parsing resource data in a record of type `TXT`, there is unattributed data remaining.

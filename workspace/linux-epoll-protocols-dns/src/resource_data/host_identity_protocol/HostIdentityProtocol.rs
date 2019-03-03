@@ -13,7 +13,7 @@ pub struct HostIdentityProtocol<'a>
 	pub public_key: Option<PublicKey<'a>>,
 
 	/// At least one rendezvous server is present.
-	pub first_rendezvous_server_domain_name: ParsedNameIterator<'a>,
+	pub first_rendezvous_server_domain_name: WithoutCompressionParsedNameIterator<'a>,
 
 	/// May be empty.
 	///

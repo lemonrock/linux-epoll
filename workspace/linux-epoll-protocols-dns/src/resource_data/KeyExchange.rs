@@ -9,6 +9,6 @@ pub struct KeyExchange<'a>
 	/// Preference.
 	pub preference: u16,
 
-	/// Mail server name.
-	pub mail_server_name: ParsedNameIterator<'a>,
+	/// Key exchange server name.
+	pub key_exchange_server_name: WithoutCompressionParsedNameIterator<'a>,
 }

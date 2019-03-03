@@ -8,8 +8,6 @@ pub struct NamingAuthorityPointerWithDomainName<'a>
 	/// Header.
 	pub header: NamingAuthorityPointerHeader<'a>,
 
-	/// Regular expression, up to 255 bytes long.
-	///
 	/// Will never be empty (0 bytes long).
-	pub domain_name: ParsedNameIterator<'a>,
+	pub domain_name: WithoutCompressionParsedNameIterator<'a>,
 }

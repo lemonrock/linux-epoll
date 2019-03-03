@@ -24,7 +24,7 @@ pub struct ResourceRecordSetSignature<'a>
 	pub key_tag: KeyTag,
 
 	/// Signer's name.
-	pub signers_name: ParsedNameIterator<'a>,
+	pub signers_name: WithoutCompressionParsedNameIterator<'a>,
 
 	// Signature.
 	pub signature: &'a [u8],

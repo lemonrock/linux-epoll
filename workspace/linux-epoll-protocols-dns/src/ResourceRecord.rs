@@ -393,7 +393,7 @@ impl ResourceRecord
 						if likely!(response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record)
 						{
 							response_parsing_state.have_yet_to_see_an_answer_section_cname_resource_record = true;
-							self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels)
+							self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor)
 						}
 						else
 						{
@@ -597,13 +597,13 @@ impl ResourceRecord
 
 				DataType::NAPTR_lower => self.handle_naptr(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
 
-				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::KX_lower => self.handle_kx(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::CERT_lower => self.handle_cert(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::A6_lower => self.handle_very_obsolete_record_type(DataType::A6),
 
-				DataType::DNAME_lower => self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor, parsed_labels),
+				DataType::DNAME_lower => self.handle_dname(end_of_name_pointer, end_of_message_pointer, resource_record_name, resource_record_visitor),
 
 				DataType::SINK_lower => self.handle_very_obsolete_record_type(DataType::SINK),
 
@@ -1028,7 +1028,7 @@ impl ResourceRecord
 
 		if regular_expression.is_empty()
 		{
-			let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
+			let (domain_name, end_of_name_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
 			if unlikely!(end_of_name_pointer != resource_data_end_pointer)
 			{
 				return Err(ResourceDataForTypeNAPTRHasDataLeftOver)
@@ -1069,7 +1069,7 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn handle_kx<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	fn handle_kx<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>) -> Result<usize, DnsProtocolError>
 	{
 		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
 
@@ -1083,14 +1083,23 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeKXHasTooShortALength(length))
 		}
 
+		let resource_data_end_pointer = resource_data.end_pointer();
+
+		let (key_exchange_server_name, end_of_key_exchange_server_name) = WithoutCompressionParsedNameIterator::parse_without_compression(resource_data.pointer() + PreferenceSize, resource_data_end_pointer)?;
+
+		if unlikely!(end_of_key_exchange_server_name != resource_data_end_pointer)
+		{
+			return Err(ResourceDataForTypeKXDataRemainingAfterKeyExchangeServerName)
+		}
+
 		let record = KeyExchange
 		{
 			preference: resource_data.u16(0),
-			mail_server_name: parsed_labels.parse_name_in_slice_with_nothing_left(&resource_data[PreferenceSize .. ])?,
+			key_exchange_server_name,
 		};
 
 		resource_record_visitor.KX(resource_record_name, time_to_live, record)?;
-		Ok(resource_data.end_pointer())
+		Ok(resource_data_end_pointer)
 	}
 
 	#[inline(always)]
@@ -1334,9 +1343,28 @@ impl ResourceRecord
 	}
 
 	#[inline(always)]
-	fn handle_dname<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>, parsed_labels: &mut ParsedLabels<'a>) -> Result<usize, DnsProtocolError>
+	fn handle_dname<'a>(&'a self, end_of_name_pointer: usize, end_of_message_pointer: usize, resource_record_name: ParsedNameIterator<'a>, resource_record_visitor: &mut impl ResourceRecordVisitor<'a>) -> Result<usize, DnsProtocolError>
 	{
-		let (time_to_live, record, end_of_resource_data_pointer) = self.parse_name_only(end_of_name_pointer, end_of_message_pointer, parsed_labels)?;
+		let (time_to_live, resource_data) = self.validate_class_is_internet_and_get_time_to_live_and_resource_data(end_of_name_pointer, end_of_message_pointer)?;
+
+		let length = resource_data.len();
+
+		const MinimumDNameSize: usize = ResourceRecord::MinimumNameSize;
+
+		if unlikely!(length < MinimumDNameSize)
+		{
+			return Err(ResourceDataForTypeDNAMEHasTooShortALength(length))
+		}
+
+		let end_of_resource_data_pointer = resource_data.end_pointer();
+
+		let (record, end_of_dname_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(resource_data.pointer(), end_of_resource_data_pointer)?;
+
+		if unlikely!(end_of_dname_pointer != end_of_dname_pointer)
+		{
+			return Err(ResourceDataForTypeDNAMEDataRemainingAfterDName)
+		}
+
 		resource_record_visitor.DNAME(resource_record_name, time_to_live, record)?;
 		Ok(end_of_resource_data_pointer)
 	}
@@ -1485,7 +1513,7 @@ impl ResourceRecord
 
 				let resource_data_starts_at_pointer = resource_data.pointer();
 				let start_of_name_pointer = resource_data_starts_at_pointer + GatewayFieldStartsAtOffset;
-				let (domain_name, end_of_domain_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, start_of_name_pointer + length - GatewayFieldStartsAtOffset)?;
+				let (domain_name, end_of_domain_name_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(start_of_name_pointer, start_of_name_pointer + length - GatewayFieldStartsAtOffset)?;
 
 				(end_of_domain_name_pointer - resource_data_starts_at_pointer, Some(DomainName(domain_name)))
 			}
@@ -1528,7 +1556,7 @@ impl ResourceRecord
 		let resource_data_pointer = resource_data.pointer();
 		let resource_data_end_pointer = resource_data.end_pointer();
 
-		let (next_domain_name, end_of_next_domain_name_pointer) = ParsedNameIterator::parse_without_compression(resource_data_pointer, resource_data_end_pointer)?;
+		let (next_domain_name, end_of_next_domain_name_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(resource_data_pointer, resource_data_end_pointer)?;
 
 		let record = NextSecure
 		{
@@ -1634,7 +1662,7 @@ impl ResourceRecord
 		let remaining_data = &resource_data[(TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize + KeyTagSize) .. ];
 		let remaining_data_pointer = remaining_data.pointer();
 
-		let (signers_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(remaining_data.pointer(), resource_data_end_pointer)?;
+		let (signers_name, end_of_name_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(remaining_data.pointer(), resource_data_end_pointer)?;
 
 		let signature_offset = TypeCoveredSize + AlgorithmSize + LabelsSize + OriginalTimeToLiveSize + SignatureExpirationSize + SignatureInceptionSize + KeyTagSize + (end_of_name_pointer - remaining_data_pointer);
 		let signature = &resource_data[signature_offset .. ];
@@ -1949,7 +1977,7 @@ impl ResourceRecord
 		let public_key = ipsec_like_public_key!(public_key_algorithm_type, resource_data, public_key_starts_at_offset, public_key_length, resource_data_end_pointer, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmDSAIsProbablyBroken) }, { resource_record_visitor.HIP_ignored(resource_record_name, PublicKeyAlgorithmUnassigned(public_key_algorithm_type)) });
 
 		let start_of_name_pointer = resource_data.pointer() + HostIdentityTagOffset + host_identity_tag_length + public_key_length;
-		let (first_rendezvous_server_domain_name, true_end_of_name_pointer) = ParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
+		let (first_rendezvous_server_domain_name, true_end_of_name_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(start_of_name_pointer, resource_data_end_pointer)?;
 
 		let remaining_rendezvous_servers_length = resource_data_end_pointer - true_end_of_name_pointer;
 		let remaining_rendezvous_server_domain_names = unsafe { from_raw_parts(true_end_of_name_pointer as *const u8, remaining_rendezvous_servers_length) };
@@ -2124,7 +2152,7 @@ impl ResourceRecord
 		let resource_data_end_pointer = resource_data.end_pointer();
 
 		let domain_name_data = &resource_data[PreferenceSize .. ];
-		let (domain_name, end_of_name_pointer) = ParsedNameIterator::parse_without_compression(domain_name_data.pointer(), resource_data_end_pointer)?;
+		let (domain_name, end_of_name_pointer) = WithoutCompressionParsedNameIterator::parse_without_compression(domain_name_data.pointer(), resource_data_end_pointer)?;
 		if unlikely!(end_of_name_pointer != resource_data_end_pointer)
 		{
 			return Err(ResourceDataForTypeLPHasDataLeftOver)
