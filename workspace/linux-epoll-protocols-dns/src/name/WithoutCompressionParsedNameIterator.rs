@@ -27,11 +27,10 @@ impl<'a> Iterator for WithoutCompressionParsedNameIterator<'a>
 			return None
 		}
 
-		const LabelKindSize: usize = 1;
 		let label = ParsedNameIterator::label(self.pointer_to_label);
 		let length = label.length();
 
-		let label_bytes = Some(unsafe { from_raw_parts((self.pointer_to_label + LabelKindSize) as *const u8, length) });
+		let label_bytes = Some(unsafe { from_raw_parts((self.pointer_to_label + Self::LabelKindSize) as *const u8, length) });
 
 		if unlikely!(length == 0)
 		{
@@ -39,7 +38,7 @@ impl<'a> Iterator for WithoutCompressionParsedNameIterator<'a>
 		}
 		else
 		{
-			self.pointer_to_label += LabelKindSize + length;
+			self.pointer_to_label += Self::LabelKindSize + length;
 		}
 
 		label_bytes
@@ -48,15 +47,14 @@ impl<'a> Iterator for WithoutCompressionParsedNameIterator<'a>
 
 impl<'a> WithoutCompressionParsedNameIterator<'a>
 {
+	const LabelKindSize: usize = 1;
+
 	#[inline(always)]
 	pub(crate) fn parse_without_compression(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(Self, usize), DnsProtocolError>
 	{
 		let maximum_for_end_of_name_pointer = ParsedNameIterator::maximum_for_end_of_name_pointer(start_of_name_pointer, end_of_data_section_containing_name_pointer)?;
 
 		let mut current_label_starts_at_pointer = start_of_name_pointer;
-		let initial_parsed_label = ParsedLabel::Fake;
-		let mut previous_parsed_label_reference = &initial_parsed_label;
-
 		let true_end_of_name_pointer = loop
 		{
 			if unlikely!(current_label_starts_at_pointer == maximum_for_end_of_name_pointer)
@@ -71,27 +69,20 @@ impl<'a> WithoutCompressionParsedNameIterator<'a>
 				ParsedNameIterator::Bytes =>
 				{
 					let length = label.length();
-					let parsed_label = ParsedLabel::new(label.bytes(), length);
 
-					let next_label_starts_at_pointer = parsed_label.next_label_starts_at_pointer();
+					if unlikely!(length == 0)
+					{
+						break current_label_starts_at_pointer + Self::LabelKindSize;
+					}
+
+					let next_label_starts_at_pointer = current_label_starts_at_pointer + Self::LabelKindSize + length;
 
 					if unlikely!(next_label_starts_at_pointer > maximum_for_end_of_name_pointer)
 					{
 						return Err(LabelLengthOverflows)
 					}
 
-					let parsed_label_reference = parsed_labels.insert(parsed_label);
-					previous_parsed_label_reference.set_next(parsed_label_reference);
-					previous_parsed_label_reference = parsed_label_reference;
-
-					if unlikely!(parsed_label_reference.is_terminal_root_label())
-					{
-						break next_label_starts_at_pointer
-					}
-					else
-					{
-						current_label_starts_at_pointer = next_label_starts_at_pointer
-					}
+					current_label_starts_at_pointer = next_label_starts_at_pointer
 				}
 
 				ParsedNameIterator::Extended => return Err(ExtendedNameLabelsAreUnused),

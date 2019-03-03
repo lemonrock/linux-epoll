@@ -11,7 +11,7 @@ impl Into<u32> for SerialNumber
 	#[inline(always)]
 	fn into(self) -> u32
 	{
-		u32::from_be_bytes(self.0)
+		self.into_u32()
 	}
 }
 
@@ -20,7 +20,7 @@ impl<'a> Into<u32> for &'a SerialNumber
 	#[inline(always)]
 	fn into(self) -> u32
 	{
-		u32::from_be_bytes(self.0)
+		self.into_u32()
 	}
 }
 
@@ -29,7 +29,7 @@ impl PartialEq for SerialNumber
 	#[inline(always)]
 	fn eq(&self, other: &Self) -> bool
 	{
-		self.into() == other.into()
+		self.into_u32() == other.into_u32()
 	}
 }
 
@@ -66,6 +66,12 @@ impl PartialOrd for SerialNumber
 
 impl SerialNumber
 {
+	#[inline(always)]
+	fn into_u32(&self) -> u32
+	{
+		u32::from_be_bytes(self.0)
+	}
+
 	/// Difference.
 	#[inline(always)]
 	pub fn difference(&self, other: &Self) -> Option<(u32, u32, i32)>
