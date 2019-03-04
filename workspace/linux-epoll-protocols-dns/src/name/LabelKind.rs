@@ -14,3 +14,8 @@ pub(crate) enum LabelKind
 
 	CompressedOffsetPointer = 0b11,
 }
+
+impl LabelKind
+{
+	const LabelKindSize: usize = 1;
+}

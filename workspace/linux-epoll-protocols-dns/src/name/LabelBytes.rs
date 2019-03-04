@@ -7,4 +7,4 @@
 /// Maximum length is 63.
 ///
 /// If empty (length of 0) then this represents the Root, terminal label.
-pub type LabelBytes<'a> = &'a [u8];
+pub type LabelBytes<'message> = &'message [u8];

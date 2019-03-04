@@ -14,7 +14,10 @@ pub enum ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason
 	/// This is the fault of a badly configured server.
 	DifferenceInSignatureExpirationAndInceptionIsTooGreatForWrappingSerialNumberMathematics
 	{
+		/// Signature inception timestamp.
 		signature_inception_timestamp: SignatureTimestamp,
+
+		/// Signature expiration timestamp.
 		signature_expiration_timestamp: SignatureTimestamp,
 	},
 
@@ -23,21 +26,30 @@ pub enum ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason
 	/// This is the fault of a badly configured server.
 	DifferenceInSignatureInceptionAndExpirationWasNegativeOrZero
 	{
+		/// Signature inception timestamp.
 		signature_inception_timestamp: SignatureTimestamp,
+
+		/// Signature expiration timestamp.
 		signature_expiration_timestamp: SignatureTimestamp,
 	},
 
 	/// The signature is not yet valid.
 	InceptionIsInTheFuture
 	{
+		/// Signature inception timestamp.
 		signature_inception_timestamp: SignatureTimestamp,
+
+		/// Signature expiration timestamp.
 		signature_expiration_timestamp: SignatureTimestamp,
 	},
 
 	/// The signature has expired.
 	Expired
 	{
+		/// Signature inception timestamp.
 		signature_inception_timestamp: SignatureTimestamp,
+
+		/// Signature expiration timestamp.
 		signature_expiration_timestamp: SignatureTimestamp,
 	},
 }

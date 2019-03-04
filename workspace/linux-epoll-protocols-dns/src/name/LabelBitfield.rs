@@ -3,7 +3,7 @@
 
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LabelBitfield(u8);
+pub(crate) struct LabelBitfield(u8);
 
 impl LabelBitfield
 {

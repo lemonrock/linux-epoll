@@ -6,7 +6,7 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NextSecureVersion3Parameters<'a>
 {
-	// Hash algorithm number (validated).
+	/// Hash algorithm number (validated).
 	pub hash_algorithm_number: u8,
 
 	/// Iteration count.
@@ -18,5 +18,6 @@ pub struct NextSecureVersion3Parameters<'a>
 
 impl<'a> NextSecureVersion3Parameters<'a>
 {
+	/// SHA-1 hash algorithm number.
 	pub const Sha1HashAlgorithmNumber: u8 = 1;
 }

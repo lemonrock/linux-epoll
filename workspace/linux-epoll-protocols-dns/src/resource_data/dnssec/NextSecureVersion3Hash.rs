@@ -6,5 +6,6 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NextSecureVersion3Hash<'a>
 {
+	/// SHA-1 digest.
 	Sha_1(&'a [u8; 160 / 8])
 }

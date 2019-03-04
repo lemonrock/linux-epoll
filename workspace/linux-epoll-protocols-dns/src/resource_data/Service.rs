@@ -26,5 +26,5 @@ pub struct Service<'a>
 	/// Must not be an alias; should not use name compression; a value of '.' (ie Root) means the service is unavailable.
 	///
 	/// The interaction with round-robin `A` or `AAAA` records is unclear.
-	pub target: ParsedNameIterator<'a>,
+	pub target: WithCompressionParsedNameIterator<'a>,
 }

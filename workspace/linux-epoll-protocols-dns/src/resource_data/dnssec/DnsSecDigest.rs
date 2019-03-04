@@ -5,7 +5,9 @@
 /// Digest.
 pub enum DnsSecDigest<'a>
 {
+	/// SHA2-256 digest.
 	Sha2_256(&'a [u8; 256 / 8]),
 
+	/// SHA2-384 digest.
 	Sha2_384(&'a [u8; 384 / 8]),
 }

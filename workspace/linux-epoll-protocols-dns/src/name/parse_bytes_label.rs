@@ -2,17 +2,20 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-/// DNS key purpose.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DnsKeyPurpose
+macro_rules! parse_bytes_label
 {
-	/// Zone Signing Key, ZSK.
-	ZoneSigningKey
+	($label: ident, $current_label_starts_at_pointer: ident, $maximum_for_end_of_name_pointer: ident) =>
 	{
-		/// Is this a secure entry point (SEP)?
-		is_secure_entry_point: bool,
-	},
+		{
+			let length = $label.length();
 
-	/// Key Signing Key, KSK.
-	KeySigningKey,
+			let is_terminal_root_label = length == 0;
+			if unlikely!(is_terminal_root_label)
+			{
+				break $current_label_starts_at_pointer + LabelKind::LabelKindSize
+			}
+
+			guard_next_label_starts_at_pointer!($current_label_starts_at_pointer, length, $maximum_for_end_of_name_pointer)
+		}
+	}
 }

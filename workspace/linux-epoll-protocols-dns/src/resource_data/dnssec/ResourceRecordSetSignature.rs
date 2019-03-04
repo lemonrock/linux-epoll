@@ -26,7 +26,7 @@ pub struct ResourceRecordSetSignature<'a>
 	/// Signer's name.
 	pub signers_name: WithoutCompressionParsedNameIterator<'a>,
 
-	// Signature.
+	/// Signature.
 	pub signature: &'a [u8],
 
 	/// Required for verifying a signature.

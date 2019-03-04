@@ -26,14 +26,20 @@ impl Label
 
 	/// Actually `u14`.
 	#[inline(always)]
-	fn offset(&self) -> u16
+	fn offset(&self) -> usize
 	{
-		(self.bitfield.bottom_6_bits() as u16) << 8 | (unsafe { * (self.bytes() as *const UpTo63Bytes as *const u8) }) as u16
+		(self.bitfield.bottom_6_bits() as usize) << 8 | (unsafe { * (self.bytes() as *const UpTo63Bytes as *const u8) }) as usize
 	}
 
 	#[inline(always)]
 	fn bytes(&self) -> &UpTo63Bytes
 	{
 		&self.bytes
+	}
+
+	#[inline(always)]
+	fn label<'message>(label_starts_at_pointer: usize) -> &'message Label
+	{
+		unsafe { & * (label_starts_at_pointer as *const Label) }
 	}
 }

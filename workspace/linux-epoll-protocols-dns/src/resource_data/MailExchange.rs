@@ -10,5 +10,5 @@ pub struct MailExchange<'a>
 	pub preference: u16,
 
 	/// Mail server name.
-	pub mail_server_name: ParsedNameIterator<'a>,
+	pub mail_server_name: WithCompressionParsedNameIterator<'a>,
 }
