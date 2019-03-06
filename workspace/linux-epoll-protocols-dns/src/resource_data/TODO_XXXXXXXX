@@ -1,199 +1,157 @@
+Outstanding parser issues:-
+    - Need to validate the data for DS-Delete when using CDS and CDNSKEY records:-
+        "The contents of the CDS or CDNSKEY RRset MUST contain one RR and only
+            contain the exact fields as shown below.
+
+               CDS 0 0 0 0
+
+               CDNSKEY 0 3 0 0
+
+            The keying material payload is represented by a single 0.  This
+            record is signed in the same way as regular CDS/CDNSKEY RRsets are
+            signed.
+
+            Strictly speaking, the CDS record could be "CDS X 0 X 0" as only the
+            DNSKEY algorithm is what signals the DELETE operation, but for
+            clarity, the "0 0 0 0" notation is mandated -- this is not a
+            definition of DS digest algorithm 0.  The same argument applies to
+            "CDNSKEY 0 3 0 0"; the value 3 in the second field is mandated by
+            [RFC4034], Section 2.1.2."
+    - We need to actually occasionally accept the security algos for NSEC3
+    - We need to fix the parsing of HIP resource server names.
+    - We need to consider supporting compressed names in ALL resource records if we want to work with multicast-DNS.
+
+
+SOA replies
+    - no answer, just a SOA record: commonly means no domain
+    - CNAME in in answer, SOA record in authority
+        eg dig +tries=1 +rrcomments +nofail +qr +multiline AAAA blog.cloudflare.com
+        eg dig +additional +authority DNSKEY blog.cloudflare.com
+        - get a CNAME, no AAAA records, and a SOA in authority section for ***ghost.io*** NOT cloudflare.com; query was successful. Effectively a hint that there is no AAAA or DNSKEY record (which there isn't).
+
+For A / AAAA queries:-
+
+    Use of /etc/hostname and /etc/dnsdomainname (Linux-ish)
+        (just hostname, just domainname)
+         Slackware uses /etc/HOSTNAME
+         RedHat did use the line `HOSTNAME=xxxx` in /etc/sysconfig/network
+         Gentoo at one time use `/etc/conf.d/hostname` with `HOSTNAME="xxxx"` (note the presence of double quotes).
+
+         Really, we need to look at how `hostname -f` is implemented.
+            int gethostname(char *name, size_t len)
+            {
+            	size_t i;
+            	struct utsname uts;
+            	if (uname(&uts)) return -1;
+            	if (len > sizeof uts.nodename) len = sizeof uts.nodename;
+            	for (i=0; i<len && (name[i] = uts.nodename[i]); i++);
+            	if (i && i==len) name[i-1] = 0;
+            	return 0;
+            }
+            int getdomainname(char *name, size_t len)
+            {
+                struct utsname temp;
+                uname(&temp);
+                if (!len || strlen(temp.domainname) >= len) {
+                    errno = EINVAL;
+                    return -1;
+                }
+                strcpy(name, temp.domainname);
+                return 0;
+            }
+            int uname(struct utsname *uts)
+            {
+            	return syscall(SYS_uname, uts);
+            }
+
+            So it's the uname() function which returns a utsname struct.
+            Linux:-
+                pub struct utsname {
+                    pub sysname: [::c_char; 65],
+                    pub nodename: [::c_char; 65],
+                    pub release: [::c_char; 65],
+                    pub version: [::c_char; 65],
+                    pub machine: [::c_char; 65],
+                    pub domainname: [::c_char; 65]
+            }
+
+            nodename is available on all, and varies from 32 characters to 257.
+            domainname is only available on Linux.
+
+    Use of /etc/hosts file
+        - Should be used for A and AAAA queries;
+        - Should be loaded into memory and file-watched;
+        The /etc/hosts file accepts alias names
+            eg `192.168.1.3     maple maple.trees.com`
+
+    Use of /etc/resolv.conf
+        http://man7.org/linux/man-pages/man5/resolv.conf.5.html
+        LOCALDOMAIN environment variable takes precedence over `search` entry
+        RES_OPTIONS takes precedence generally.
+        If not present, default is to use 127.0.0.1
+
+    Use of /etc/nsswitch.conf
+        http://man7.org/linux/man-pages/man5/nsswitch.conf.5.html
+            Use the `hosts` database for host name lookup
+            Could use the `services` database (via `/etc/services`) for a back-up for SRV / URI look up.
+        Frankly, this approach is obsolescent.
+
+    Weird
+        DNS wildcards
+            https://tools.ietf.org/html/rfc4592
+            dig "*.live.com"
 
-					/*
-						CDS / CDNSKEY
+    Exceptions
+        example.com, example.org
+        "localhost" and names in the ".local" TLD.
+        Are there any others?
 
+        RFC 6761 reserves
 
- The contents of the CDS or CDNSKEY RRset MUST contain one RR and only
-   contain the exact fields as shown below.
 
-      CDS 0 0 0 0
+        RFC 6762 recommends the following 'internal' domain names:-
+          .intranet.
+          .internal.
+          .private.
+          .corp.
+          .home.
+          .lan.
 
-      CDNSKEY 0 3 0 0
 
-   The keying material payload is represented by a single 0.  This
-   record is signed in the same way as regular CDS/CDNSKEY RRsets are
-   signed.
+    Special validations
+        - PTR queries are invalid for link-local domains such as "254.169.in-addr.arpa." and the IPv6 link-local reverse mapping domains "8.e.f.ip6.arpa.", "9.e.f.ip6.arpa.", "a.e.f.ip6.arpa.", and "b.e.f.ip6.arpa.".
+        - PTR queries which are not for *.in-addr.arpa. or *.ip6.arpa. or do not fit the format (4 labels or 32 labels). Think also about multicast addresses, etc.
+        - RFC 6761:-
+                 10.in-addr.arpa.      21.172.in-addr.arpa.  26.172.in-addr.arpa.
+                 16.172.in-addr.arpa.  22.172.in-addr.arpa.  27.172.in-addr.arpa.
+                 17.172.in-addr.arpa.  30.172.in-addr.arpa.  28.172.in-addr.arpa.
+                 18.172.in-addr.arpa.  23.172.in-addr.arpa.  29.172.in-addr.arpa.
+                 19.172.in-addr.arpa.  24.172.in-addr.arpa.  31.172.in-addr.arpa.
+                 20.172.in-addr.arpa.  25.172.in-addr.arpa.  168.192.in-addr.arpa.
+            test. - supposed to be passed to resolver, but supposed to eventually by NXDOMAIN
+            example. example.com. example.net. example.org. - supposed to be passed to resolver, but supposed to eventually by NXDOMAIN
+            localhost.
+            invalid. - always returns NXDOMAIN
+         - https://www.iana.org/domains/reserved
+         - https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml
 
-   Strictly speaking, the CDS record could be "CDS X 0 X 0" as only the
-   DNSKEY algorithm is what signals the DELETE operation, but for
-   clarity, the "0 0 0 0" notation is mandated -- this is not a
-   definition of DS digest algorithm 0.  The same argument applies to
-   "CDNSKEY 0 3 0 0"; the value 3 in the second field is mandated by
-   [RFC4034], Section 2.1.2.
 
 
-   EWhat about the nsec algos?
 
+    RFC 6762: ?Latest Multicast-DNS spec.
 
-						DNS Flag Day
-							https://dnsflagday.net/
-								Starting February 1st, 2019 there will be no attempt to disable EDNS in reaction to a DNS query timeout.
+    RFC 3484 / 6764 destination address selection.
 
-								This effectively means that all DNS servers which do not respond at all to EDNS queries are going to be treated as dead.
 
-								Please test your implementations using the ednscomp tool to make sure that you handle EDNS properly. Source code for the tool is available as well.
 
-								It is important to note that EDNS is still not mandatory. If you decide not to support EDNS it is okay as long as your software replies according to EDNS standard section 7 (https://tools.ietf.org/html/rfc6891#section-7).
+For others:-
 
-						DNSSEC
-							- most top level domains are now signed: http://stats.research.icann.org/dns/tld_report/
-							- some second-level domains suprisingly don't, eg microsoft.com
+    What about a local zone file?
 
-							https://metebalci.com/blog/a-minimum-complete-tutorial-of-dnssec/
 
-							https://www.cloudflare.com/dns/dnssec/how-dnssec-works/
-							https://www.cloudflare.com/dns/dnssec/dnssec-complexities-and-considerations/?utm_referrer=https://duckduckgo.com/
-							https://blog.cloudflare.com/dnssec-done-right/?utm_referrer=https://duckduckgo.com/
 
-							https://tools.ietf.org/html/rfc4033
-							https://tools.ietf.org/html/rfc4034
-							https://tools.ietf.org/html/rfc4035
-
-
-						NAMESERVERS for TLDs
-							eg https://www.iana.org/domains/root/db/com.html
-
-
-
-						LOOKING UP NAMES
-							found via MX, SRV, KX, NS, SOA and the like
-							result MUST be a A / AAAA records; CNAME and DNAME are NOT ALLOWED
-
-
-						FINDING THE AUTHORITATIVE SERVER
-							So if we are to trust responses, we really need to find the authoritative server for a domain name.
-								- trust resolver to lookup NS for example.com
-								- trust resolver to lookup A for NS (no aliases allowed)
-								- now open new TCP connection to As for NS, to do actual query look up.
-
-							Slightly ?less secure?
-								- trust resolver to lookup CNAME for blog.cloudflare.com
-								- get CNAME back (OK, same domain) discard A answers; can keep the DNAME answer that created a synthetic CNAME but it's f--k all use to us, really.
-								- return to client an alias result
-								- client now does a second A or AAAA query, as desired
-
-							Or we should just blindly trust our DNS resolver, and then use all of its records, including additional data.
-
-
-
-						RFC2181
-						Unauthenticated RRs received and cached from the least trustworthy of those groupings, that is data from the additional data section, and data from the authority section of a non-authoritative answer, should not be cached in such a way that they would ever be returned as answers to a received query. They may be returned as additional information where appropriate. Ignoring this would allow the trustworthiness of relatively untrustworthy data to be increased without cause or excuse.
-
-						 However when the name sought is an alias (see section 10.1.1) only the record describing that alias is necessarily authoritative.
-						 	ie the CNAME record is OK, the A records may not be authoritative.
-
-						 Frankly, at the end of the day, do we care?
-
-						 If we do care, we have to make sure EVERY record has a NAME for which the sending server is authoritative, ie IT MUST COME FROM THE NAMESERVER FOR THAT DOMAIN.
-
-						 eg dig blog.cloudflare.com would require us to throw away all the `A` records for `cloudflare.ghost.io`
-
-/*
-https://tools.ietf.org/html/rfc6840#section-2
-
-[RFC5155] describes the use and behavior of the NSEC3 and NSEC3PARAM
-   records for hashed denial of existence.  Validator implementations
-   are strongly encouraged to include support for NSEC3 because a number
-   of highly visible zones use it.  Validators that do not support
-   validation of responses using NSEC3 will be hampered in validating
-   large portions of the DNS space.
-
-resolvers MUST ignore the DO bit in responses even if they set in in requests due to broken implementations
-
-*/
-
-
-
-
-						RFC5452
-						 Incoming responses should be verified to have a question section that
-   is equivalent to that of the outgoing query. (ID, QNAME, QCLASS, QTYPE)
-
-6.  Accepting Only In-Domain Records
-
-   Responses from authoritative nameservers often contain information
-   that is not part of the zone for which we deem it authoritative.  As
-   an example, a query for the MX record of a domain might get as its
-   responses a mail exchanger in another domain, and additionally the IP
-   address of this mail exchanger.
-
-   If accepted uncritically, the resolver stands the chance of accepting
-   data from an untrusted source.  Care must be taken to only accept
-   data if it is known that the originator is authoritative for the
-   QNAME or a parent of the QNAME.
-
-One very simple way to achieve this is to only accept data if it is
-   part of the domain for which the query was intended.
-
-
-
-   						WEIRD
-   							dig +tries=1 +rrcomments +nofail +qr +multiline AAAA blog.cloudflare.com
-
-   							- get a CNAME, no AAAA records, and a SOA in authority section for ***ghost.io*** NOT cloudflare.com; query was successful. Effectively a hint that there is no AAAA record (which there isn't).
-
-   						NOTE ON SOA
-
-							- SOA server isn't necessarily ANY of the NS servers..., eg dig SOA cloudflare.com gives a server name for which the IP address is NONE of the NS servers.
-							- Interestingly, for cloudflare, using sara.ns.cloudflare.com as a nameserver (IP of 173.245.58.144)  with   dig @173.245.58.144 +tries=1 +rrcomments +nofail +qr +multiline NS cloudflare.com
-								gives a result which includes a LOT of additional data.
-
-
-						DNSSEC Trust Anchor(s)
-
-							RFC 7958
-
-							FILES https://www.iana.org/dnssec/files
-
-							TOOL https://github.com/iana-org/get-trust-anchor
-
-							Trust Anchor XML https://data.iana.org/root-anchors/root-anchors.xml
-							<?xml version="1.0" encoding="UTF-8"?>
-							<TrustAnchor id="380DC50D-484E-40D0-A3AE-68F2B18F61C7" source="http://data.iana.org/root-anchors/root-anchors.xml">
-							<Zone>.</Zone>
-							<KeyDigest id="Kjqmt7v" validFrom="2010-07-15T00:00:00+00:00" validUntil="2019-01-11T00:00:00+00:00">
-							<KeyTag>19036</KeyTag>
-							<Algorithm>8</Algorithm>
-							<DigestType>2</DigestType>
-							<Digest>49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5</Digest>
-							</KeyDigest>
-							<KeyDigest id="Klajeyz" validFrom="2017-02-02T00:00:00+00:00">
-							<KeyTag>20326</KeyTag>
-							<Algorithm>8</Algorithm>
-							<DigestType>2</DigestType>
-							<Digest>E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D</Digest>
-							</KeyDigest>
-							</TrustAnchor>
-
-							There are two `DS` records for the above:-
-								zone: .
-
-					*/
-
-Error 3 - NXDOMAIN -  Name Error - Meaningful only for
-                                          responses from an authoritative name
-                                          server, this code signifies that the
-                                          domain name referenced in the query does
-                                          not exist.
-
-
-
-Querying for A might result in answers which contain a CNAME, and then an additional record (often in the answer section, NOT the additional section, eg dig A after12.failblog.org)
-Querying for a DNSKEY (eg blog.cloudflare.com) might return a CNAME record, a SOA record (for the host of the CNAME) and NO A / AAAA / DNSKEY record.
-eg dig +additional +authority DNSKEY blog.cloudflare.com
-
-CNAME 'chains' can also be additional sections, eg
-https://stackoverflow.com/questions/11196930/cname-record-in-additional-section
-
-dig DNSKEY cloudflare.ghost.io
-- no name not found error
-- but no records in answer section
-- but SOA record in authority section
-
-
-How do we find the authoritative nameserver for a zone?
-
-    (1) Root zone hints file: https://www.internic.net/domain/named.root
-        Needs a simple parser.
-
-    (2) Not recommended but efficient as long as we implement a root file parser: https://www.internic.net/domain/root.zone
+	/* The following implements a subset of RFC 3484/6724 destination
+	 * address selection by generating a single 31-bit sort key for
+	 * each address. Rules 3, 4, and 7 are omitted for having
+	 * excessive runtime and code size cost and dubious benefit.
+	 * So far the label/precedence table cannot be customized. */

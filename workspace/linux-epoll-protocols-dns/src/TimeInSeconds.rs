@@ -21,7 +21,7 @@ impl Into<u32> for TimeInSeconds
 	#[inline(always)]
 	fn into(self) -> u32
 	{
-		let value = u32::from_be_bytes(self.0);
+		let value = self.0.from_network_endian_to_native_endian();
 
 		// RFC 2181, Section 8; if the top bit is set, the value is zero.
 		if unlikely!(value & 0x80000000 != 0)

@@ -9,19 +9,10 @@ macro_rules! bytes_label
 		{
 			let length = $label.length();
 
-			if unlikely!(length == 0)
-			{
-				static Empty: &'static [u8] = b"";
-				$self.pointer_to_label = 0;
-				Some(Empty)
-			}
-			else
-			{
-				let after_label_kind_byte = $pointer_to_label + LabelKind::LabelKindSize;
-				let label_bytes = Some(unsafe { from_raw_parts(after_label_kind_byte as *const u8, length) });
-				$self.pointer_to_label = after_label_kind_byte + length;
-				label_bytes
-			}
+			let after_label_kind_byte = $pointer_to_label + LabelKind::LabelKindSize;
+			let label_bytes = Some(unsafe { from_raw_parts(after_label_kind_byte as *const u8, length) });
+			$self.pointer_to_label = after_label_kind_byte + length;
+			label_bytes
 		}
 	}
 }

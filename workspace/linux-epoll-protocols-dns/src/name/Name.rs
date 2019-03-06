@@ -2,16 +2,25 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-extern
-{
-	/// A Name consists of one or more labels.
-	pub(crate) type Name;
-}
+/// A Name consists of one or more labels.
+pub(crate) struct Name;
 
 impl Name
 {
 	/// The smallest Name consists of one label, which is the Root label, which is one byte.
 	pub(crate) const MinimumSize: usize = 1;
+
+	#[inline(always)]
+	pub(crate) fn parse_without_compression_but_register_labels_for_compression<'message>(&'message mut self, parsed_labels: &mut ParsedLabels, end_of_message_pointer: usize) -> Result<(WithoutCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	{
+		parsed_labels.parse_without_compression_but_register_labels_for_compression(self.as_usize_pointer_mut(), end_of_message_pointer)
+	}
+
+	#[inline(always)]
+	pub(crate) fn parse_with_compression<'message>(&'message mut self, parsed_labels: &mut ParsedLabels, end_of_message_pointer: usize) -> Result<(WithCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	{
+		parsed_labels.parse_name(self.as_usize_pointer_mut(), end_of_message_pointer)
+	}
 
 	#[inline(always)]
 	pub(crate) fn maximum_for_end_of_name_pointer(start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<usize, DnsProtocolError>

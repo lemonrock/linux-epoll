@@ -14,6 +14,6 @@ impl CharacterString
 	#[inline(always)]
 	fn as_slice(&self, length: usize) -> &[u8]
 	{
-		unsafe { from_raw_parts((&self.bytes) as *const UpTo255Bytes as *const u8, length) }
+		(&self.bytes).unsafe_cast_slice::<u8>(length)
 	}
 }

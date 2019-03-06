@@ -69,7 +69,7 @@ impl SerialNumber
 	#[inline(always)]
 	fn into_u32(&self) -> u32
 	{
-		u32::from_be_bytes(self.0)
+		self.0.from_network_endian_to_native_endian()
 	}
 
 	/// Difference.

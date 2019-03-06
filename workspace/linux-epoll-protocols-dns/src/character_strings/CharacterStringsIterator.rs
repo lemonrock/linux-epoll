@@ -23,7 +23,7 @@ impl<'a> Iterator for CharacterStringsIterator<'a>
 			return None
 		}
 
-		let text_string = unsafe { & * (self.next_string_starts_at_pointer as *const CharacterString) };
+		let text_string = self.next_string_starts_at_pointer.unsafe_cast::<CharacterString>();
 		self.next_string_starts_at_pointer += 1;
 
 		let length = text_string.length as usize;
@@ -72,6 +72,6 @@ impl<'a> CharacterStringsIterator<'a>
 	#[inline(always)]
 	pub(crate) fn remaining_resource_data(&'a self) -> &'a [u8]
 	{
-		unsafe { from_raw_parts(self.next_string_starts_at_pointer as *const u8, self.end_of_resource_data_pointer - self.next_string_starts_at_pointer) }
+		self.next_string_starts_at_pointer.unsafe_cast_slice::<u8>(self.end_of_resource_data_pointer - self.next_string_starts_at_pointer)
 	}
 }

@@ -10,6 +10,12 @@ struct Label
 
 impl Label
 {
+	#[inline(always)]
+	fn is_root(&self) -> bool
+	{
+		self.bitfield.is_root()
+	}
+
 	/// Two bits, `u2`.
 	#[inline(always)]
 	fn raw_kind(&self) -> LabelKind
@@ -21,14 +27,16 @@ impl Label
 	#[inline(always)]
 	fn length(&self) -> usize
 	{
-		self.bitfield.bottom_6_bits() as usize
+		self.bitfield.bottom_6_bits_as_usize()
 	}
 
 	/// Actually `u14`.
 	#[inline(always)]
 	fn offset(&self) -> usize
 	{
-		(self.bitfield.bottom_6_bits() as usize) << 8 | (unsafe { * (self.bytes() as *const UpTo63Bytes as *const u8) }) as usize
+		let top_6_bits = self.bitfield.bottom_6_bits_as_usize() << 8;
+		let bottom_8_bits = *self.bytes().unsafe_cast::<u8>() as usize;
+		top_6_bits | bottom_8_bits
 	}
 
 	#[inline(always)]
@@ -40,6 +48,6 @@ impl Label
 	#[inline(always)]
 	fn label<'message>(label_starts_at_pointer: usize) -> &'message Label
 	{
-		unsafe { & * (label_starts_at_pointer as *const Label) }
+		label_starts_at_pointer.unsafe_cast::<Label>()
 	}
 }

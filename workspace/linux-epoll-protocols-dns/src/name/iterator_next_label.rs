@@ -8,13 +8,12 @@ macro_rules! iterator_next_label
 	{
 		{
 			let pointer_to_label = $self.pointer_to_label;
+			let label = Label::label(pointer_to_label);
 
-			if unlikely!(pointer_to_label == 0)
+			if unlikely!(label.is_root())
 			{
 				return None
 			}
-
-			let label = Label::label(pointer_to_label);
 
 			(label, pointer_to_label)
 		}

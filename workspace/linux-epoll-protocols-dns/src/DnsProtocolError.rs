@@ -6,6 +6,78 @@
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum DnsProtocolError
 {
+	/// Response was a query.
+	ResponseWasAQuery,
+
+	/// Invalid response opcode.
+	InvalidResponseOpcode(u8),
+
+	/// Response `QNAME` did not match.
+	ResponseWasForADifferentName,
+
+	/// Response `QTYPE` did not match.
+	ResponseWasForADifferentDataType,
+
+	/// Unassigned response opcode.
+	UnassignedResponseOpcode(u8),
+
+	/// Response used reserved header bits (`Z`).
+	ResponseUsedReservedHeaderBits,
+
+	/// Response is truncated (`TC`).
+	ResponseIsTruncated,
+
+	/// Response failed to copy the recursion desired (`RD`) bit.
+	ResponseFailedToCopyRecursionDesiredBit,
+
+	/// Response failed to copy the checking disabled (`CD`) bit.
+	ResponseFailedToCopyCheckingDisabledBit,
+
+	/// Response does not support ExtendedDNS.
+	ResponseDoesNotSupportExtendedDns,
+
+	/// Response did not have the EDNS(0) DNSSEC OK (`DO`) bit set.
+	ResponseIgnoredDnsSec,
+
+	/// Response was authoritative (`AD` bit is set) but also has the authenticated data (`AD`) bit set; this is not possible, as an authoritative name server can not authenticate its own signatures!
+	ResponseWasAuthoritativeButHasTheAuthoritativeDataBitSet,
+
+	/// We produced a bad query; we didn't.
+	MessageResponseCodeWasFormatError,
+
+	/// This is NOT returned for data that failed validation when using DNSSEC.
+	MessageResponseCodeWasServerFailure,
+
+	/// This should not occur.
+	MessageResponseCodeWasNonExistentDomainForANonAuthoritativeServer,
+
+	/// Can occur also when using a server that doesn't support DNSSEC.
+	MessageResponseCodeWasNotImplemented,
+
+	/// Permission denied, effectively.
+	MessageResponseCodeWasRefused,
+
+	/// Message response code should not be dynamic DNS associated.
+	MessageResponseCodeShouldNotBeDynamicDnsAssociated(u8),
+
+	/// Message response code should not be DNS stateful operation type not implemented.
+	MessageResponseCodeShouldNotBeDnsStatefulOperationsTypeNotImplemented,
+
+	/// Message response code unassigned.
+	MessageResponseCodeUnassigned(u8),
+
+	/// Response does not contain exactly one question.
+	ResponseDoesNotContainExactlyOneQuestion(u16),
+
+	/// Too many resource records in the answer section for the size of the message.
+	ResourceRecordsOverflowAnswerSection,
+
+	/// Too many resource records in the authority section for the size of the message.
+	ResourceRecordsOverflowAuthoritySection,
+
+	/// Too many resource records in the additional section for the size of the message.
+	ResourceRecordsOverflowAdditionalSection,
+
 	/// DNS `QCLASS` is reserved (including for private use), unassigned or obsolete (ie Chaos or Hesiod).
 	///
 	/// Tuple contains value.
@@ -346,7 +418,7 @@ pub enum DnsProtocolError
 	/// An unsupported EDNS version; unsupported version in tuple.
 	UnsupportedExtendedDnsVersion(u8),
 
-	/// EDNS(0) `Z`field not zero.
+	/// EDNS(0) `Z` field not zero.
 	ExtendedDnsZFieldNotZero,
 
 	/// EDNS(0) Option field has a length less than 4.
@@ -382,12 +454,18 @@ pub enum DnsProtocolError
 	/// See RFC 3597, Section 4 for some confusing rules.
 	CompressedNameLabelsAreDisallowedInThisResourceRecord,
 
+	/// When finishing a name combined from uncompressed labels and pointers, it creates a name longer than 127 labels.
+	LabelPointerCreatesADnsNameLongerThan127Labels,
+
+	/// When finishing a name combined from uncompressed labels and pointers, it creates a name longer than 255 bytes (including periods, including the trailing root period).
+	LabelPointerCreatesADnsNameLongerThan255Bytes,
+
 	/// The label pointer offset does not point to a previously parsed label.
 	///
 	/// Note that this includes pointers to pointers.
 	///
 	/// The tuple contains the offset.
-	InvalidLabelPointerOffset(usize),
+	LabelPointerPointsToALabelThatWasNotPreviouslyParsed(usize),
 
 	/// There is not a terminal root label in a Name.
 	NoTerminalRootLabel,
@@ -398,6 +476,8 @@ pub enum DnsProtocolError
 	/// A label pointer overflows (ie there isn't another byte for bottom 8 bits).
 	LabelPointerOverflows,
 
-	/// A label pointer is beyond the current location.
-	LabelPointerOffsetPointsForwardToUnparsedData,
+	/// A label pointer points to data that is after the start of the currently being parsed name.
+	///
+	/// This check prevents forward-pointers and circular pointers.
+	LabelPointerPointsToDataAfterTheStartOfTheCurrentlyBeingParsedName,
 }

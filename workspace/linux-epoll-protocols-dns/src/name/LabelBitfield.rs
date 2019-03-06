@@ -8,14 +8,20 @@ pub(crate) struct LabelBitfield(u8);
 impl LabelBitfield
 {
 	#[inline(always)]
+	fn is_root(self) -> bool
+	{
+		self.0 == 0x00
+	}
+
+	#[inline(always)]
 	fn raw_kind(self) -> LabelKind
 	{
 		unsafe { transmute(self.0 >> 6) }
 	}
 
 	#[inline(always)]
-	fn bottom_6_bits(self) -> u8
+	fn bottom_6_bits_as_usize(self) -> usize
 	{
-		self.0 & 0b0011_1111
+		(self.0 & 0b0011_1111) as usize
 	}
 }

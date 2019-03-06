@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 #![deny(unreachable_patterns)]
 #![feature(core_intrinsics)]
-#![feature(extern_types)]
 #![feature(proc_macro_hygiene)]
 
 
@@ -17,6 +16,7 @@
 //! A simple implementation of a secure DNS client.
 
 
+extern crate arrayvec;
 extern crate either;
 extern crate hashbrown;
 #[macro_use] extern crate likely;
@@ -28,6 +28,7 @@ extern crate time;
 use self::DnsProtocolError::*;
 use self::character_strings::*;
 use self::extended_dns::*;
+use self::message::*;
 use self::name::*;
 use self::resource_data::*;
 use self::resource_data::certificate::*;
@@ -42,8 +43,11 @@ use self::resource_data::location::*;
 use self::resource_data::naming_authority_pointer::*;
 use self::resource_data::ssh_fingerprint::*;
 use self::resource_data::start_of_authority::*;
+use self::response_parsing::*;
+use self::support::*;
+use ::arrayvec::ArrayVec;
 use ::either::*;
-use ::hashbrown::HashSet;
+use ::hashbrown::HashMap;
 use ::phf::Map;
 use ::std::cmp::min;
 use ::std::cmp::Ordering;
@@ -63,16 +67,19 @@ use ::std::net::Ipv6Addr;
 use ::std::ptr::copy_nonoverlapping;
 use ::std::ptr::write_bytes;
 use ::std::slice::from_raw_parts;
+use ::std::slice::from_raw_parts_mut;
 use ::time::get_time;
 use ::time::Timespec;
 
 
-/// Extended DNS (EDNS).
+/// Character strings support.
+pub mod character_strings;
+
+
 pub(crate) mod extended_dns;
 
 
-/// Character strings support.
-pub mod character_strings;
+pub(crate) mod message;
 
 
 /// DNS name handling.
@@ -83,33 +90,14 @@ pub mod name;
 pub mod resource_data;
 
 
-/// Zone files.
-pub mod zone_files;
+pub(crate) mod response_parsing;
 
 
-include!("DataType.rs");
+pub(crate) mod support;
+
+
 include!("DnsProtocolError.rs");
-include!("Message.rs");
-include!("MessageBitField1.rs");
-include!("MessageBitField2.rs");
-include!("MessageBody.rs");
-include!("MessageHeader.rs");
-include!("MessageIdentifer.rs");
-include!("MessageOpcode.rs");
-include!("MessageResponseCode.rs");
-include!("MessageType.rs");
-include!("MetaType.rs");
-include!("QueryClass.rs");
-include!("QuerySectionEntry.rs");
-include!("QuerySectionEntryFooter.rs");
-include!("QueryType.rs");
-include!("QueryTypeOrDataType.rs");
-include!("ResourceData.rs");
-include!("ResourceRecord.rs");
-include!("ResourceRecordClass.rs");
-include!("ResourceRecordFooter.rs");
-include!("ResponseParsingState.rs");
+include!("MessageIdentifier.rs");
 include!("SerialNumber.rs");
-include!("TcpMessage.rs");
 include!("TimeInSeconds.rs");
 include!("TimeToLiveInSeconds.rs");

@@ -61,7 +61,5 @@ include!("HostInformation.rs");
 include!("KeyExchange.rs");
 include!("MailExchange.rs");
 include!("OpenPgpRfc4880TransferablePublicKey.rs");
-include!("ResourceRecordVisitor.rs");
 include!("Service.rs");
-include!("SliceExt.rs");
 include!("Uri.rs");

@@ -7,8 +7,9 @@ pub(crate) struct ParsedLabels
 {
 	pub(crate) start_of_message_pointer: usize,
 
-	parsed_labels: HashSet<u16>,
+	parsed_labels: HashMap<u16, ParsedLabelInformation>,
 }
+
 
 impl ParsedLabels
 {
@@ -18,12 +19,12 @@ impl ParsedLabels
 		Self
 		{
 			start_of_message_pointer,
-			parsed_labels: HashSet::with_capacity(128),
+			parsed_labels: HashMap::with_capacity(128),
 		}
 	}
 
 	#[inline(always)]
-	pub(crate) fn parse_name_in_slice_with_nothing_left<'message>(&mut self, slice: &'message [u8]) -> Result<WithCompressionParsedNameIterator<'message>, DnsProtocolError>
+	pub(crate) fn parse_name_in_slice_with_nothing_left<'message>(&mut self, slice: &'message mut [u8]) -> Result<WithCompressionParsedNameIterator<'message>, DnsProtocolError>
 	{
 		match self.parse_name_in_slice(slice)
 		{
@@ -41,7 +42,7 @@ impl ParsedLabels
 	}
 
 	#[inline(always)]
-	pub(crate) fn parse_name_in_slice<'message>(&mut self, slice: &'message [u8]) -> Result<(WithCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	pub(crate) fn parse_name_in_slice<'message>(&mut self, slice: &'message mut [u8]) -> Result<(WithCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
 	{
 		let length = slice.len();
 		if unlikely!(length == 0)
@@ -54,58 +55,55 @@ impl ParsedLabels
 	}
 
 	#[inline(always)]
+	pub(crate) fn parse_without_compression_but_register_labels_for_compression<'message>(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(WithoutCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	{
+		WithoutCompressionParsedNameIterator::parse_without_compression_but_register_labels_for_compression(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
+	}
+
+	#[inline(always)]
 	pub(crate) fn parse_name<'message>(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(WithCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
 	{
 		WithCompressionParsedNameIterator::parse_with_compression(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
 	}
 
 	#[inline(always)]
-	pub(crate) fn guard_pointer_points_forward_to_unparsed_data(&self, offset: usize, current_label_starts_at_pointer: usize) -> Result<(), DnsProtocolError>
-	{
-		let pointer_points_forward_to_unparsed_data = self.start_of_message_pointer + offset >= current_label_starts_at_pointer;
-
-		if unlikely!(pointer_points_forward_to_unparsed_data)
-		{
-			Err(LabelPointerOffsetPointsForwardToUnparsedData)
-		}
-		else
-		{
-			Ok(())
-		}
-	}
-
-	#[inline(always)]
-	pub(crate) fn guard_contains(&self, offset: usize, next_label_starts_at_pointer: usize) -> Result<(), DnsProtocolError>
+	pub(crate) fn guard(&self, offset: usize, start_of_name_pointer: usize, labels_register_reference: &mut LabelsRegister) -> Result<(u8, u8), DnsProtocolError>
 	{
 		debug_assert!(offset <= ::std::u16::MAX as usize, "offset is larger than ::std::u16::MAX");
 
-		if unlikely!(self.start_of_message_pointer + offset >= next_label_starts_at_pointer)
+		let points_to_label_at = self.start_of_message_pointer + offset;
+
+		let pointer_points_at_or_after_start_of_name = points_to_label_at >= start_of_name_pointer;
+		if unlikely!(pointer_points_at_or_after_start_of_name)
 		{
-			return Err(LabelPointerOffsetPointsForwardToUnparsedData)
+			return Err(LabelPointerPointsToDataAfterTheStartOfTheCurrentlyBeingParsedName)
 		}
 
-		let compressed_offset = (self.start_of_message_pointer + offset) as u16;
-		if likely!(self.parsed_labels.contains(&(compressed_offset)))
+		let compressed_offset = points_to_label_at as u16;
+		let &ParsedLabelInformation { mut number_of_uncompressed_labels_with_all_pointers_resolved, mut length_of_all_labels_including_period } = self.parsed_labels.get(&compressed_offset).ok_or(LabelPointerPointsToALabelThatWasNotPreviouslyParsed(offset))?;
+
+		let number_of_labels = number_of_uncompressed_labels_with_all_pointers_resolved + labels_register_reference.len() as u8;
+		if unlikely!(number_of_labels > WithCompressionParsedNameIterator::MaximumNumberOfLabels as u8)
 		{
-			Ok(())
+			return Err(LabelPointerCreatesADnsNameLongerThan127Labels)
 		}
-		else
+
+		for (label_starts_at_pointer, label_bytes_length_including_trailing_period) in labels_register_reference.iter().rev()
 		{
-			Err(InvalidLabelPointerOffset(offset))
+			number_of_uncompressed_labels_with_all_pointers_resolved += 1;
+
+			let label_starts_at_pointer = *label_starts_at_pointer;
+			let label_bytes_length_including_trailing_period = *label_bytes_length_including_trailing_period;
+
+			debug_assert_ne!(label_bytes_length_including_trailing_period, 0, "label_bytes_length_including_trailing_period was zero");
+			length_of_all_labels_including_period = length_of_all_labels_including_period.checked_add(label_bytes_length_including_trailing_period).ok_or(LabelPointerCreatesADnsNameLongerThan255Bytes)?;
+
+			debug_assert!(label_starts_at_pointer >= self.start_of_message_pointer, "offset occurs before start_of_message_pointer");
+			let offset = label_starts_at_pointer - self.start_of_message_pointer;
+			debug_assert!(offset <= ::std::u16::MAX as usize, "offset `{}` exceeds ::std::u16::MAX", offset);
+			let previous = self.parsed_labels.insert(offset as u16, ParsedLabelInformation { number_of_uncompressed_labels_with_all_pointers_resolved, length_of_all_labels_including_period });
+			debug_assert_eq!(previous, None, "duplicate uncompressed label");
 		}
-	}
-
-	#[inline(always)]
-	pub(crate) fn insert(&mut self, label_starts_at_pointer: usize)
-	{
-		debug_assert!(label_starts_at_pointer >= self.start_of_message_pointer, "offset occurs before start_of_message_pointer");
-
-		let offset = label_starts_at_pointer - self.start_of_message_pointer;
-		debug_assert!(offset <= ::std::u16::MAX as usize, "offset is larger than ::std::u16::MAX");
-
-		let compressed_offset = offset as u16;
-
-		let was_first_time_this_compressed_offset_was_inserted = self.parsed_labels.insert(compressed_offset);
-		debug_assert!(was_first_time_this_compressed_offset_was_inserted, "There was a previous label at this offset {}", offset);
+		Ok((number_of_labels, length_of_all_labels_including_period))
 	}
 }
