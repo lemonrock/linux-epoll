@@ -17,36 +17,6 @@ pub enum Outcome
 	AuthoritativeServerReportsNoDomainButThisIsNotValidated,
 }
 
-impl RequestQueryIdentification
-{
-	pub(crate) fn matches<'a>(&self, qname: WithoutCompressionParsedNameIterator<'a>, data_type: DataType) -> Result<(), DnsProtocolError>
-	{
-		if unlikely!(self.data_type != data_type)
-		{
-			return Err(ResponseWasForADifferentDataType)
-		}
-
-		if unlikely!(self.query_name_labels_excluding_root.len() != qname.number_of_labels as usize)
-		{
-			return Err(ResponseWasForADifferentName)
-		}
-
-		let mut index = 0;
-		for query_label in qname
-		{
-			let expected_label = unsafe { self.query_name_labels_excluding_root.get_unchecked(index) };
-			if unlikely!(&expected_label[..] != query_label)
-			{
-				return Err(ResponseWasForADifferentName)
-			}
-
-			index += 1;
-		}
-
-		Ok(())
-	}
-}
-
 struct RequestQuery<'a>
 {
 	answer_section: Box<dyn ResourceRecordVisitor<'a>>,
@@ -196,7 +166,6 @@ impl<'a> OutstandingRequests<'a>
 
 		let outcome = validate_message_response_code!(message_header, is_authenticated_data, is_authoritative_answer);
 
-		let mut response_parsing_state = ResponseParsingState::default();
 
 
 // in practice, we'll implement dedicated handlers for the various resource records of interest.
@@ -243,6 +212,78 @@ impl<'a> OutstandingRequests<'a>
 
 		*/
 
+
+		/*
+			NODATA
+
+			For all TYPE1-3 and referral, there may be a CNAME or DNAME.
+
+			TYPE1: In authority: SOA (ns1.xx.) + NS (ns1.xx.)
+			TYPE2: In authority: SOA (ns1.xx.)
+			TYPE3: In authority: nothing
+			REFERRAL: In authority: NS (ns1.xx.) + additional contains some A for NS in authority.
+
+			https://tools.ietf.org/html/rfc2308
+
+			NODATA RESPONSE: TYPE 1.
+           Header:
+               RDCODE=NOERROR
+           Query:
+               ANOTHER.EXAMPLE. A
+           Answer:
+               <empty>
+           Authority:
+               EXAMPLE. SOA NS1.XX. HOSTMASTER.NS1.XX. ....
+               EXAMPLE. NS NS1.XX.
+               EXAMPLE. NS NS2.XX.
+           Additional:
+               NS1.XX. A 127.0.0.2
+               NS2.XX. A 127.0.0.3
+
+
+           NO DATA RESPONSE: TYPE 2.
+           Header:
+               RDCODE=NOERROR
+           Query:
+               ANOTHER.EXAMPLE. A
+           Answer:
+               <empty>
+           Authority:
+               EXAMPLE. SOA NS1.XX. HOSTMASTER.NS1.XX. ....
+           Additional:
+               <empty>
+
+
+           NO DATA RESPONSE: TYPE 3.
+           Header:
+               RDCODE=NOERROR
+           Query:
+               ANOTHER.EXAMPLE. A
+           Answer:
+               <empty>
+           Authority:
+               <empty>
+           Additional:
+               <empty>
+
+
+           REFERRAL RESPONSE.
+           Header:
+               RDCODE=NOERROR
+           Query:
+               ANOTHER.EXAMPLE. A
+           Answer:
+               <empty>
+           Authority:
+               EXAMPLE. NS NS1.XX.
+               EXAMPLE. NS NS2.XX.
+           Additional:
+               NS1.XX. A 127.0.0.2
+               NS2.XX. A 127.0.0.3
+
+		*/
+
+
 //		// expires_at_time = RR TTL + now(); OR lower of RR TTL / SOA min TTL + now();
 //		type ExpiresAtTime = Timespec;
 //
@@ -271,37 +312,36 @@ impl<'a> OutstandingRequests<'a>
 //			// use an IndexMap and just drop the last inserted (we've done something like this before).
 //		}
 
-		#[inline(always)]
-		fn loop_over_resource_records(end_of_message_pointer: usize, next_resource_record_pointer: usize, number_of_resource_records: u16, parse_method: impl for<'a> Fn(&mut ResourceRecord, usize) -> Result<usize, DnsProtocolError>) -> Result<usize, DnsProtocolError>
+		struct AuthorityResourceRecordVisitor<'a>
 		{
-			let mut next_resource_record_pointer = next_resource_record_pointer;
-			for _ in 0 .. number_of_resource_records
+			marker: PhantomData<&'a ()>,
+		}
+
+		impl ResourceRecordVisitor<'a> for AuthorityResourceRecordVisitor<'a>
+		{
+			#[inline(always)]
+			fn NS(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'a>) -> Result<(), DnsProtocolError>
 			{
-				if unlikely!(next_resource_record_pointer == end_of_message_pointer)
-				{
-					return Err(ResourceRecordsOverflowAnswerSection)
-				}
-				let resource_record = next_resource_record_pointer.unsafe_cast_mut::<ResourceRecord>();
-				next_resource_record_pointer = parse_method(resource_record, end_of_message_pointer)?;
+				// Perhaps this should be handled by higher-level code; requires a hash of the resource data.
+
+				/*
+					NAME + TYPE + RDATA
+						ignore CLASS, TTL
+				*/
+
+				Ok(())
 			}
-			Ok(next_resource_record_pointer)
+
+			#[inline(always)]
+			fn SOA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: StartOfAuthority<'a>) -> Result<(), DnsProtocolError>
+			{
+				Ok(())
+			}
+
 		}
 
-		// TODO: Fix this.
-		let resource_record_visitor = XXXX;
+		Self::response_record_section_parsing(end_of_message_pointer, next_resource_record_pointer, message_header, &mut parsed_labels, data_type)?;
 
-		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_answer_section(), |resource_record, end_of_message_pointer| resource_record.parse_answer_section_resource_record_in_response(data_type, end_of_message_pointer, &mut parsed_labels, &mut resource_record_visitor, &mut response_parsing_state))?;
-
-		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_authority_records_section(), |resource_record, end_of_message_pointer| resource_record.parse_authority_section_resource_record_in_response(end_of_message_pointer, &mut parsed_labels, &mut resource_record_visitor, &mut response_parsing_state))?;
-
-		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_additional_records_section(), |resource_record, end_of_message_pointer| resource_record.parse_additional_section_resource_record_in_response(end_of_message_pointer, &mut parsed_labels, &mut DiscardingResourceRecordVisitor::default(), &mut response_parsing_state))?;
-
-		match response_parsing_state.dnssec_ok
-		{
-			None => return Err(ResponseDoesNotSupportExtendedDns),
-			Some(false) => return Err(ResponseIgnoredDnsSec),
-			Some(true) => (),
-		}
 
 		let response_header = ResponseHeader
 		{
@@ -327,4 +367,48 @@ impl<'a> OutstandingRequests<'a>
 			- Always one query and no additional records.
 			- May need a client certificate.
 	*/
+
+	fn response_record_section_parsing(end_of_message_pointer: usize, next_resource_record_pointer: usize, message_header: &MessageHeader, parsed_labels: &mut ParsedLabels, data_type: DataType) -> Result<(), DnsProtocolError>
+	{
+		#[inline(always)]
+		fn loop_over_resource_records(end_of_message_pointer: usize, next_resource_record_pointer: usize, number_of_resource_records: u16, parse_method: impl for<'a> Fn(&mut ResourceRecord, usize) -> Result<usize, DnsProtocolError>) -> Result<usize, DnsProtocolError>
+		{
+			let mut next_resource_record_pointer = next_resource_record_pointer;
+			for _ in 0 .. number_of_resource_records
+			{
+				if unlikely!(next_resource_record_pointer == end_of_message_pointer)
+				{
+					return Err(ResourceRecordsOverflowAnswerSection)
+				}
+				let resource_record = next_resource_record_pointer.unsafe_cast_mut::<ResourceRecord>();
+				next_resource_record_pointer = parse_method(resource_record, end_of_message_pointer)?;
+			}
+			Ok(next_resource_record_pointer)
+		}
+
+		// TODO: Fix this.
+		let resource_record_visitor = XXXX;
+
+		let mut response_parsing_state = ResponseParsingState::default();
+
+		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_answer_section(), |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_answer_section_resource_record_in_response(data_type, end_of_message_pointer, parsed_labels, &mut resource_record_visitor, &mut response_parsing_state))?;
+
+		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_authority_records_section(), |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_authority_section_resource_record_in_response(end_of_message_pointer, parsed_labels, &mut resource_record_visitor, &mut response_parsing_state))?;
+
+		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_additional_records_section(), |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_additional_section_resource_record_in_response(end_of_message_pointer, parsed_labels, &mut DiscardingResourceRecordVisitor::default(), &mut response_parsing_state))?;
+
+		if unlikely!(response_parsing_state.have_yet_to_see_an_edns_opt_resource_record)
+		{
+			return Err(ResponseDidNotContainAnExtendedDnsOptMetaResourceRecord)
+		}
+
+		match response_parsing_state.dnssec_ok
+		{
+			None => Err(ResponseDoesNotSupportExtendedDns),
+
+			Some(false) => Err(ResponseIgnoredDnsSec),
+
+			Some(true) => Ok(()),
+		}
+	}
 }

@@ -4,7 +4,7 @@
 
 /// A gateway associated with an IPsec public key.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Gateway<'a>
+pub enum Gateway<'message>
 {
 	/// As an Internet Protocol version 6 address.
 	InternetProtocolVersion4(Ipv4Addr),
@@ -13,5 +13,5 @@ pub enum Gateway<'a>
 	InternetProtocolVersion6(Ipv6Addr),
 
 	/// As a domain name.
-	DomainName(WithoutCompressionParsedNameIterator<'a>)
+	DomainName(WithoutCompressionParsedName<'message>)
 }

@@ -3,7 +3,7 @@
 
 
 /// A resource record set signature (`RRSIG`).
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ResourceRecordSetSignature<'a>
 {
 	/// Type covered.
@@ -24,7 +24,7 @@ pub struct ResourceRecordSetSignature<'a>
 	pub key_tag: KeyTag,
 
 	/// Signer's name.
-	pub signers_name: WithoutCompressionParsedNameIterator<'a>,
+	pub signers_name: WithoutCompressionParsedName<'a>,
 
 	/// Signature.
 	pub signature: &'a [u8],

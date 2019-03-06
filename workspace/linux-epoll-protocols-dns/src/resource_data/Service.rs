@@ -3,7 +3,7 @@
 
 
 /// A `SRV` record.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Service<'a>
 {
 	/// Priority.
@@ -26,5 +26,5 @@ pub struct Service<'a>
 	/// Must not be an alias; should not use name compression; a value of '.' (ie Root) means the service is unavailable.
 	///
 	/// The interaction with round-robin `A` or `AAAA` records is unclear.
-	pub target: WithCompressionParsedNameIterator<'a>,
+	pub target: WithCompressionParsedName<'a>,
 }

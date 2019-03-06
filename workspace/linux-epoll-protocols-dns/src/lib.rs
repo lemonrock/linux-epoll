@@ -48,6 +48,7 @@ use self::support::*;
 use ::arrayvec::ArrayVec;
 use ::either::*;
 use ::hashbrown::HashMap;
+use ::hashbrown::HashSet;
 use ::phf::Map;
 use ::std::cmp::min;
 use ::std::cmp::Ordering;

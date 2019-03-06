@@ -3,7 +3,7 @@
 
 
 /// Host Identity Protocol (`HIP`) resource record data.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HostIdentityProtocol<'a>
 {
 	/// Host identitiy tag (HIT).
@@ -13,7 +13,7 @@ pub struct HostIdentityProtocol<'a>
 	pub public_key: Option<PublicKey<'a>>,
 
 	/// At least one rendezvous server is present.
-	pub first_rendezvous_server_domain_name: WithoutCompressionParsedNameIterator<'a>,
+	pub first_rendezvous_server_domain_name: WithoutCompressionParsedName<'a>,
 
 	/// May be empty.
 	///

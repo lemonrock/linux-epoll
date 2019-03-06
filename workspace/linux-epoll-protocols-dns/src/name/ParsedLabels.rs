@@ -24,7 +24,7 @@ impl ParsedLabels
 	}
 
 	#[inline(always)]
-	pub(crate) fn parse_name_in_slice_with_nothing_left<'message>(&mut self, slice: &'message mut [u8]) -> Result<WithCompressionParsedNameIterator<'message>, DnsProtocolError>
+	pub(crate) fn parse_name_in_slice_with_nothing_left<'message>(&mut self, slice: &'message mut [u8]) -> Result<WithCompressionParsedName<'message>, DnsProtocolError>
 	{
 		match self.parse_name_in_slice(slice)
 		{
@@ -42,7 +42,7 @@ impl ParsedLabels
 	}
 
 	#[inline(always)]
-	pub(crate) fn parse_name_in_slice<'message>(&mut self, slice: &'message mut [u8]) -> Result<(WithCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	pub(crate) fn parse_name_in_slice<'message>(&mut self, slice: &'message mut [u8]) -> Result<(WithCompressionParsedName<'message>, usize), DnsProtocolError>
 	{
 		let length = slice.len();
 		if unlikely!(length == 0)
@@ -55,19 +55,19 @@ impl ParsedLabels
 	}
 
 	#[inline(always)]
-	pub(crate) fn parse_without_compression_but_register_labels_for_compression<'message>(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(WithoutCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	pub(crate) fn parse_without_compression_but_register_labels_for_compression<'message>(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(WithoutCompressionParsedName<'message>, usize), DnsProtocolError>
 	{
-		WithoutCompressionParsedNameIterator::parse_without_compression_but_register_labels_for_compression(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
+		WithoutCompressionParsedName::parse_without_compression_but_register_labels_for_compression(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
 	}
 
 	#[inline(always)]
-	pub(crate) fn parse_name<'message>(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(WithCompressionParsedNameIterator<'message>, usize), DnsProtocolError>
+	pub(crate) fn parse_name<'message>(&mut self, start_of_name_pointer: usize, end_of_data_section_containing_name_pointer: usize) -> Result<(WithCompressionParsedName<'message>, usize), DnsProtocolError>
 	{
-		WithCompressionParsedNameIterator::parse_with_compression(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
+		WithCompressionParsedName::parse_with_compression(self, start_of_name_pointer, end_of_data_section_containing_name_pointer)
 	}
 
 	#[inline(always)]
-	pub(crate) fn guard(&self, offset: usize, start_of_name_pointer: usize, labels_register_reference: &mut LabelsRegister) -> Result<(u8, u8), DnsProtocolError>
+	pub(crate) fn guard(&self, offset: usize, start_of_name_pointer: usize, labels_register_reference: &mut LabelsRegister) -> Result<(usize, u8, u8), DnsProtocolError>
 	{
 		debug_assert!(offset <= ::std::u16::MAX as usize, "offset is larger than ::std::u16::MAX");
 
@@ -83,7 +83,7 @@ impl ParsedLabels
 		let &ParsedLabelInformation { mut number_of_uncompressed_labels_with_all_pointers_resolved, mut length_of_all_labels_including_period } = self.parsed_labels.get(&compressed_offset).ok_or(LabelPointerPointsToALabelThatWasNotPreviouslyParsed(offset))?;
 
 		let number_of_labels = number_of_uncompressed_labels_with_all_pointers_resolved + labels_register_reference.len() as u8;
-		if unlikely!(number_of_labels > WithCompressionParsedNameIterator::MaximumNumberOfLabels as u8)
+		if unlikely!(number_of_labels > WithCompressionParsedName::MaximumNumberOfLabels as u8)
 		{
 			return Err(LabelPointerCreatesADnsNameLongerThan127Labels)
 		}
@@ -104,6 +104,6 @@ impl ParsedLabels
 			let previous = self.parsed_labels.insert(offset as u16, ParsedLabelInformation { number_of_uncompressed_labels_with_all_pointers_resolved, length_of_all_labels_including_period });
 			debug_assert_eq!(previous, None, "duplicate uncompressed label");
 		}
-		Ok((number_of_labels, length_of_all_labels_including_period))
+		Ok((points_to_label_at, number_of_labels, length_of_all_labels_including_period))
 	}
 }

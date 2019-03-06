@@ -3,11 +3,11 @@
 
 
 /// Next secure (`NSEC`).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NextSecure<'a>
 {
 	/// Next domain name.
-	pub next_domain_name: WithoutCompressionParsedNameIterator<'a>,
+	pub next_domain_name: WithoutCompressionParsedName<'a>,
 
 	/// Type bitmaps.
 	pub type_bitmaps: TypeBitmaps,

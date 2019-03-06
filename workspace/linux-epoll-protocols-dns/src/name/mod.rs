@@ -25,5 +25,7 @@ include!("ParsedLabelInformation.rs");
 include!("ParsedLabels.rs");
 include!("UpTo63Bytes.rs");
 include!("UpTo255Bytes.rs");
+include!("WithoutCompressionParsedName.rs");
 include!("WithCompressionParsedNameIterator.rs");
+include!("WithoutCompressionParsedName.rs");
 include!("WithoutCompressionParsedNameIterator.rs");

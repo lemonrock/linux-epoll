@@ -5,7 +5,7 @@
 /// Represents a locator pointer along with its preference.
 ///
 /// Used in a `LP` record.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LocatorPointer<'a>
 {
 	/// Indicates the owner name's relative preference for record among other records associated with this owner name.
@@ -16,5 +16,5 @@ pub struct LocatorPointer<'a>
 	/// `Name`.
 	///
 	/// Must not be the same as the `Name` of the resource record it is associated with (this is not validated before being passed to `ResourceRecordVisitor.LP()`).
-	pub domain_name: WithoutCompressionParsedNameIterator<'a>,
+	pub domain_name: WithoutCompressionParsedName<'a>,
 }

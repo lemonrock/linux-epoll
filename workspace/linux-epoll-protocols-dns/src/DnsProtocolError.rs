@@ -6,6 +6,9 @@
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum DnsProtocolError
 {
+	/// A resource record was a duplicate (the same name, data type and resource data).
+	DuplicateResourceRecord(DataType),
+
 	/// Response was a query.
 	ResponseWasAQuery,
 
@@ -33,8 +36,11 @@ pub enum DnsProtocolError
 	/// Response failed to copy the checking disabled (`CD`) bit.
 	ResponseFailedToCopyCheckingDisabledBit,
 
-	/// Response does not support ExtendedDNS.
+	/// Response does not support Extended DNS.
 	ResponseDoesNotSupportExtendedDns,
+
+	/// Response did not contain an Extended DNS `OPT` meta resource record.
+	ResponseDidNotContainAnExtendedDnsOptMetaResourceRecord,
 
 	/// Response did not have the EDNS(0) DNSSEC OK (`DO`) bit set.
 	ResponseIgnoredDnsSec,

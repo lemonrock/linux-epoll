@@ -3,12 +3,12 @@
 
 
 /// Mail exchange data.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MailExchange<'a>
 {
 	/// Preference.
 	pub preference: u16,
 
 	/// Mail server name.
-	pub mail_server_name: WithCompressionParsedNameIterator<'a>,
+	pub mail_server_name: WithCompressionParsedName<'a>,
 }

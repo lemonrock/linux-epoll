@@ -12,7 +12,8 @@ macro_rules! parse_name
 
 			let maximum_for_end_of_name_pointer = Name::maximum_for_end_of_name_pointer($start_of_name_pointer, $end_of_data_section_containing_name_pointer)?;
 
-			let mut current_label_starts_at_pointer = $start_of_name_pointer;
+			let mut pointer_to_label = $start_of_name_pointer;
+			let mut current_label_starts_at_pointer = pointer_to_label;
 			let mut number_of_labels: u8 = 0;
 			let mut name_length: u8 = 0;
 
@@ -36,10 +37,10 @@ macro_rules! parse_name
 
 					Unallocated => return Err(UnallocatedNameLabelsAreUnused),
 
-					CompressedOffsetPointer => $compressed!(label, current_label_starts_at_pointer, maximum_for_end_of_name_pointer, $start_of_name_pointer, $labels_register_reference, $parsed_labels, number_of_labels, name_length),
+					CompressedOffsetPointer => $compressed!(label, current_label_starts_at_pointer, maximum_for_end_of_name_pointer, $start_of_name_pointer, $pointer_to_label, $labels_register_reference, $parsed_labels, number_of_labels, name_length),
 				}
 			};
-			(true_end_of_name_pointer, number_of_labels, name_length)
+			(pointer_to_label, true_end_of_name_pointer, number_of_labels, name_length)
 		}
 	}
 }
