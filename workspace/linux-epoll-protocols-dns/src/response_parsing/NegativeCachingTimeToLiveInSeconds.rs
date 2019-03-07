@@ -2,12 +2,4 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct DiscardingResourceRecordVisitor<'message>
-{
-	marker: PhantomData<&'message ()>,
-}
-
-impl<'message> ResourceRecordVisitor<'message> for DiscardingResourceRecordVisitor<'message>
-{
-}
+type NegativeCachingTimeToLiveInSeconds = u32;

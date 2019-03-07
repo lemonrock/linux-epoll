@@ -971,7 +971,7 @@ impl ResourceRecord
 			return Err(ResourceDataForTypeSRVHasAnIncorrectLength(length))
 		}
 
-		let record = Service
+		let record = ServiceLocation
 		{
 			priority: resource_data.u16(0),
 			weight: resource_data.u16(PrioritySize),

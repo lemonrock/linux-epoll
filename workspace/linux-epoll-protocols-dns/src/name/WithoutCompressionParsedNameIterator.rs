@@ -24,3 +24,16 @@ impl<'message> Iterator for WithoutCompressionParsedNameIterator<'message>
 		bytes_label!(self, label, pointer_to_label)
 	}
 }
+
+impl<'message> WithoutCompressionParsedNameIterator<'message>
+{
+	#[inline(always)]
+	pub(crate) fn new(pointer_to_label: usize) -> Self
+	{
+		Self
+		{
+			pointer_to_label,
+			marker: PhantomData,
+		}
+	}
+}

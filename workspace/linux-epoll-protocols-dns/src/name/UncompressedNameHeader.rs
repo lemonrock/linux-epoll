@@ -2,33 +2,34 @@
 // Copyright © 2019 The developers of linux-epoll. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/linux-epoll/master/COPYRIGHT.
 
 
-pub(crate) trait UnsafeCastMut: UnsafeCast
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct UncompressedNameHeader
 {
-	#[inline(always)]
-	fn as_usize_pointer_mut(&mut self) -> usize
-	{
-		self as *mut Self as *mut () as usize
-	}
+	pointer_to_label: usize,
 
-	#[inline(always)]
-	fn unsafe_cast_mut<To>(&mut self) -> &mut To
-	{
-		unsafe { &mut * (self.as_usize_pointer_mut() as *mut To) }
-	}
+	/// This *includes* the root label.
+	number_of_labels: u8,
 
-	#[inline(always)]
-	fn unsafe_cast_mut_non_null<To>(&mut self) -> NonNull<To>
-	{
-		unsafe { NonNull::new_unchecked(self.as_usize_pointer_mut() as *mut To) }
-	}
-
-	#[inline(always)]
-	fn unsafe_cast_slice_mut<To>(&mut self, length: usize) -> &mut [To]
-	{
-		unsafe { from_raw_parts_mut(self.unsafe_cast_mut::<To>(), length) }
-	}
+	/// This *includes* the root label.
+	name_length: u8,
 }
 
-impl<T> UnsafeCastMut for T
+impl UncompressedNameHeader
 {
+	#[inline(always)]
+	fn new(pointer_to_label: usize, number_of_labels: u8, name_length: u8) -> Self
+	{
+		Self
+			{
+				pointer_to_label,
+				number_of_labels,
+				name_length,
+			}
+	}
+
+	#[inline(always)]
+	fn iterator<'message>(&self) -> WithoutCompressionParsedNameIterator<'message>
+	{
+		WithoutCompressionParsedNameIterator::new(self.pointer_to_label)
+	}
 }

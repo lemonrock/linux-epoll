@@ -5,7 +5,11 @@
 use super::*;
 
 
+include!("AnswerOutcome.rs");
+include!("AuthorityResourceRecordVisitor.rs");
+include!("CanonicalNameChain.rs");
 include!("DiscardingResourceRecordVisitor.rs");
+include!("NegativeCachingTimeToLiveInSeconds.rs");
 include!("RequestQueryIdentification.rs");
 include!("ResponseParser.rs");
 include!("ResponseParsingState.rs");

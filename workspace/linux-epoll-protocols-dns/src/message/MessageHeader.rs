@@ -19,17 +19,9 @@ pub(crate) struct MessageHeader
 impl MessageHeader
 {
 	#[inline(always)]
-	pub(crate) fn parse_number_of_entries_in_the_question_section(&self) -> Result<(), DnsProtocolError>
+	pub(crate) fn is_query(&self) -> bool
 	{
-		let number_of_entries_in_the_question_section = self.number_of_entries_in_the_question_section();
-		if likely!(number_of_entries_in_the_question_section == 1)
-		{
-			Ok(())
-		}
-		else
-		{
-			Err(ResponseDoesNotContainExactlyOneQuestion(number_of_entries_in_the_question_section))
-		}
+		message_header.query_response() == MessageType::Query
 	}
 
 	/// `ID` field.

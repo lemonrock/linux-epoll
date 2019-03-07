@@ -7,6 +7,8 @@ macro_rules! parse_bytes_label
 	($length: ident, $current_label_starts_at_pointer: ident, $maximum_for_end_of_name_pointer: ident, $number_of_labels: ident, $name_length: ident) =>
 	{
 		{
+			$number_of_labels += 1;
+
 			let is_terminal_root_label = $length == 0;
 			if unlikely!(is_terminal_root_label)
 			{
@@ -32,8 +34,6 @@ macro_rules! parse_bytes_label
 			}
 
 			convert_to_ascii_lower_case($current_label_starts_at_pointer, next_label_starts_at_pointer);
-
-			$number_of_labels += 1;
 
 			debug_assert!($length <= MaximumSizeOfLabelExcludingTrailingPeriod, "$label `{}` exceeds MaximumSizeOfLabelExcludingTrailingPeriod `{}`", $length, MaximumSizeOfLabelExcludingTrailingPeriod);
 

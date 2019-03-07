@@ -4,7 +4,7 @@
 
 /// A `SRV` record.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Service<'a>
+pub struct ServiceLocation<'a>
 {
 	/// Priority.
 	///

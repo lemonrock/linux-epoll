@@ -39,3 +39,17 @@ impl<'message> Iterator for WithCompressionParsedNameIterator<'message>
 		}
 	}
 }
+
+impl<'message> WithCompressionParsedNameIterator<'message>
+{
+	#[inline(always)]
+	pub(crate) fn new(pointer_to_label: usize, start_of_message_pointer: usize) -> Self
+	{
+		Self
+		{
+			pointer_to_label,
+			marker: PhantomData,
+			start_of_message_pointer,
+		}
+	}
+}

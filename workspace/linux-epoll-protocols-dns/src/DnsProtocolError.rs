@@ -6,6 +6,15 @@
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum DnsProtocolError
 {
+	/// A nameserver (`NS`) record in the authority section is not for the final name in a canonical name chain.
+	NameServerRecordInAuthoritySectionIsNotForFinalNameInCanonicalNameChain,
+
+	/// A start-of-authority (`SOA`) record in the authority section is not for the final name in a canonical name chain.
+	StartOfAuthorityRecordInAuthoritySectionIsNotForFinalNameInCanonicalNameChain,
+
+	/// A response was for an unknown request.
+	ResponseWasForAnUnknownRequest(MessageIdentifier),
+
 	/// A resource record was a duplicate (the same name, data type and resource data).
 	DuplicateResourceRecord(DataType),
 
@@ -45,8 +54,11 @@ pub enum DnsProtocolError
 	/// Response did not have the EDNS(0) DNSSEC OK (`DO`) bit set.
 	ResponseIgnoredDnsSec,
 
-	/// Response was authoritative (`AD` bit is set) but also has the authenticated data (`AD`) bit set; this is not possible, as an authoritative name server can not authenticate its own signatures!
+	/// Response was authoritative (`AA` bit is set) but also has the authenticated data (`AD`) bit set; this is not possible, as an authoritative name server can not authenticate its own signatures!
 	ResponseWasAuthoritativeButHasTheAuthoritativeDataBitSet,
+
+	/// Response was authoritative (`AA` bit is set), the error code (`RCODE`) was `NXDOMAIN` but the answer section contained one or more answers (excluding `CNAME` and `DNAME` resource records).
+	ResponseWasAuthoritativeWithNoSuchDomainErrorCodeButContainsAnAnswer,
 
 	/// We produced a bad query; we didn't.
 	MessageResponseCodeWasFormatError,
@@ -57,6 +69,10 @@ pub enum DnsProtocolError
 	/// This should not occur.
 	MessageResponseCodeWasNonExistentDomainForANonAuthoritativeServer,
 
+	/// Rare; indicates a server does not support a particular DNS OpCode.
+	///
+	/// Since every server should support the `Query` OpCde, this is pretty fatal.
+	///
 	/// Can occur also when using a server that doesn't support DNSSEC.
 	MessageResponseCodeWasNotImplemented,
 

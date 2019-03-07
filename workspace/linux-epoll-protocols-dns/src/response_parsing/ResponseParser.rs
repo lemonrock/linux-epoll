@@ -27,7 +27,170 @@ pub struct OutstandingRequests<'a>
 	requests_by_identifier: HashMap<MessageIdentifier, (RequestQueryIdentification, RequestQuery<'a>)>
 }
 
-impl<'a> OutstandingRequests<'a>
+macro_rules! validate_number_of_entries_in_the_question_section_is_one
+{
+	($message_header: ident) =>
+	{
+		{
+			let number_of_entries_in_the_question_section = $message_header.number_of_entries_in_the_question_section();
+			if unlikely!(number_of_entries_in_the_question_section != 1)
+			{
+				return Err(ResponseDoesNotContainExactlyOneQuestion(number_of_entries_in_the_question_section))
+			}
+		}
+	}
+}
+
+macro_rules! validate_is_response
+{
+	($message_header: ident) =>
+	{
+		if unlikely!($message_header.is_query())
+		{
+			return Err(ResponseWasAQuery)
+		}
+	}
+}
+
+macro_rules! validate_opcode
+{
+	($message_header: ident) =>
+	{
+		match $message_header.raw_opcode()
+		{
+			MessageOpcode::Query => (),
+			MessageOpcode::InverseQuery => return Err(InvalidResponseOpcode(MessageOpcode::InverseQuery)),
+			MessageOpcode::Status => return Err(InvalidResponseOpcode(MessageOpcode::Status)),
+			opcode @ 3 => return Err(UnassignedResponseOpcode(opcode)),
+			MessageOpcode::Notify => return Err(InvalidResponseOpcode(MessageOpcode::Notify)),
+			MessageOpcode::Update => return Err(InvalidResponseOpcode(MessageOpcode::Update)),
+			MessageOpcode::DnsStatefulOperations => return Err(InvalidResponseOpcode(MessageOpcode::DnsStatefulOperations)),
+			opcode @ 7 ... 15 => return Err(UnassignedResponseOpcode(opcode)),
+			_ => unreachable!(),
+		}
+	}
+}
+
+macro_rules! validate_reserved_header_bits_are_zero
+{
+	($message_header: ident) =>
+	{
+		if unlikely!(!$message_header.z())
+		{
+			return Err(ResponseUsedReservedHeaderBits)
+		}
+	}
+}
+
+macro_rules! validate_response_is_not_truncated
+{
+	($message_header: ident) =>
+	{
+		if unlikely!(!$message_header.is_truncated())
+		{
+			return Err(ResponseIsTruncated)
+		}
+	}
+}
+
+macro_rules! validate_recursion_desired_bit_was_copied_from_query_and_is_one
+{
+	($message_header: ident) =>
+	{
+		if unlikely!(!$message_header.recursion_desired())
+		{
+			return Err(ResponseFailedToCopyRecursionDesiredBit)
+		}
+	}
+}
+
+macro_rules! validate_checking_bit_was_copied_from_query_and_is_zero
+{
+	($message_header: ident) =>
+	{
+		if unlikely!(!$message_header.recursion_desired())
+		{
+			return Err(ResponseFailedToCopyCheckingDisabledBit)
+		}
+	}
+}
+
+macro_rules! validate_authentic_answers_do_not_have_authoritative_data_bit_set
+{
+	($message_header: ident) =>
+	{
+		{
+			let is_authoritative_answer = $message_header.authoritative_answer();
+			let is_authenticated_data = $message_header.authentic_data();
+
+			if unlikely!(is_authoritative_answer)
+			{
+				if unlikely!(is_authenticated_data)
+				{
+					return Err(ResponseWasAuthoritativeButHasTheAuthoritativeDataBitSet)
+				}
+			}
+			(is_authoritative_answer, is_authenticated_data)
+		}
+	}
+}
+
+macro_rules! validate_message_response_code
+{
+	($message_header: ident, $is_authoritative_answer: ident, $is_authenticated_data: ident) =>
+	{
+		{
+			use self::Outcome::*;
+
+			match message_header.raw_response_code()
+			{
+				MessageResponseCode::NoError => Normal,
+
+				MessageResponseCode::FormatError => return Err(MessageResponseCodeWasFormatError),
+
+				MessageResponseCode::ServerFailure => if unlikely!(!$is_authenticated_data)
+				{
+					return Ok(DnsSecDataFailedAuthentication)
+				}
+				else
+				{
+					return Err(MessageResponseCodeWasServerFailure)
+				},
+
+				MessageResponseCode::NonExistentDomain => if unlikely!($is_authoritative_answer)
+				{
+					AuthoritativeServerReportsNoDomainButThisIsNotValidated
+				}
+				else
+				{
+					return Err(MessageResponseCodeWasNonExistentDomainForANonAuthoritativeServer)
+				},
+
+				MessageResponseCode::NotImplemented => return Err(MessageResponseCodeWasNotImplemented),
+
+				MessageResponseCode::Refused => return Err(MessageResponseCodeWasRefused),
+
+				MessageResponseCode::NameExistsWhenItShouldNot => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::NameExistsWhenItShouldNot)),
+
+				MessageResponseCode::ResourceRecordSetExistsWhenItShouldNot => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::ResourceRecordSetExistsWhenItShouldNot)),
+
+				MessageResponseCode::ResourceRecordSetThatShouldExistDoesNot => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::ResourceRecordSetThatShouldExistDoesNot)),
+
+				MessageResponseCode::ServerNotAuthoritativeForZoneOrNotAuthorized => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::ServerNotAuthoritativeForZoneOrNotAuthorized)),
+
+				MessageResponseCode::NameNotContainedInZone => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::NameNotContainedInZone)),
+
+				MessageResponseCode::DnsStatefulOperationsTypeNotImplemented => return Err(MessageResponseCodeShouldNotBeDnsStatefulOperationsTypeNotImplemented),
+
+				response_code @ 12 ... 15 => return Err(MessageResponseCodeUnassigned(response_code)),
+
+				_ => unreachable!(),
+			}
+		}
+	}
+}
+
+impl<'message> OutstandingRequests<'message>
 {
 	pub fn parse_slice_after_trimming_tcp_message_size_bytes<'message>(&mut self, raw_message: &'message mut [u8]) -> Result<Outcome, DnsProtocolError>
 	{
@@ -37,20 +200,29 @@ impl<'a> OutstandingRequests<'a>
 		let identifier = message_header.identifier();
 		let (request_query_identification, request_query) = match self.requests_by_identifier.remove(&identifier)
 		{
-			// TODO: Add this DnsProtocolError!
-			// This MAY be possible for timed-out queries we later throw away, but I suspect a better technique if a query times out is to just discard the entire set of outstanding requests and re-init the connection.
-			None => panic!("FIX ME"),
+			// TODO: This MAY be possible for timed-out queries we later throw away, but I suspect a better technique if a query times out is to just discard the entire set of outstanding requests and re-init the connection.
 
-			//return Err(ResponseWasForAnUnknownRequest(identifier)),
+			// RFC 2308 Section 7.1: "In either case a resolver MAY cache a server failure response.
+			// If it does so it MUST NOT cache it for longer than five (5) minutes, and it MUST be cached against the specific query tuple <query name, type, class, server IP address>".
+
+			// RFC 2308 Section 7.2: "A server may be deemed to be dead or unreachable if it has not responded to an outstanding query within 120 seconds.
+			// ...
+			// A server MAY cache a dead server indication.
+			// If it does so it MUST NOT be deemed dead for longer than five (5) minutes".
+			None => return Err(ResponseWasForAnUnknownRequest(identifier)),
+
 			Some((request_query_identification, request_query)) => (request_query_identification, request_query),
 		};
 
-		if unlikely!(message_header.query_response() != MessageType::Response)
-		{
-			return Err(ResponseWasAQuery)
-		}
-
-		message_header.parse_number_of_entries_in_the_question_section()?;
+		validate_is_response!(message_header);
+		validate_number_of_entries_in_the_question_section_is_one!(message_header);
+		validate_opcode!(message_header);
+		validate_reserved_header_bits_are_zero!(message_header);
+		validate_response_is_not_truncated!(message_header);
+		validate_recursion_desired_bit_was_copied_from_query_and_is_one!(message_header);
+		validate_checking_bit_was_copied_from_query_and_is_zero!(message_header);
+		let (is_authoritative_answer, is_authenticated_data) = validate_authentic_answers_do_not_have_authoritative_data_bit_set!(message_header);
+		let outcome = validate_message_response_code!(message_header, is_authoritative_answer, is_authenticated_data);
 
 		let start_of_message_pointer = raw_message.start_pointer();
 		let end_of_message_pointer = raw_message.end_pointer();
@@ -58,287 +230,7 @@ impl<'a> OutstandingRequests<'a>
 
 		let (next_resource_record_pointer, data_type) = message.message_body_as_query_section_entry().parse_response(&mut parsed_labels, end_of_message_pointer, request_query_identification)?;
 
-		macro_rules! validate_opcode
-		{
-			($message_header: ident) =>
-			{
-				match $message_header.raw_opcode()
-				{
-					MessageOpcode::Query => (),
-					MessageOpcode::InverseQuery => return Err(InvalidResponseOpcode(MessageOpcode::InverseQuery)),
-					MessageOpcode::Status => return Err(InvalidResponseOpcode(MessageOpcode::Status)),
-					opcode @ 3 => return Err(UnassignedResponseOpcode(opcode)),
-					MessageOpcode::Notify => return Err(InvalidResponseOpcode(MessageOpcode::Notify)),
-					MessageOpcode::Update => return Err(InvalidResponseOpcode(MessageOpcode::Update)),
-					MessageOpcode::DnsStatefulOperations => return Err(InvalidResponseOpcode(MessageOpcode::DnsStatefulOperations)),
-					opcode @ 7 ... 15 => return Err(UnassignedResponseOpcode(opcode)),
-					_ => unreachable!(),
-				}
-			}
-		}
-		validate_opcode!(message_header);
 
-		if unlikely!(!message_header.z())
-		{
-			return Err(ResponseUsedReservedHeaderBits)
-		}
-
-		if unlikely!(message_header.is_truncated())
-		{
-			return Err(ResponseIsTruncated)
-		}
-
-		if unlikely!(!message_header.recursion_desired())
-		{
-			return Err(ResponseFailedToCopyRecursionDesiredBit)
-		}
-
-		if unlikely!(message_header.checking_disabled())
-		{
-			return Err(ResponseFailedToCopyCheckingDisabledBit)
-		}
-
-		let is_authoritative_answer = message_header.authoritative_answer();
-		let is_authenticated_data = message_header.authentic_data();
-
-		if unlikely!(is_authoritative_answer)
-		{
-			if unlikely!(message_header.authentic_data())
-			{
-				return Err(ResponseWasAuthoritativeButHasTheAuthoritativeDataBitSet)
-			}
-		}
-
-		macro_rules! validate_message_response_code
-		{
-			($message_header: ident, $is_authenticated_data: ident, $is_authoritative_answer: ident) =>
-			{
-				{
-					use self::Outcome::*;
-
-					match message_header.raw_response_code()
-					{
-						MessageResponseCode::NoError => Normal,
-
-						MessageResponseCode::FormatError => return Err(MessageResponseCodeWasFormatError),
-
-						MessageResponseCode::ServerFailure => if unlikely!(!$is_authenticated_data)
-						{
-							return Ok(DnsSecDataFailedAuthentication)
-						}
-						else
-						{
-							return Err(MessageResponseCodeWasServerFailure)
-						},
-
-						MessageResponseCode::NonExistentDomain => if unlikely!($is_authoritative_answer)
-						{
-							AuthoritativeServerReportsNoDomainButThisIsNotValidated
-						}
-						else
-						{
-							return Err(MessageResponseCodeWasNonExistentDomainForANonAuthoritativeServer)
-						},
-
-						MessageResponseCode::NotImplemented => return Err(MessageResponseCodeWasNotImplemented),
-
-						MessageResponseCode::Refused => return Err(MessageResponseCodeWasRefused),
-
-						MessageResponseCode::NameExistsWhenItShouldNot => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::NameExistsWhenItShouldNot)),
-
-						MessageResponseCode::ResourceRecordSetExistsWhenItShouldNot => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::ResourceRecordSetExistsWhenItShouldNot)),
-
-						MessageResponseCode::ResourceRecordSetThatShouldExistDoesNot => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::ResourceRecordSetThatShouldExistDoesNot)),
-
-						MessageResponseCode::ServerNotAuthoritativeForZoneOrNotAuthorized => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::ServerNotAuthoritativeForZoneOrNotAuthorized)),
-
-						MessageResponseCode::NameNotContainedInZone => return Err(MessageResponseCodeShouldNotBeDynamicDnsAssociated(MessageResponseCode::NameNotContainedInZone)),
-
-						MessageResponseCode::DnsStatefulOperationsTypeNotImplemented => return Err(MessageResponseCodeShouldNotBeDnsStatefulOperationsTypeNotImplemented),
-
-						response_code @ 12 ... 15 => return Err(MessageResponseCodeUnassigned(response_code)),
-
-						_ => unreachable!(),
-					}
-				}
-			}
-		}
-
-		let outcome = validate_message_response_code!(message_header, is_authenticated_data, is_authoritative_answer);
-
-
-
-// in practice, we'll implement dedicated handlers for the various resource records of interest.
-// A, AAAA, NS (no CNAMEs allowed), SOA, PTR (mostly useless on the modern internet), SRV, MX, ?KX, IPSECKEY, LOC, URI, CAA, TXT
-
-// NS, SOA, PTR, MX, ?KX, SRV are not allowed to be aliases.
-// Looking up A can give a CNAME.
-// Looking up AAAA can give a CNAME.
-// Looking up PTR can give a CNAME.
-
-
-		// Look for the presence of a SOA record; use its minimum TTL or TTL (whichever is lower) to cache a negative response, with may be a sensible cap ontop, eg 1 hour, 5 minutes, etc.
-		// See https://tools.ietf.org/html/rfc2308 Section 2.2 for various permutations; a CNAME (and presumably DNAME) is allowed in the answer section. This accommodates the lack of IPv6 for the cloudflare blog.
-		// SOA name will be for the resolved CNAME (ie right-hand-side of CNAME) less host name or the original QNAME.
-		// eg AAAA for blog.cloudflare.com CNAME cloudflare.ghost.io and  ghost.io SOA sara.ns.cloudflare.com ...
-		// eg AAAA for cloudflare.ghost.io give no answers and   ghost.io SOA sara.ns.cloudflare.com ...
-
-		// 3 types of negative NODATA response and a 4th which is a referral; all have to be inferred.
-		// Negative responses without SOA records SHOULD NOT be cached.
-
-		// Just about anything can be CNAME'd (DNAME'd), although it would seem odd for a SRV record to be redirected to _udp from _tcp.
-
-		// PTR: Not supported - use https://securitytrails.com instead. It is useless for a security check and is often wrong.
-
-		// CNAME chain limits; BIND uses 16 (and also to detect loops).
-
-		/*
-			query for A, get back bunch of A
-				- hash_map.insert(A, As);
-
-			query for A, get back just a CNAME
-				- hash_map.insert(A, CNAME)
-				- do a further query; need to be careful with circular CNAME chains and long CNAME chains
-
-			query for A, get back CNAME and a bunch of As
-				- hash_map.insert(A, CNAME)
-				- hash_map.insert(A, As)
-
-			query for A, get back CNAME and SOA in authority section
-				- hash_map.insert(A, CNAME)
-				- hash_map.insert_negative_cache(A, SOA); calculate cache TTL is the lower of RR TTL and the SOA minimum TTL (technically it should be SOA minimum TTL but RR TTL may be short implying the SOA record itself may have become updated)
-
-			struct Cache
-
-		*/
-
-
-		/*
-			NODATA
-
-			For all TYPE1-3 and referral, there may be a CNAME or DNAME.
-
-			TYPE1: In authority: SOA (ns1.xx.) + NS (ns1.xx.)
-			TYPE2: In authority: SOA (ns1.xx.)
-			TYPE3: In authority: nothing
-			REFERRAL: In authority: NS (ns1.xx.) + additional contains some A for NS in authority.
-
-			https://tools.ietf.org/html/rfc2308
-
-			NODATA RESPONSE: TYPE 1.
-           Header:
-               RDCODE=NOERROR
-           Query:
-               ANOTHER.EXAMPLE. A
-           Answer:
-               <empty>
-           Authority:
-               EXAMPLE. SOA NS1.XX. HOSTMASTER.NS1.XX. ....
-               EXAMPLE. NS NS1.XX.
-               EXAMPLE. NS NS2.XX.
-           Additional:
-               NS1.XX. A 127.0.0.2
-               NS2.XX. A 127.0.0.3
-
-
-           NO DATA RESPONSE: TYPE 2.
-           Header:
-               RDCODE=NOERROR
-           Query:
-               ANOTHER.EXAMPLE. A
-           Answer:
-               <empty>
-           Authority:
-               EXAMPLE. SOA NS1.XX. HOSTMASTER.NS1.XX. ....
-           Additional:
-               <empty>
-
-
-           NO DATA RESPONSE: TYPE 3.
-           Header:
-               RDCODE=NOERROR
-           Query:
-               ANOTHER.EXAMPLE. A
-           Answer:
-               <empty>
-           Authority:
-               <empty>
-           Additional:
-               <empty>
-
-
-           REFERRAL RESPONSE.
-           Header:
-               RDCODE=NOERROR
-           Query:
-               ANOTHER.EXAMPLE. A
-           Answer:
-               <empty>
-           Authority:
-               EXAMPLE. NS NS1.XX.
-               EXAMPLE. NS NS2.XX.
-           Additional:
-               NS1.XX. A 127.0.0.2
-               NS2.XX. A 127.0.0.3
-
-		*/
-
-
-//		// expires_at_time = RR TTL + now(); OR lower of RR TTL / SOA min TTL + now();
-//		type ExpiresAtTime = Timespec;
-//
-//		enum CacheEntry<ResourceRecord>
-//		{
-//			Alias(Name), // 'CNAME'. Done properly Name is a Rc or Arc.
-//
-//			NoSuchDomain, // 'SOA'.
-//
-//			Records(Vec<ResourceRecord>), // eg bunch of A records, ought to be sorted.
-//		}
-//
-//		struct Cache
-//		{
-//			cname: HashMap<(Name, DataType), (expires_at_time, CacheEntry<CNAME>)>,
-//			a: HashMap<(Name, DataType), (expires_at_time, CacheEntry<Ipv4Addr>)>,
-//			aaaaa: HashMap<(Name, DataType), (expires_at_time, CacheEntry<Ipv6Addr>)>,
-//			services: HashMap<(Name, DataType), (expires_at_time, CacheEntry<SRV>)>,
-//			uri: HashMap<(Name, DataType), (expires_at_time, CacheEntry<URI>)>,
-//			tlsa: HashMap<(Name, DataType), (expires_at_time, CacheEntry<TLSA>)>,
-//			smimea: HashMap<(Name, DataType), (expires_at_time, CacheEntry<SMIMEA>)>,
-//			// loc, sshfp, openpgpkey, ipseckey, mx, kx
-//			//services HashMap<(Name, DataType), (expires_at_time, CacheEntry<SRV>)>,
-//
-//			// we need some sort of ordering to the inner so that when we reach a fixed capacity we know what to drop.
-//			// use an IndexMap and just drop the last inserted (we've done something like this before).
-//		}
-
-		struct AuthorityResourceRecordVisitor<'a>
-		{
-			marker: PhantomData<&'a ()>,
-		}
-
-		impl ResourceRecordVisitor<'a> for AuthorityResourceRecordVisitor<'a>
-		{
-			#[inline(always)]
-			fn NS(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'a>) -> Result<(), DnsProtocolError>
-			{
-				// Perhaps this should be handled by higher-level code; requires a hash of the resource data.
-
-				/*
-					NAME + TYPE + RDATA
-						ignore CLASS, TTL
-				*/
-
-				Ok(())
-			}
-
-			#[inline(always)]
-			fn SOA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: StartOfAuthority<'a>) -> Result<(), DnsProtocolError>
-			{
-				Ok(())
-			}
-
-		}
 
 		Self::response_record_section_parsing(end_of_message_pointer, next_resource_record_pointer, message_header, &mut parsed_labels, data_type)?;
 
@@ -368,34 +260,56 @@ impl<'a> OutstandingRequests<'a>
 			- May need a client certificate.
 	*/
 
-	fn response_record_section_parsing(end_of_message_pointer: usize, next_resource_record_pointer: usize, message_header: &MessageHeader, parsed_labels: &mut ParsedLabels, data_type: DataType) -> Result<(), DnsProtocolError>
+	fn response_record_section_parsing(end_of_message_pointer: usize, next_resource_record_pointer: usize, message_header: &MessageHeader, parsed_labels: &mut ParsedLabels, data_type: DataType) -> Result<AnswerOutcome, DnsProtocolError>
 	{
-		#[inline(always)]
-		fn loop_over_resource_records(end_of_message_pointer: usize, next_resource_record_pointer: usize, number_of_resource_records: u16, parse_method: impl for<'a> Fn(&mut ResourceRecord, usize) -> Result<usize, DnsProtocolError>) -> Result<usize, DnsProtocolError>
-		{
-			let mut next_resource_record_pointer = next_resource_record_pointer;
-			for _ in 0 .. number_of_resource_records
-			{
-				if unlikely!(next_resource_record_pointer == end_of_message_pointer)
-				{
-					return Err(ResourceRecordsOverflowAnswerSection)
-				}
-				let resource_record = next_resource_record_pointer.unsafe_cast_mut::<ResourceRecord>();
-				next_resource_record_pointer = parse_method(resource_record, end_of_message_pointer)?;
-			}
-			Ok(next_resource_record_pointer)
-		}
+		let mut response_parsing_state = ResponseParsingState::default();
+
+		let (next_resource_record_pointer, canonical_name_chain) = Self::parse_answer_section(end_of_message_pointer, next_resource_record_pointer, message_header, parsed_labels, &mut response_parsing_state, data_type)?;
+
+		let (next_resource_record_pointer, answer_outcome) = Self::parse_authority_section(end_of_message_pointer, next_resource_record_pointer, message_header, parsed_labels, &mut response_parsing_state, canonical_name_chain)?;
+
+		Self::parse_additional_section(end_of_message_pointer, next_resource_record_pointer, message_header, parsed_labels, response_parsing_state)?;
+
+		Ok(answer_outcome)
+	}
+
+	#[inline(always)]
+	fn parse_answer_section<'message>(end_of_message_pointer: usize, next_resource_record_pointer: usize, message_header: &MessageHeader, parsed_labels: &mut ParsedLabels, response_parsing_state: &mut ResponseParsingState, data_type: DataType) -> Result<(usize, CanonicalNameChain<'message>), DnsProtocolError>
+	{
+		let number_of_resource_records = message_header.number_of_resource_records_in_the_authority_records_section();
 
 		// TODO: Fix this.
 		let resource_record_visitor = XXXX;
+		let canonical_name_chain = XXXX;
 
-		let mut response_parsing_state = ResponseParsingState::default();
+		let next_resource_record_pointer = Self::loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, number_of_resource_records, |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_answer_section_resource_record_in_response(data_type, end_of_message_pointer, parsed_labels, &mut resource_record_visitor, response_parsing_state))?;
 
-		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_answer_section(), |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_answer_section_resource_record_in_response(data_type, end_of_message_pointer, parsed_labels, &mut resource_record_visitor, &mut response_parsing_state))?;
 
-		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_authority_records_section(), |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_authority_section_resource_record_in_response(end_of_message_pointer, parsed_labels, &mut resource_record_visitor, &mut response_parsing_state))?;
+		Ok(next_resource_record_pointer, canonical_name_chain)
+	}
 
-		let next_resource_record_pointer = loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, message_header.number_of_resource_records_in_the_additional_records_section(), |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_additional_section_resource_record_in_response(end_of_message_pointer, parsed_labels, &mut DiscardingResourceRecordVisitor::default(), &mut response_parsing_state))?;
+	#[inline(always)]
+	fn parse_authority_section<'message>(end_of_message_pointer: usize, next_resource_record_pointer: usize, message_header: &MessageHeader, parsed_labels: &mut ParsedLabels, response_parsing_state: &mut ResponseParsingState, canonical_name_chain: CanonicalNameChain<'message>) -> Result<(usize, AnswerOutcome), DnsProtocolError>
+	{
+		let number_of_resource_records = message_header.number_of_resource_records_in_the_authority_records_section();
+
+		let mut authority_resource_record_visitor = AuthorityResourceRecordVisitor::new(canonical_name_chain);
+
+		let next_resource_record_pointer = Self::loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, number_of_resource_records, |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_authority_section_resource_record_in_response(end_of_message_pointer, parsed_labels, &mut authority_resource_record_visitor, response_parsing_state))?;
+
+		let answer_outcome = authority_resource_record_visitor.answer_outcome(is_authoritative_answer, has_nxdomain_error_code, answer_section_has_at_least_one_record_of_requested_data_type);
+
+		Ok((next_resource_record_pointer, answer_outcome))
+	}
+
+	#[inline(always)]
+	fn parse_additional_section(end_of_message_pointer: usize, next_resource_record_pointer: usize, message_header: &MessageHeader, parsed_labels: &mut ParsedLabels, mut response_parsing_state: ResponseParsingState) -> Result<(), DnsProtocolError>
+	{
+		let number_of_resource_records = message_header.number_of_resource_records_in_the_additional_records_section();
+
+		let mut discarding_resource_record_visitor = DiscardingResourceRecordVisitor::default();
+
+		let next_resource_record_pointer = Self::loop_over_resource_records(end_of_message_pointer, next_resource_record_pointer, number_of_resource_records, |response_record_section_parsing, resource_record, end_of_message_pointer| resource_record.parse_additional_section_resource_record_in_response(end_of_message_pointer, parsed_labels, &mut discarding_resource_record_visitor, &mut response_parsing_state))?;
 
 		if unlikely!(response_parsing_state.have_yet_to_see_an_edns_opt_resource_record)
 		{
@@ -410,5 +324,21 @@ impl<'a> OutstandingRequests<'a>
 
 			Some(true) => Ok(()),
 		}
+	}
+
+	#[inline(always)]
+	fn loop_over_resource_records(end_of_message_pointer: usize, next_resource_record_pointer: usize, number_of_resource_records: u16, parse_method: impl for<'a> Fn(&mut ResourceRecord, usize) -> Result<usize, DnsProtocolError>) -> Result<usize, DnsProtocolError>
+	{
+		let mut next_resource_record_pointer = next_resource_record_pointer;
+		for _ in 0 .. number_of_resource_records
+		{
+			if unlikely!(next_resource_record_pointer == end_of_message_pointer)
+			{
+				return Err(ResourceRecordsOverflowAnswerSection)
+			}
+			let resource_record = next_resource_record_pointer.unsafe_cast_mut::<ResourceRecord>();
+			next_resource_record_pointer = parse_method(resource_record, end_of_message_pointer)?;
+		}
+		Ok(next_resource_record_pointer)
 	}
 }

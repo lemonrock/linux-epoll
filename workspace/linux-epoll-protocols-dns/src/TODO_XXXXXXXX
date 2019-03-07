@@ -1,3 +1,6 @@
+
+
+
 Outstanding parser issues:-
     - Need to validate the data for DS-Delete when using CDS and CDNSKEY records:-
         "The contents of the CDS or CDNSKEY RRset MUST contain one RR and only
@@ -20,6 +23,80 @@ Outstanding parser issues:-
     - We need to actually occasionally accept the security algos for NSEC3
     - We need to fix the parsing of HIP resource server names.
     - We need to consider supporting compressed names in ALL resource records if we want to work with multicast-DNS.
+
+
+
+// in practice, we'll implement dedicated handlers for the various resource records of interest.
+// A, AAAA, NS (no CNAMEs allowed), SOA, PTR (mostly useless on the modern internet), SRV, MX, ?KX, IPSECKEY, LOC, URI, CAA, TXT
+
+// NS, SOA, PTR, MX, ?KX, SRV are not allowed to be aliases.
+// Looking up A can give a CNAME.
+// Looking up AAAA can give a CNAME.
+// Looking up PTR can give a CNAME.
+//		// expires_at_time = RR TTL + now(); OR lower of RR TTL / SOA min TTL + now();
+//		type ExpiresAtTime = Timespec;
+//
+//		enum CacheEntry<ResourceRecord>
+//		{
+//			Alias(Name), // 'CNAME'. Done properly Name is a Rc or Arc.
+//
+//			NoSuchDomain, // 'SOA'.
+//
+//			Records(Vec<ResourceRecord>), // eg bunch of A records, ought to be sorted.
+//		}
+//
+//		struct Cache
+//		{
+//			cname: HashMap<(Name, DataType), (expires_at_time, CacheEntry<CNAME>)>,
+//			a: HashMap<(Name, DataType), (expires_at_time, CacheEntry<Ipv4Addr>)>,
+//			aaaaa: HashMap<(Name, DataType), (expires_at_time, CacheEntry<Ipv6Addr>)>,
+//			services: HashMap<(Name, DataType), (expires_at_time, CacheEntry<SRV>)>,
+//			uri: HashMap<(Name, DataType), (expires_at_time, CacheEntry<URI>)>,
+//			tlsa: HashMap<(Name, DataType), (expires_at_time, CacheEntry<TLSA>)>,
+//			smimea: HashMap<(Name, DataType), (expires_at_time, CacheEntry<SMIMEA>)>,
+//			// loc, sshfp, openpgpkey, ipseckey, mx, kx
+//			//services HashMap<(Name, DataType), (expires_at_time, CacheEntry<SRV>)>,
+//
+//			// we need some sort of ordering to the inner so that when we reach a fixed capacity we know what to drop.
+//			// use an IndexMap and just drop the last inserted (we've done something like this before).
+//		}
+
+
+		// Look for the presence of a SOA record; use its minimum TTL or TTL (whichever is lower) to cache a negative response, with may be a sensible cap ontop, eg 1 hour, 5 minutes, etc.
+		// See https://tools.ietf.org/html/rfc2308 Section 2.2 for various permutations; a CNAME (and presumably DNAME) is allowed in the answer section. This accommodates the lack of IPv6 for the cloudflare blog.
+		// SOA name will be for the resolved CNAME (ie right-hand-side of CNAME) less host name or the original QNAME.
+		// eg AAAA for blog.cloudflare.com CNAME cloudflare.ghost.io and  ghost.io SOA sara.ns.cloudflare.com ...
+		// eg AAAA for cloudflare.ghost.io give no answers and   ghost.io SOA sara.ns.cloudflare.com ...
+
+		// 3 types of negative NODATA response and a 4th which is a referral; all have to be inferred.
+		// Negative responses without SOA records SHOULD NOT be cached.
+
+		// Just about anything can be CNAME'd (DNAME'd), although it would seem odd for a SRV record to be redirected to _udp from _tcp.
+
+		// PTR: Not supported - use https://securitytrails.com instead. It is useless for a security check and is often wrong.
+
+		// CNAME chain limits; BIND uses 16 (and also to detect loops).
+		// Reworld example: dig www.microsoft.com  (3 CNAMEs, one A record) - but cloudflare returns all CNAMEs in one record.
+
+		/*
+			query for A, get back bunch of A
+				- hash_map.insert(A, As);
+
+			query for A, get back just a CNAME
+				- hash_map.insert(A, CNAME)
+				- do a further query; need to be careful with circular CNAME chains and long CNAME chains
+
+			query for A, get back CNAME and a bunch of As
+				- hash_map.insert(A, CNAME)
+				- hash_map.insert(A, As)
+
+			query for A, get back CNAME and SOA in authority section
+				- hash_map.insert(A, CNAME)
+				- hash_map.insert_negative_cache(A, SOA); calculate cache TTL is the lower of RR TTL and the SOA minimum TTL (technically it should be SOA minimum TTL but RR TTL may be short implying the SOA record itself may have become updated)
+
+			struct Cache
+
+		*/
 
 
 SOA replies
@@ -83,12 +160,17 @@ For A / AAAA queries:-
         - Should be loaded into memory and file-watched;
         The /etc/hosts file accepts alias names
             eg `192.168.1.3     maple maple.trees.com`
+                - maple.trees.com is a CNAME of maple.
 
     Use of /etc/resolv.conf
         http://man7.org/linux/man-pages/man5/resolv.conf.5.html
         LOCALDOMAIN environment variable takes precedence over `search` entry
         RES_OPTIONS takes precedence generally.
         If not present, default is to use 127.0.0.1
+
+        It is possible for there to be more than /etc/resolv.conf file eg
+             /etc/ppp/resolv.conf and /etc/dhcpc/resolv.conf and use the contents of whichever changed last,  giving automatic switching between DNS servers. (eg for computers connecting via PPP or network)
+
 
     Use of /etc/nsswitch.conf
         http://man7.org/linux/man-pages/man5/nsswitch.conf.5.html
@@ -116,6 +198,12 @@ For A / AAAA queries:-
           .corp.
           .home.
           .lan.
+
+    RFC 3484
+        IPv4 sort list
+
+    RFC 6724
+        IPv6 sort list
 
 
     Special validations

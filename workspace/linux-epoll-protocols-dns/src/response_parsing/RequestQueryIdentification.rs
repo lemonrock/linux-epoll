@@ -5,41 +5,28 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct RequestQueryIdentification
 {
-	data_type: DataType,
-	query_name_labels_excluding_root: (u8, Vec<Vec<u8>>),
+	expected_data_type: DataType,
+	expected_query_name: UncompressedName,
 }
 
 impl RequestQueryIdentification
 {
-	pub(crate) fn matches<'a>(&self, qname: WithoutCompressionParsedName<'a>, data_type: DataType) -> Result<(), DnsProtocolError>
+	pub(crate) fn matches<'message>(&self, received_data_type: DataType, received_query_name: WithoutCompressionParsedName<'message>) -> Result<(), DnsProtocolError>
 	{
-		if unlikely!(self.data_type != data_type)
+		if unlikely!(self.data_type != received_data_type)
 		{
 			return Err(ResponseWasForADifferentDataType)
 		}
 
-		if unlikely!(self.query_name_labels_excluding_root.0 != qname.name_length)
+		let expected_query_name = self.expected_query_name.name();
+
+		if likely!(expected_query_name == received_query_name)
 		{
-			return Err(ResponseWasForADifferentName)
+			Ok(())
 		}
-
-		if unlikely!(self.query_name_labels_excluding_root.1.len() != qname.number_of_labels as usize)
+		else
 		{
-			return Err(ResponseWasForADifferentName)
+			Err(ResponseWasForADifferentName)
 		}
-
-		let mut index = 0;
-		for query_label in qname
-		{
-			let expected_label = unsafe { self.query_name_labels_excluding_root.get_unchecked(index) };
-			if unlikely!(&expected_label[..] != query_label)
-			{
-				return Err(ResponseWasForADifferentName)
-			}
-
-			index += 1;
-		}
-
-		Ok(())
 	}
 }

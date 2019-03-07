@@ -23,6 +23,8 @@ include!("LabelsRegister.rs");
 include!("Name.rs");
 include!("ParsedLabelInformation.rs");
 include!("ParsedLabels.rs");
+include!("UncompressedName.rs");
+include!("UncompressedNameHeader.rs");
 include!("UpTo63Bytes.rs");
 include!("UpTo255Bytes.rs");
 include!("WithoutCompressionParsedName.rs");

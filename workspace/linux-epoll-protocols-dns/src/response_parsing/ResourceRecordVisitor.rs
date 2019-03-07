@@ -3,13 +3,13 @@
 
 
 /// Visits different kinds of records.
-pub(crate) trait ResourceRecordVisitor<'a>
+pub(crate) trait ResourceRecordVisitor<'message>
 {
 	/// Visits a record of type `A`.
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn A(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Ipv4Addr) -> Result<(), DnsProtocolError>
+	fn A(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Ipv4Addr) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -18,7 +18,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NS(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'a>) -> Result<(), DnsProtocolError>
+	fn NS(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -27,7 +27,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn SOA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: StartOfAuthority<'a>) -> Result<(), DnsProtocolError>
+	fn SOA(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: StartOfAuthority<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -36,7 +36,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CNAME(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'a>) -> Result<(), DnsProtocolError>
+	fn CNAME(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -45,7 +45,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn PTR(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'a>) -> Result<(), DnsProtocolError>
+	fn PTR(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: WithCompressionParsedName<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -54,7 +54,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn MX(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: MailExchange<'a>) -> Result<(), DnsProtocolError>
+	fn MX(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: MailExchange<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -65,7 +65,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// `HINFO` had been brought back into use by RFC 8482.
 	#[inline(always)]
-	fn HINFO(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: HostInformation<'a>) -> Result<(), DnsProtocolError>
+	fn HINFO(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: HostInformation<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -74,7 +74,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn TXT(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: CharacterStringsIterator) -> Result<(), DnsProtocolError>
+	fn TXT(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: CharacterStringsIterator) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -83,7 +83,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn AAAA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Ipv6Addr) -> Result<(), DnsProtocolError>
+	fn AAAA(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Ipv6Addr) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -92,7 +92,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn LOC(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: &Location) -> Result<(), DnsProtocolError>
+	fn LOC(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: &Location) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -101,7 +101,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn SRV(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Service) -> Result<(), DnsProtocolError>
+	fn SRV(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: ServiceLocation<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -110,7 +110,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NAPTR_domain_name(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithDomainName<'a>) -> Result<(), DnsProtocolError>
+	fn NAPTR_domain_name(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithDomainName<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -119,7 +119,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NAPTR_regular_expression(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithRegularExpression<'a>) -> Result<(), DnsProtocolError>
+	fn NAPTR_regular_expression(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: NamingAuthorityPointerWithRegularExpression<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -128,7 +128,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn KX(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: KeyExchange<'a>) -> Result<(), DnsProtocolError>
+	fn KX(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: KeyExchange<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -137,7 +137,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CERT(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Certificate<'a>) -> Result<(), DnsProtocolError>
+	fn CERT(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Certificate<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -146,7 +146,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CERT_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: CertificateResourceRecordIgnoredBecauseReason)
+	fn CERT_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: CertificateResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -154,7 +154,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DNAME(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: WithoutCompressionParsedName<'a>) -> Result<(), DnsProtocolError>
+	fn DNAME(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: WithoutCompressionParsedName<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -163,7 +163,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DS(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>
+	fn DS(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -172,7 +172,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DS_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DelegationSignerResourceRecordIgnoredBecauseReason)
+	fn DS_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DelegationSignerResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -180,7 +180,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn SSHFP(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: PublicKeyFingerprint<'a>) -> Result<(), DnsProtocolError>
+	fn SSHFP(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: PublicKeyFingerprint<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -189,7 +189,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn SSHFP_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: SshFingerprintResourceRecordIgnoredBecauseReason)
+	fn SSHFP_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: SshFingerprintResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -199,7 +199,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Note that the leading bytes of the exponent and modulus are unchecked for a RSA public key.
 	#[inline(always)]
-	fn IPSECKEY(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: IpsecPublicKey<'a>) -> Result<(), DnsProtocolError>
+	fn IPSECKEY(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: IpsecPublicKey<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -208,7 +208,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn IPSECKEY_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: IpsecKeyResourceRecordIgnoredBecauseReason)
+	fn IPSECKEY_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: IpsecKeyResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -216,7 +216,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NSEC(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: NextSecure<'a>) -> Result<(), DnsProtocolError>
+	fn NSEC(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: NextSecure<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -225,7 +225,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn RRSIG(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: ResourceRecordSetSignature<'a>) -> Result<(), DnsProtocolError>
+	fn RRSIG(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: ResourceRecordSetSignature<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -234,7 +234,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn RRSIG_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason)
+	fn RRSIG_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: ResourceRecordSetSignatureResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -242,7 +242,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DNSKEY(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'a>) -> Result<(), DnsProtocolError>
+	fn DNSKEY(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -251,7 +251,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DNSKEY_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DnsKeyResourceRecordIgnoredBecauseReason)
+	fn DNSKEY_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DnsKeyResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -259,7 +259,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DHCID(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Dhcid<'a>) -> Result<(), DnsProtocolError>
+	fn DHCID(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Dhcid<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -268,7 +268,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn DHCID_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DhcidResourceRecordIgnoredBecauseReason)
+	fn DHCID_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DhcidResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -276,7 +276,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NSEC3(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: NextSecureVersion3<'a>) -> Result<(), DnsProtocolError>
+	fn NSEC3(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: NextSecureVersion3<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -287,7 +287,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NSEC3_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: NextSecureVersion3ResourceRecordIgnoredBecauseReason)
+	fn NSEC3_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: NextSecureVersion3ResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -295,7 +295,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NSEC3PARAM(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: NextSecureVersion3Parameters<'a>) -> Result<(), DnsProtocolError>
+	fn NSEC3PARAM(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: NextSecureVersion3Parameters<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -304,7 +304,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NSEC3PARAM_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: NextSecureVersion3ParametersResourceRecordIgnoredBecauseReason)
+	fn NSEC3PARAM_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: NextSecureVersion3ParametersResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -312,7 +312,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn TLSA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'a>) -> Result<(), DnsProtocolError>
+	fn TLSA(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -321,7 +321,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn TLSA_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
+	fn TLSA_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -329,7 +329,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn SMIMEA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'a>) -> Result<(), DnsProtocolError>
+	fn SMIMEA(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: DnsBasedAuthenticationOfNamedEntities<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -338,7 +338,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn SMIMEA_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
+	fn SMIMEA_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DnsBasedAuthenticationOfNamedEntitiesResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -346,7 +346,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn HIP(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'a>) -> Result<(), DnsProtocolError>
+	fn HIP(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: HostIdentityProtocol<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -355,7 +355,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn HIP_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
+	fn HIP_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: HostIdentityProtocolResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -365,7 +365,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Note that the algorithm `DS-Delete` is NOT validated.
 	#[inline(always)]
-	fn CDNSKEY(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'a>) -> Result<(), DnsProtocolError>
+	fn CDNSKEY(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: DnsKey<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -374,7 +374,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CDNSKEY_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DnsKeyResourceRecordIgnoredBecauseReason)
+	fn CDNSKEY_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DnsKeyResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -384,7 +384,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Note that the algorithm `DS-Delete` is NOT validated.
 	#[inline(always)]
-	fn CDS(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'a>) -> Result<(), DnsProtocolError>
+	fn CDS(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: DelegationSigner<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -393,7 +393,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CDS_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: DelegationSignerResourceRecordIgnoredBecauseReason)
+	fn CDS_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: DelegationSignerResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -401,7 +401,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn OPENPGPKEY(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'a>) -> Result<(), DnsProtocolError>
+	fn OPENPGPKEY(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: OpenPgpRfc4880TransferablePublicKey<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -410,7 +410,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CSYNC(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: ChildSynchronize) -> Result<(), DnsProtocolError>
+	fn CSYNC(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: ChildSynchronize) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -419,7 +419,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CSYNC_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: ChildSynchronizeResourceRecordIgnoredBecauseReason)
+	fn CSYNC_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: ChildSynchronizeResourceRecordIgnoredBecauseReason)
 	{
 	}
 
@@ -427,7 +427,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn NID(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: NodeIdentifier) -> Result<(), DnsProtocolError>
+	fn NID(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: NodeIdentifier) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -436,7 +436,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn L32(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Locator32) -> Result<(), DnsProtocolError>
+	fn L32(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Locator32) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -445,7 +445,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn L64(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Locator64) -> Result<(), DnsProtocolError>
+	fn L64(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Locator64) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -454,7 +454,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn LP(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: LocatorPointer<'a>) -> Result<(), DnsProtocolError>
+	fn LP(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: LocatorPointer<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -463,7 +463,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn EUI48(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: [u8; 6]) -> Result<(), DnsProtocolError>
+	fn EUI48(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: [u8; 6]) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -472,7 +472,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn EUI64(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: [u8; 8]) -> Result<(), DnsProtocolError>
+	fn EUI64(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: [u8; 8]) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -481,7 +481,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn URI(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: Uri<'a>) -> Result<(), DnsProtocolError>
+	fn URI(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: Uri<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -490,7 +490,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CAA(&mut self, name: WithCompressionParsedName<'a>, time_to_live: TimeToLiveInSeconds, record: CertificateAuthorityAuthorization<'a>) -> Result<(), DnsProtocolError>
+	fn CAA(&mut self, name: WithCompressionParsedName<'message>, time_to_live: TimeToLiveInSeconds, record: CertificateAuthorityAuthorization<'message>) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -499,7 +499,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation does nothing.
 	#[inline(always)]
-	fn CAA_ignored(&mut self, _name: WithCompressionParsedName<'a>, _resource_record_ignored_because_reason: CertificateAuthorityAuthorizationResourceRecordIgnoredBecauseReason<'a>)
+	fn CAA_ignored(&mut self, _name: WithCompressionParsedName<'message>, _resource_record_ignored_because_reason: CertificateAuthorityAuthorizationResourceRecordIgnoredBecauseReason<'message>)
 	{
 	}
 
@@ -507,7 +507,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation ignores it.
 	#[inline(always)]
-	fn handle_possible_future_standard(&mut self, _name: WithCompressionParsedName<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _unsupported_resource_record_type: DataType) -> Result<(), DnsProtocolError>
+	fn handle_possible_future_standard(&mut self, _name: WithCompressionParsedName<'message>, _time_to_live: TimeToLiveInSeconds, _record: &'message [u8], _unsupported_resource_record_type: DataType) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
@@ -516,7 +516,7 @@ pub(crate) trait ResourceRecordVisitor<'a>
 	///
 	/// Default implementation ignores it.
 	#[inline(always)]
-	fn unassigned(&mut self, _name: WithCompressionParsedName<'a>, _time_to_live: TimeToLiveInSeconds, _record: &'a [u8], _unassigned_resource_record_type: DataType) -> Result<(), DnsProtocolError>
+	fn unassigned(&mut self, _name: WithCompressionParsedName<'message>, _time_to_live: TimeToLiveInSeconds, _record: &'message [u8], _unassigned_resource_record_type: DataType) -> Result<(), DnsProtocolError>
 	{
 		Ok(())
 	}
